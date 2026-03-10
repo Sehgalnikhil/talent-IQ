@@ -1,4 +1,5 @@
 import express from "express";
+import http from "http";
 import path from "path";
 import cors from "cors";
 import { serve } from "inngest/express";
@@ -10,8 +11,12 @@ import { inngest, functions } from "./lib/inngest.js";
 
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
+import interviewRoutes from "./routes/interview.route.js";
+import userRoutes from "./routes/user.route.js";
+import { initSocket } from "./socket.js";
 
 const app = express();
+const httpServer = http.createServer(app);
 
 const __dirname = path.resolve();
 
@@ -24,9 +29,15 @@ app.use(clerkMiddleware()); // this adds auth field to request object: req.auth(
 app.use("/api/inngest", serve({ client: inngest, functions }));
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/interview", interviewRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ msg: "api is up and running" });
+});
+
+app.get("/", (req, res) => {
+  res.send("Backend API is running. Please access the frontend at http://localhost:5173");
 });
 
 // make our app ready for deployment
@@ -41,7 +52,11 @@ if (ENV.NODE_ENV === "production") {
 const startServer = async () => {
   try {
     await connectDB();
-    app.listen(ENV.PORT, () => console.log("Server is running on port:", ENV.PORT));
+
+    // Initialize WebSockets
+    initSocket(httpServer, ENV.CLIENT_URL);
+
+    httpServer.listen(ENV.PORT, () => console.log("Server is running on port:", ENV.PORT));
   } catch (error) {
     console.error("💥 Error starting the server", error);
   }

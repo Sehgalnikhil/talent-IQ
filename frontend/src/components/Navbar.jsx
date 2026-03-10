@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon } from "lucide-react";
+import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon, TrophyIcon, SwordsIcon } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 
 function Navbar() {
@@ -34,10 +34,9 @@ function Navbar() {
           <Link
             to={"/problems"}
             className={`px-4 py-2.5 rounded-lg transition-all duration-200 
-              ${
-                isActive("/problems")
-                  ? "bg-primary text-primary-content"
-                  : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
+              ${isActive("/problems")
+                ? "bg-primary text-primary-content"
+                : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
               }
               
               `}
@@ -48,21 +47,84 @@ function Navbar() {
             </div>
           </Link>
 
+          {/* EXPLORE DROPDOWN */}
+          <div className="dropdown dropdown-hover">
+            <div tabIndex={0} role="button" className={`px-4 py-2.5 rounded-lg transition-all duration-200 text-base-content/70 hover:bg-base-200 hover:text-base-content flex items-center gap-x-2.5`}>
+              <SparklesIcon className="size-4" />
+              <span className="font-medium hidden sm:inline">Explore</span>
+            </div>
+            <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-300 gap-1">
+              <li>
+                <Link to="/curated" className={isActive("/curated") ? "bg-primary text-primary-content" : ""}>
+                  Curated Tracks
+                </Link>
+              </li>
+              <li>
+                <Link to="/interview" className={isActive("/interview") ? "bg-primary text-primary-content" : ""}>
+                  AI Interview <span className="badge badge-primary badge-xs ml-2">PRO</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/whiteboard" className={isActive("/whiteboard") ? "bg-primary text-primary-content" : ""}>
+                  System Design
+                </Link>
+              </li>
+              <li>
+                <Link to="/playground" className={isActive("/playground") ? "bg-primary text-primary-content" : ""}>
+                  Code Sandbox
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           {/* DASHBORD PAGE LINK */}
           <Link
             to={"/dashboard"}
             className={`px-4 py-2.5 rounded-lg transition-all duration-200 
-              ${
-                isActive("/dashboard")
-                  ? "bg-primary text-primary-content"
-                  : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
+              ${isActive("/dashboard")
+                ? "bg-primary text-primary-content"
+                : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
               }
               
               `}
           >
             <div className="flex items-center gap-x-2.5">
               <LayoutDashboardIcon className="size-4" />
-              <span className="font-medium hidden sm:inline">Dashbord</span>
+              <span className="font-medium hidden sm:inline">Dashboard</span>
+            </div>
+          </Link>
+
+          {/* LEADERBOARD PAGE LINK */}
+          <Link
+            to={"/leaderboard"}
+            className={`px-4 py-2.5 rounded-lg transition-all duration-200 
+              ${isActive("/leaderboard")
+                ? "bg-primary text-primary-content"
+                : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
+              }
+              
+              `}
+          >
+            <div className="flex items-center gap-x-2.5">
+              <TrophyIcon className="size-4" />
+              <span className="font-medium hidden sm:inline">Leaderboard</span>
+            </div>
+          </Link>
+
+          {/* SPEEDRUN PAGE LINK */}
+          <Link
+            to={"/speedrun"}
+            className={`px-4 py-2.5 rounded-lg transition-all duration-200 
+              ${isActive("/speedrun")
+                ? "bg-error text-error-content shadow-lg shadow-error/20"
+                : "hover:bg-base-200 text-base-content/70 hover:text-error hover:shadow-lg"
+              }
+              
+              `}
+          >
+            <div className="flex items-center gap-x-2.5">
+              <SwordsIcon className="size-4 animate-pulse" />
+              <span className="font-medium hidden sm:inline">Speedrun</span>
             </div>
           </Link>
 

@@ -20,6 +20,22 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    problemsSolved: {
+      type: [String],
+      default: [],
+    },
+    points: {
+      type: Number,
+      default: 0,
+    },
+    streak: {
+      type: Number,
+      default: 0,
+    },
+    badge: {
+      type: String,
+      default: "Beginner",
+    },
   },
   { timestamps: true } // createdAt, updatedAt
 );
