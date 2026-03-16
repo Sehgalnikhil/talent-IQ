@@ -18,6 +18,7 @@ import TrackPage from "./pages/TrackPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import GeneratePage from "./pages/GeneratePage";
 import FlashcardPage from "./pages/FlashcardPage";
+import CodeAnalyzerPage from "./pages/CodeAnalyzerPage";
 import CommandPalette from "./components/CommandPalette";
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
         <Route path="/interview" element={isSignedIn ? <InterviewPage /> : <Navigate to={"/"} />} />
         <Route path="/generate" element={isSignedIn ? <GeneratePage /> : <Navigate to={"/"} />} />
         <Route path="/flashcards" element={isSignedIn ? <FlashcardPage /> : <Navigate to={"/"} />} />
+        <Route path="/analyzer" element={isSignedIn ? <CodeAnalyzerPage /> : <Navigate to={"/"} />} />
       </Routes>
 
       <Toaster toastOptions={{ duration: 3000 }} />
