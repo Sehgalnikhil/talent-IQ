@@ -2,12 +2,14 @@ import Navbar from "../components/Navbar";
 import {
     NetworkIcon, Loader2Icon, MousePointer2Icon, PencilIcon,
     EraserIcon, DownloadIcon, Trash2Icon, CircleIcon, SquareIcon,
-    TypeIcon, Share2Icon, Undo2Icon, Redo2Icon, CheckCircleIcon
+    TypeIcon, Share2Icon, Undo2Icon, Redo2Icon, CheckCircleIcon,
+    SparklesIcon, XIcon
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { useSearchParams } from "react-router";
+import axiosInstance from "../lib/axios";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -30,6 +32,25 @@ function WhiteboardPage() {
     const socketRef = useRef(null);
     const otherCursorsRef = useRef({});
 
+    // Feature #14: Live cursor presence
+    const [liveCursors, setLiveCursors] = useState({});
+    const cursorCanvasRef = useRef(null);
+
+    // Feature #13: System Design Component Library
+    const [showComponentLib, setShowComponentLib] = useState(false);
+    const SYSTEM_COMPONENTS = [
+        { id: "database", label: "Database", emoji: "🗄️", color: "#3b82f6", w: 120, h: 60 },
+        { id: "loadbalancer", label: "Load Balancer", emoji: "⚖️", color: "#10b981", w: 130, h: 50 },
+        { id: "cache", label: "Cache (Redis)", emoji: "⚡", color: "#f59e0b", w: 120, h: 50 },
+        { id: "api-gw", label: "API Gateway", emoji: "🚪", color: "#8b5cf6", w: 120, h: 50 },
+        { id: "queue", label: "Message Queue", emoji: "📬", color: "#ef4444", w: 130, h: 50 },
+        { id: "cdn", label: "CDN", emoji: "🌐", color: "#06b6d4", w: 80, h: 50 },
+        { id: "service", label: "Microservice", emoji: "📦", color: "#6366f1", w: 120, h: 60 },
+        { id: "client", label: "Client/User", emoji: "👤", color: "#ec4899", w: 100, h: 50 },
+    ];
+    const [placedComponents, setPlacedComponents] = useState([]);
+    const [draggingComponent, setDraggingComponent] = useState(null);
+
     const [isDrawing, setIsDrawing] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -38,6 +59,10 @@ function WhiteboardPage() {
     const stepRef = useRef(-1);
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
+
+    // AI States
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [aiFeedback, setAiFeedback] = useState(null);
 
     // State for shapes & text
     const startPosRef = useRef({ x: 0, y: 0 });
@@ -101,8 +126,13 @@ function WhiteboardPage() {
         });
 
         socket.on("cursor_move", (data) => {
-            otherCursorsRef.current[data.socketId] = { x: data.x, y: data.y, color: data.color };
-            // A perfect implementation would draw overlay cursors on a separate canvas layer
+            otherCursorsRef.current[data.socketId] = { x: data.x, y: data.y, color: data.color, name: data.name || "Peer" };
+            setLiveCursors({ ...otherCursorsRef.current });
+        });
+
+        socket.on("user_left_whiteboard", (data) => {
+            delete otherCursorsRef.current[data.socketId];
+            setLiveCursors({ ...otherCursorsRef.current });
         });
 
         return () => {
@@ -345,6 +375,35 @@ function WhiteboardPage() {
         });
     };
 
+    const analyzeBoard = async () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        // Generate an opaque white background snapshot so the AI can read it perfectly (otherwise transparent PNGs fail)
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext("2d");
+
+        tempCtx.fillStyle = "#ffffff";
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tempCtx.drawImage(canvas, 0, 0);
+
+        const dataUrl = tempCanvas.toDataURL("image/png");
+
+        setIsAnalyzing(true);
+        setAiFeedback(null);
+        try {
+            const res = await axiosInstance.post("/interview/analyze-diagram", { image: dataUrl });
+            setAiFeedback(res.data.feedback);
+            toast.success("AI Design Assessment Complete!", { icon: "✨" });
+        } catch (err) {
+            toast.error("Failed to map diagram.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     const colors = [
         { name: "Blue", value: "#3b82f6" },
         { name: "Rose", value: "#f43f5e" },
@@ -362,6 +421,40 @@ function WhiteboardPage() {
         { id: "circle", icon: CircleIcon, label: "Circle (C)" },
         { id: "text", icon: TypeIcon, label: "Text (T)" },
     ];
+
+    // Feature #13: Drop handler for dragging components onto canvas
+    const handleCanvasDrop = (e) => {
+        if (!draggingComponent) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const comp = SYSTEM_COMPONENTS.find(c => c.id === draggingComponent);
+        if (!comp) return;
+
+        // Draw the component box on canvas
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.save();
+        ctx.fillStyle = comp.color + "20";
+        ctx.strokeStyle = comp.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - comp.w / 2, y - comp.h / 2, comp.w, comp.h, 10);
+        ctx.fill();
+        ctx.stroke();
+        // Label
+        ctx.fillStyle = comp.color;
+        ctx.font = "bold 13px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText(`${comp.emoji} ${comp.label}`, x, y + 5);
+        ctx.restore();
+        saveState();
+
+        setPlacedComponents(prev => [...prev, { ...comp, x, y }]);
+        setDraggingComponent(null);
+        toast.success(`Placed ${comp.label}!`, { icon: comp.emoji });
+    };
 
     return (
         <div className="h-screen bg-base-200 flex flex-col font-sans selection:bg-primary/30">
@@ -485,10 +578,45 @@ function WhiteboardPage() {
                         <DownloadIcon className="size-4" /> <span className="hidden md:inline">Export</span>
                     </button>
                     <div className="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
-                    <button onClick={shareBoard} className="btn btn-primary btn-sm mx-2 gap-2 shadow-primary/30 shadow-sm px-4 hover:scale-105 transition-transform">
+                    <button
+                        onClick={analyzeBoard}
+                        disabled={isAnalyzing}
+                        className="btn bg-fuchsia-500 hover:bg-fuchsia-600 text-white btn-sm mx-1 border-none gap-2 shadow-fuchsia-500/30 shadow-sm px-4 hover:scale-105 transition-transform"
+                    >
+                        {isAnalyzing ? <Loader2Icon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
+                        <span className="hidden md:inline">{isAnalyzing ? "Analyzing..." : "AI Assessment"}</span>
+                    </button>
+                    <button onClick={shareBoard} className="btn btn-primary btn-sm mx-1 gap-2 shadow-primary/30 shadow-sm px-4 hover:scale-105 transition-transform">
                         <Share2Icon className="size-4" /> <span className="hidden md:inline">Share</span>
                     </button>
+                    <button
+                        onClick={() => setShowComponentLib(!showComponentLib)}
+                        className={`btn btn-sm mx-1 gap-2 px-4 hover:scale-105 transition-transform ${showComponentLib ? 'btn-secondary' : 'btn-ghost text-base-content/70'}`}
+                    >
+                        <NetworkIcon className="size-4" /> <span className="hidden md:inline">Components</span>
+                    </button>
                 </div>
+
+                {/* Feature #13: System Design Component Library Sidebar */}
+                {showComponentLib && (
+                    <div className="absolute right-6 top-24 w-52 bg-base-100/95 backdrop-blur-xl border border-secondary/30 rounded-2xl shadow-2xl z-40 p-4 space-y-2">
+                        <h3 className="font-bold text-sm text-secondary flex items-center gap-2 mb-3">
+                            <NetworkIcon className="size-4" /> System Design
+                        </h3>
+                        <p className="text-[10px] text-base-content/40 mb-2">Drag components onto the canvas</p>
+                        {SYSTEM_COMPONENTS.map(comp => (
+                            <div
+                                key={comp.id}
+                                draggable
+                                onDragStart={() => setDraggingComponent(comp.id)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-base-300 hover:border-secondary/40 cursor-grab active:cursor-grabbing hover:bg-secondary/5 transition-colors"
+                            >
+                                <span className="text-lg">{comp.emoji}</span>
+                                <span className="text-xs font-bold">{comp.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Canvas Area Backdrop */}
                 <div
@@ -504,11 +632,60 @@ function WhiteboardPage() {
                         className="w-full h-full absolute top-0 left-0 bg-transparent"
                         style={{ cursor: activeTool === 'draw' || activeTool === 'eraser' ? 'crosshair' : activeTool === 'rect' || activeTool === 'circle' ? 'crosshair' : activeTool === 'text' ? 'text' : 'pointer' }}
                         onMouseDown={startDrawing}
-                        onMouseMove={draw}
+                        onMouseMove={(e) => {
+                            draw(e);
+                            // Feature #14: Send cursor position
+                            if (socketRef.current && roomId) {
+                                const rect = canvasRef.current.getBoundingClientRect();
+                                socketRef.current.emit("cursor_move", {
+                                    roomId,
+                                    x: e.clientX - rect.left,
+                                    y: e.clientY - rect.top,
+                                    color,
+                                    name: "You"
+                                });
+                            }
+                        }}
                         onMouseUp={stopDrawing}
                         onMouseLeave={stopDrawing}
+                        onDrop={handleCanvasDrop}
+                        onDragOver={(e) => e.preventDefault()}
                     />
+
+                    {/* Feature #14: Live cursor overlays */}
+                    {Object.entries(liveCursors).map(([id, cursor]) => (
+                        <div
+                            key={id}
+                            className="absolute pointer-events-none z-50 transition-all duration-75"
+                            style={{ left: cursor.x, top: cursor.y }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill={cursor.color || "#3b82f6"}>
+                                <path d="M0 0L16 6L9 9L6 16L0 0Z" />
+                            </svg>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-3 -mt-1 inline-block shadow-sm" style={{ background: cursor.color || "#3b82f6", color: '#fff' }}>
+                                {cursor.name}
+                            </span>
+                        </div>
+                    ))}
                 </div>
+
+                {/* AI Diagram Analysis Slide-over */}
+                {aiFeedback && (
+                    <div className="absolute right-6 top-24 bottom-6 w-96 bg-base-100/95 backdrop-blur-xl border border-fuchsia-500/30 rounded-2xl shadow-2xl z-40 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-300">
+                        <div className="flex items-center justify-between p-4 border-b border-base-300 bg-fuchsia-500/10">
+                            <div className="flex items-center gap-2">
+                                <SparklesIcon className="size-5 text-fuchsia-500" />
+                                <h3 className="font-bold text-fuchsia-500">AI Design Analysis</h3>
+                            </div>
+                            <button onClick={() => setAiFeedback(null)} className="btn btn-ghost btn-xs btn-square hover:bg-fuchsia-500/20 text-fuchsia-500">
+                                <XIcon className="size-4" />
+                            </button>
+                        </div>
+                        <div className="p-5 overflow-y-auto flex-1 prose prose-sm max-w-none text-base-content/80 whitespace-pre-wrap">
+                            {aiFeedback.replace(/\*+/g, "") /* Clean up heavy markdown bolding for UI rendering */}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

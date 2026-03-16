@@ -1,10 +1,32 @@
 import { getDifficultyBadgeClass } from "../lib/utils";
 import { useState } from "react";
-import { LightbulbIcon, MessageSquareIcon, HistoryIcon, BookOpenIcon, CheckIcon, ThumbsUpIcon } from "lucide-react";
+import { LightbulbIcon, MessageSquareIcon, HistoryIcon, BookOpenIcon, CheckIcon, ThumbsUpIcon, SparklesIcon, Loader2Icon } from "lucide-react";
+import axiosInstance from "../lib/axios";
+import toast from "react-hot-toast";
 
-function ProblemDescription({ problem, currentProblemId, onProblemChange, allProblems }) {
+function ProblemDescription({ problem, currentProblemId, onProblemChange, allProblems, submissions, onCodeLoad }) {
   const [showHints, setShowHints] = useState(false);
   const [activeTab, setActiveTab] = useState("description"); // description, solutions, submissions
+  const [eli5, setEli5] = useState(null);
+  const [loadingEli5, setLoadingEli5] = useState(false);
+  const [showEli5, setShowEli5] = useState(false);
+
+  const handleELI5 = async () => {
+    if (eli5) { setShowEli5(s => !s); return; }
+    setLoadingEli5(true);
+    try {
+      const res = await axiosInstance.post("/interview/eli5", {
+        problemTitle: problem.title,
+        problemDescription: problem.description?.text
+      });
+      setEli5(res.data);
+      setShowEli5(true);
+    } catch (e) {
+      toast.error("ELI5 failed. Try again.");
+    } finally {
+      setLoadingEli5(false);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-base-200">
@@ -12,9 +34,20 @@ function ProblemDescription({ problem, currentProblemId, onProblemChange, allPro
       <div className="p-6 bg-base-100 border-b border-base-300">
         <div className="flex items-start justify-between mb-3">
           <h1 className="text-3xl font-bold text-base-content">{problem.title}</h1>
-          <span className={`badge ${getDifficultyBadgeClass(problem.difficulty)}`}>
-            {problem.difficulty}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleELI5}
+              disabled={loadingEli5}
+              className="btn btn-xs btn-outline btn-warning gap-1"
+              title="Explain Like I'm 5"
+            >
+              {loadingEli5 ? <Loader2Icon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}
+              ELI5
+            </button>
+            <span className={`badge ${getDifficultyBadgeClass(problem.difficulty)}`}>
+              {problem.difficulty}
+            </span>
+          </div>
         </div>
         <p className="text-base-content/60">{problem.category}</p>
 
@@ -63,6 +96,29 @@ function ProblemDescription({ problem, currentProblemId, onProblemChange, allPro
       <div className="p-6 space-y-6 flex-1 overflow-y-auto">
         {activeTab === "description" && (
           <>
+            {/* Feature #3: ELI5 Card */}
+            {showEli5 && eli5 && (
+              <div className="bg-warning/10 border border-warning/30 rounded-2xl p-5 animate-fadeIn">
+                <div className="flex items-center gap-2 mb-3">
+                  <SparklesIcon className="size-5 text-warning" />
+                  <h3 className="font-bold text-warning">Explain Like I'm 5 🧒</h3>
+                  <button onClick={() => setShowEli5(false)} className="ml-auto btn btn-ghost btn-xs">✕</button>
+                </div>
+                <p className="text-base-content/80 leading-relaxed mb-3">{eli5.explanation}</p>
+                {eli5.analogy && (
+                  <div className="bg-warning/20 rounded-xl px-4 py-2 mb-2">
+                    <span className="text-xs font-bold text-warning">🎯 Analogy: </span>
+                    <span className="text-sm">{eli5.analogy}</span>
+                  </div>
+                )}
+                {eli5.keyInsight && (
+                  <div className="bg-success/10 rounded-xl px-4 py-2">
+                    <span className="text-xs font-bold text-success">💡 Key Insight: </span>
+                    <span className="text-sm">{eli5.keyInsight}</span>
+                  </div>
+                )}
+              </div>
+            )}
             {/* PROBLEM DESC */}
             <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
               <h2 className="text-xl font-bold text-base-content">Description</h2>
@@ -243,28 +299,20 @@ function ProblemDescription({ problem, currentProblemId, onProblemChange, allPro
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="hover">
-                    <td className="font-semibold text-success flex items-center gap-2">
-                      <CheckIcon className="size-4" /> Accepted
-                    </td>
-                    <td>JavaScript</td>
-                    <td className="font-mono text-sm opacity-70">52 ms</td>
-                    <td className="opacity-50 text-sm">Just now</td>
-                  </tr>
-                  <tr className="hover">
-                    <td className="font-semibold text-success flex items-center gap-2">
-                      <CheckIcon className="size-4" /> Accepted
-                    </td>
-                    <td>Python</td>
-                    <td className="font-mono text-sm opacity-70">48 ms</td>
-                    <td className="opacity-50 text-sm">2 days ago</td>
-                  </tr>
-                  <tr className="hover">
-                    <td className="font-semibold text-error text-sm">Runtime Error</td>
-                    <td>JavaScript</td>
-                    <td className="font-mono text-sm opacity-70">N/A</td>
-                    <td className="opacity-50 text-sm">1 week ago</td>
-                  </tr>
+                  {!submissions || submissions.filter(s => s.problemId === currentProblemId).length === 0 ? (
+                    <tr><td colSpan="4" className="text-center py-8 text-base-content/50">No submissions yet. Try running your code!</td></tr>
+                  ) : (
+                    submissions.filter(s => s.problemId === currentProblemId).sort((a, b) => b.timestamp - a.timestamp).map((sub, idx) => (
+                      <tr key={idx} className="hover cursor-pointer" onClick={() => onCodeLoad(sub.code, sub.language)}>
+                        <td className={`font-semibold text-sm flex items-center gap-2 ${sub.status === 'Accepted' ? 'text-success' : 'text-error'}`}>
+                          {sub.status === 'Accepted' ? <CheckIcon className="size-4" /> : null} {sub.status}
+                        </td>
+                        <td>{sub.language}</td>
+                        <td className="font-mono text-sm opacity-70">{sub.timeTaken}</td>
+                        <td className="opacity-50 text-sm">{new Date(sub.timestamp).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

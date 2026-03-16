@@ -67,8 +67,49 @@ export function initSocket(server, clientUrl) {
             }
         });
 
+        socket.on("create_private_match", (data) => {
+            const { userId, name } = data;
+            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            const problemsList = ["two-sum", "valid-parentheses", "merge-two-sorted-lists", "contains-duplicate", "missing-number"];
+            const randomProblem = problemsList[Math.floor(Math.random() * problemsList.length)];
+
+            rooms.set(roomId, {
+                players: {
+                    [socket.id]: { socketId: socket.id, userId, name, progress: 0, code: "", status: "playing" }
+                },
+                problemId: randomProblem,
+                status: "waiting",
+                isPrivate: true
+            });
+
+            socket.join(roomId);
+            socket.emit("private_room_created", roomId);
+            console.log(`Private Match created: ${roomId} by ${name}`);
+        });
+
+        socket.on("join_private_match", (data) => {
+            const { userId, name, roomId } = data;
+            const room = rooms.get(roomId);
+
+            if (room && room.isPrivate && room.status === "waiting") {
+                room.players[socket.id] = { socketId: socket.id, userId, name, progress: 0, code: "", status: "playing" };
+                room.status = "active";
+                socket.join(roomId);
+
+                io.to(roomId).emit("match_found", {
+                    roomId,
+                    problemId: room.problemId,
+                    players: Object.values(room.players)
+                });
+                console.log(`User ${name} joined private match: ${roomId}`);
+            } else {
+                socket.emit("opponent_disconnected", { reason: "Room not found or already full." });
+            }
+        });
+
         // Handle code progress update
-        socket.on("code_update", ({ roomId, code, progress }) => {
+        socket.on("code_update", ({ roomId, code, progress, metrics }) => {
             const room = rooms.get(roomId);
             if (room && room.players[socket.id]) {
                 room.players[socket.id].code = code;
@@ -78,9 +119,20 @@ export function initSocket(server, clientUrl) {
                 socket.to(roomId).emit("opponent_update", {
                     socketId: socket.id,
                     code,
-                    progress
+                    progress,
+                    metrics
                 });
             }
+        });
+
+        // Handle Taunts (emojis/messages)
+        socket.on("send_taunt", ({ roomId, taunt }) => {
+            socket.to(roomId).emit("receive_taunt", taunt);
+        });
+
+        // Handle Sabotage powerups
+        socket.on("send_sabotage", ({ roomId, type }) => {
+            socket.to(roomId).emit("receive_sabotage", type);
         });
 
         // Handle win

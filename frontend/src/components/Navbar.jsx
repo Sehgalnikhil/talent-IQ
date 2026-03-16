@@ -1,13 +1,25 @@
 import { Link, useLocation } from "react-router";
-import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon, TrophyIcon, SwordsIcon } from "lucide-react";
+import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon, TrophyIcon, SwordsIcon, PaletteIcon, SearchIcon } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
+import NotificationCenter from "./NotificationCenter";
+import { useState, useEffect } from "react";
+
+const THEMES = ["dark", "light", "dracula", "nord", "cyberpunk", "synthwave", "night", "sunset"];
 
 function Navbar() {
   const location = useLocation();
+  const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
 
-  console.log(location);
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    localStorage.setItem("talentiq-theme", currentTheme);
+  }, [currentTheme]);
 
   const isActive = (path) => location.pathname === path;
+
+  const handleCmdK = () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+  };
 
   return (
     <nav className="bg-base-100/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-50 shadow-lg">
@@ -30,6 +42,16 @@ function Navbar() {
         </Link>
 
         <div className="flex items-center gap-1">
+          {/* CMD+K SEARCH TRIGGER */}
+          <button
+            onClick={handleCmdK}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-base-200/50 border border-base-300 hover:bg-base-200 transition-colors mr-2 text-base-content/50 text-sm"
+          >
+            <SearchIcon className="size-3.5" />
+            <span>Search...</span>
+            <kbd className="kbd kbd-xs ml-2">⌘K</kbd>
+          </button>
+
           {/* PROBLEMS PAGE LINK */}
           <Link
             to={"/problems"}
@@ -37,9 +59,7 @@ function Navbar() {
               ${isActive("/problems")
                 ? "bg-primary text-primary-content"
                 : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
-              }
-              
-              `}
+              }`}
           >
             <div className="flex items-center gap-x-2.5">
               <BookOpenIcon className="size-4" />
@@ -49,7 +69,7 @@ function Navbar() {
 
           {/* EXPLORE DROPDOWN */}
           <div className="dropdown dropdown-hover">
-            <div tabIndex={0} role="button" className={`px-4 py-2.5 rounded-lg transition-all duration-200 text-base-content/70 hover:bg-base-200 hover:text-base-content flex items-center gap-x-2.5`}>
+            <div tabIndex={0} role="button" className="px-4 py-2.5 rounded-lg transition-all duration-200 text-base-content/70 hover:bg-base-200 hover:text-base-content flex items-center gap-x-2.5">
               <SparklesIcon className="size-4" />
               <span className="font-medium hidden sm:inline">Explore</span>
             </div>
@@ -74,19 +94,27 @@ function Navbar() {
                   Code Sandbox
                 </Link>
               </li>
+              <li>
+                <Link to="/generate" className={isActive("/generate") ? "bg-primary text-primary-content" : ""}>
+                  AI Problem Generator <span className="badge badge-accent badge-xs ml-1">NEW</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/flashcards" className={isActive("/flashcards") ? "bg-primary text-primary-content" : ""}>
+                  Smart Flashcards <span className="badge badge-success badge-xs ml-1">NEW</span>
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* DASHBORD PAGE LINK */}
+          {/* DASHBOARD */}
           <Link
             to={"/dashboard"}
             className={`px-4 py-2.5 rounded-lg transition-all duration-200 
               ${isActive("/dashboard")
                 ? "bg-primary text-primary-content"
                 : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
-              }
-              
-              `}
+              }`}
           >
             <div className="flex items-center gap-x-2.5">
               <LayoutDashboardIcon className="size-4" />
@@ -94,16 +122,14 @@ function Navbar() {
             </div>
           </Link>
 
-          {/* LEADERBOARD PAGE LINK */}
+          {/* LEADERBOARD */}
           <Link
             to={"/leaderboard"}
             className={`px-4 py-2.5 rounded-lg transition-all duration-200 
               ${isActive("/leaderboard")
                 ? "bg-primary text-primary-content"
                 : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
-              }
-              
-              `}
+              }`}
           >
             <div className="flex items-center gap-x-2.5">
               <TrophyIcon className="size-4" />
@@ -111,22 +137,42 @@ function Navbar() {
             </div>
           </Link>
 
-          {/* SPEEDRUN PAGE LINK */}
+          {/* SPEEDRUN */}
           <Link
             to={"/speedrun"}
             className={`px-4 py-2.5 rounded-lg transition-all duration-200 
               ${isActive("/speedrun")
                 ? "bg-error text-error-content shadow-lg shadow-error/20"
                 : "hover:bg-base-200 text-base-content/70 hover:text-error hover:shadow-lg"
-              }
-              
-              `}
+              }`}
           >
             <div className="flex items-center gap-x-2.5">
               <SwordsIcon className="size-4 animate-pulse" />
               <span className="font-medium hidden sm:inline">Speedrun</span>
             </div>
           </Link>
+
+          {/* THEME SELECTOR — Feature #17 */}
+          <div className="dropdown dropdown-end">
+            <div tabIndex={0} role="button" className="btn btn-ghost btn-sm btn-circle">
+              <PaletteIcon className="size-5" />
+            </div>
+            <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-lg bg-base-100 rounded-box w-40 border border-base-300 gap-1">
+              {THEMES.map((theme) => (
+                <li key={theme}>
+                  <button
+                    onClick={() => setCurrentTheme(theme)}
+                    className={`capitalize ${currentTheme === theme ? "bg-primary text-primary-content" : ""}`}
+                  >
+                    {theme}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* NOTIFICATION CENTER — Feature #18 */}
+          <NotificationCenter />
 
           <div className="ml-4 mt-2">
             <UserButton />
