@@ -80,7 +80,7 @@ function detectTimeComplexity(code) {
             color: "text-error",
             badge: "badge-error",
             explanation:
-                "Three or more nested loops detected — cubic time complexity.  Consider restructuring with memoisation or a better data structure.",
+                "Three or more nested loops detected — cubic time complexity.  Consider restructuring with memoization or a better data structure.",
         };
     }
 
@@ -162,14 +162,6 @@ function detectSpaceComplexity(code) {
 
     const hasRecursion = /\breturn\b[^;]*\b\w+\s*\(/.test(code);
 
-    if (hasMatrix) {
-        return {
-            label: "O(n²)",
-            badge: "badge-warning",
-            explanation: "2-D array allocation detected.",
-        };
-    }
-
     if (hasLinearAlloc || hasRecursion) {
         return {
             label: "O(n)",
@@ -243,9 +235,14 @@ function detectCodeSmells(code) {
         });
     }
 
-    // 3. Magic numbers
-    const magicNums = code.match(/(?<![.\d])\b(?!0\b|1\b|2\b)\d{2,}\b(?!\s*[*/]?=)/g);
-    if (magicNums && magicNums.length > 2) {
+    // 3. Magic numbers (exclude 0-9 and common benign values like powers of 2 and round numbers)
+    const COMMON_NUMBERS = new Set([
+        "4", "8", "16", "32", "64", "128", "256", "512", "1024",
+        "10", "100", "1000", "24", "60", "360", "180",
+    ]);
+    const rawMagic = code.match(/(?<![.\d])\b\d{2,}\b(?!\s*[*/]?=)/g) || [];
+    const magicNums = rawMagic.filter((n) => !COMMON_NUMBERS.has(n));
+    if (magicNums.length > 2) {
         smells.push({
             severity: "warning",
             title: "Magic Numbers",
@@ -825,7 +822,7 @@ function CodeAnalyzerPage() {
                             </li>
                             <li>
                                 <strong>Cyclomatic Complexity (McCabe)</strong> — counts every branching
-                                keyword (<code>if / for / while / case / catch / &&  / || / ?</code>) to
+                                keyword (<code>if / for / while / case / catch / && / || / ?</code>) to
                                 measure code testability.
                             </li>
                             <li>
