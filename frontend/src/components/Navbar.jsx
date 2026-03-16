@@ -104,6 +104,11 @@ function Navbar() {
                   Smart Flashcards <span className="badge badge-success badge-xs ml-1">NEW</span>
                 </Link>
               </li>
+              <li>
+                <Link to="/analyzer" className={isActive("/analyzer") ? "bg-primary text-primary-content" : ""}>
+                  Code Analyzer <span className="badge badge-info badge-xs ml-1">LOCAL ML</span>
+                </Link>
+              </li>
             </ul>
           </div>
 

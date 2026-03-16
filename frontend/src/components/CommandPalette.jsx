@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { SearchIcon, ArrowRightIcon, BookOpenIcon, SwordsIcon, BrainCircuitIcon, LayoutDashboardIcon, TrophyIcon, PaletteIcon, SparklesIcon, CodeIcon, PenToolIcon, ZapIcon } from "lucide-react";
+import { SearchIcon, ArrowRightIcon, BookOpenIcon, SwordsIcon, BrainCircuitIcon, LayoutDashboardIcon, TrophyIcon, PaletteIcon, SparklesIcon, CodeIcon, PenToolIcon, ZapIcon, CpuIcon } from "lucide-react";
 import { PROBLEMS } from "../data/problems";
 
 const PAGES = [
@@ -13,6 +13,7 @@ const PAGES = [
     { name: "Leaderboard", path: "/leaderboard", icon: <TrophyIcon className="size-4" />, category: "Navigate" },
     { name: "Whiteboard", path: "/whiteboard", icon: <PenToolIcon className="size-4" />, category: "Navigate" },
     { name: "Code Sandbox", path: "/playground", icon: <CodeIcon className="size-4" />, category: "Navigate" },
+    { name: "Code Analyzer", path: "/analyzer", icon: <CpuIcon className="size-4" />, category: "Navigate" },
 ];
 
 function CommandPalette() {
