@@ -23,6 +23,7 @@ import BehavioralInterviewPage from "./pages/BehavioralInterviewPage";
 import CompanyMockPage from "./pages/CompanyMockPage";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import CommandPalette from "./components/CommandPalette";
+import ClerkAxiosInterceptor from "./components/ClerkAxiosInterceptor";
 
 function App() {
   const { isSignedIn, isLoaded } = useUser();
@@ -43,40 +44,42 @@ function App() {
 
   return (
     <>
-      <Routes>
-        <Route path="/" element={!isSignedIn ? <HomePage /> : <Navigate to={"/dashboard"} />} />
-        <Route path="/onboarding" element={isSignedIn ? <OnboardingPage /> : <Navigate to={"/"} />} />
-        <Route
-          path="/dashboard"
-          element={
-            isSignedIn
-              ? onboardingDone
-                ? <DashboardPage />
-                : <Navigate to="/onboarding" />
-              : <Navigate to={"/"} />
-          }
-        />
-
-        <Route path="/problems" element={isSignedIn ? <ProblemsPage /> : <Navigate to={"/"} />} />
-        <Route path="/problem/:id" element={isSignedIn ? <ProblemPage /> : <Navigate to={"/"} />} />
-        <Route path="/session/:id" element={isSignedIn ? <SessionPage /> : <Navigate to={"/"} />} />
-
-        <Route path="/leaderboard" element={isSignedIn ? <LeaderboardPage /> : <Navigate to={"/"} />} />
-        <Route path="/speedrun" element={isSignedIn ? <SpeedrunPage /> : <Navigate to={"/"} />} />
-        <Route path="/curated" element={isSignedIn ? <StudyTracksPage /> : <Navigate to={"/"} />} />
-        <Route path="/curated/:trackId" element={isSignedIn ? <TrackPage /> : <Navigate to={"/"} />} />
-        <Route path="/whiteboard" element={isSignedIn ? <WhiteboardPage /> : <Navigate to={"/"} />} />
-        <Route path="/playground" element={isSignedIn ? <PlaygroundPage /> : <Navigate to={"/"} />} />
-        <Route path="/interview" element={isSignedIn ? <InterviewPage /> : <Navigate to={"/"} />} />
-        <Route path="/generate" element={isSignedIn ? <GeneratePage /> : <Navigate to={"/"} />} />
-        <Route path="/flashcards" element={isSignedIn ? <FlashcardPage /> : <Navigate to={"/"} />} />
-        
-        {/* New Pro Features */}
-        <Route path="/voice-interview" element={isSignedIn ? <VoiceInterviewPage /> : <Navigate to={"/"} />} />
-        <Route path="/behavioral" element={isSignedIn ? <BehavioralInterviewPage /> : <Navigate to={"/"} />} />
-        <Route path="/company-mock" element={isSignedIn ? <CompanyMockPage /> : <Navigate to={"/"} />} />
-        <Route path="/u/:username" element={<PublicProfilePage />} />
-      </Routes>
+      <ClerkAxiosInterceptor>
+        <Routes>
+          <Route path="/" element={!isSignedIn ? <HomePage /> : <Navigate to={"/dashboard"} />} />
+          <Route path="/onboarding" element={isSignedIn ? <OnboardingPage /> : <Navigate to={"/"} />} />
+          <Route
+            path="/dashboard"
+            element={
+              isSignedIn
+                ? onboardingDone
+                  ? <DashboardPage />
+                  : <Navigate to="/onboarding" />
+                : <Navigate to={"/"} />
+            }
+          />
+  
+          <Route path="/problems" element={isSignedIn ? <ProblemsPage /> : <Navigate to={"/"} />} />
+          <Route path="/problem/:id" element={isSignedIn ? <ProblemPage /> : <Navigate to={"/"} />} />
+          <Route path="/session/:id" element={isSignedIn ? <SessionPage /> : <Navigate to={"/"} />} />
+  
+          <Route path="/leaderboard" element={isSignedIn ? <LeaderboardPage /> : <Navigate to={"/"} />} />
+          <Route path="/speedrun" element={isSignedIn ? <SpeedrunPage /> : <Navigate to={"/"} />} />
+          <Route path="/curated" element={isSignedIn ? <StudyTracksPage /> : <Navigate to={"/"} />} />
+          <Route path="/curated/:trackId" element={isSignedIn ? <TrackPage /> : <Navigate to={"/"} />} />
+          <Route path="/whiteboard" element={isSignedIn ? <WhiteboardPage /> : <Navigate to={"/"} />} />
+          <Route path="/playground" element={isSignedIn ? <PlaygroundPage /> : <Navigate to={"/"} />} />
+          <Route path="/interview" element={isSignedIn ? <InterviewPage /> : <Navigate to={"/"} />} />
+          <Route path="/generate" element={isSignedIn ? <GeneratePage /> : <Navigate to={"/"} />} />
+          <Route path="/flashcards" element={isSignedIn ? <FlashcardPage /> : <Navigate to={"/"} />} />
+          
+          {/* New Pro Features */}
+          <Route path="/voice-interview" element={isSignedIn ? <VoiceInterviewPage /> : <Navigate to={"/"} />} />
+          <Route path="/behavioral" element={isSignedIn ? <BehavioralInterviewPage /> : <Navigate to={"/"} />} />
+          <Route path="/company-mock" element={isSignedIn ? <CompanyMockPage /> : <Navigate to={"/"} />} />
+          <Route path="/u/:username" element={<PublicProfilePage />} />
+        </Routes>
+      </ClerkAxiosInterceptor>
 
       <Toaster toastOptions={{ duration: 3000 }} />
       <CommandPalette />
