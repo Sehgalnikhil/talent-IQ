@@ -446,8 +446,10 @@ Analyze it and respond ONLY in valid JSON:
   "betterApproach": "Optional: describe a more optimal approach if one exists, else null"
 }`;
         const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text().replace(/```json\n?|```/g, "").trim();
-        res.status(200).json(JSON.parse(rawText));
+        const rawText = result.response.text();
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+        res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
         console.error("Code review failed", e);
         res.status(500).json({ error: "Review failed" });
@@ -466,8 +468,10 @@ Problem: "${problemTitle}"
 Description: "${problemDescription?.substring(0, 500)}"
 Respond in JSON: {"explanation": "plain english explanation with analogy", "analogy": "1-line fun comparison", "keyInsight": "the core trick to solve it"}`;
         const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text().replace(/```json\n?|```/g, "").trim();
-        res.status(200).json(JSON.parse(rawText));
+        const rawText = result.response.text();
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+        res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
         console.error("ELI5 failed", e);
         res.status(500).json({ error: "ELI5 failed" });
@@ -486,8 +490,10 @@ User stats: Solved ${solvedCount} problems. Weak areas: ${weakCategories?.join("
 Skill scores: ${JSON.stringify(skillScores || {})}.
 Respond ONLY in JSON: {"plan": [{"day": 1, "theme": "Arrays & Hashing", "tasks": ["Solve 2 Easy arrays", "1 Medium sliding window"], "tip": "motivational tip"}, ...], "weeklyGoal": "summary"}`;
         const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text().replace(/```json\n?|```/g, "").trim();
-        res.status(200).json(JSON.parse(rawText));
+        const rawText = result.response.text();
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+        res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
         console.error("Study plan failed", e);
         res.status(500).json({ error: "Study plan failed" });
@@ -514,11 +520,13 @@ Respond ONLY in JSON:
   "tags": ["Arrays", "Hash Map"]
 }`;
         const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text().replace(/```json\n?|```/g, "").trim();
-        res.status(200).json(JSON.parse(rawText));
+        const rawText = result.response.text();
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+        res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
         console.error("Problem generation failed", e);
-        res.status(500).json({ error: "Generation failed" });
+        res.status(500).json({ error: `Generation failed: ${e.message}` });
     }
 };
 
@@ -535,8 +543,10 @@ User's code: \`\`\`\n${code?.substring(0, 500) || ""}\n\`\`\`
 Notes: "${notes || ""}"
 Respond ONLY in JSON: {"cards": [{"question": "Q?", "answer": "A.", "category": "Algorithm|Complexity|Pattern|Gotcha"}]}`;
         const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text().replace(/```json\n?|```/g, "").trim();
-        res.status(200).json(JSON.parse(rawText));
+        const rawText = result.response.text();
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+        res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
         console.error("Flashcard generation failed", e);
         res.status(500).json({ error: "Flashcard generation failed" });

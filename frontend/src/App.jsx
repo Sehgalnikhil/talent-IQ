@@ -18,6 +18,10 @@ import TrackPage from "./pages/TrackPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import GeneratePage from "./pages/GeneratePage";
 import FlashcardPage from "./pages/FlashcardPage";
+import VoiceInterviewPage from "./pages/VoiceInterviewPage";
+import BehavioralInterviewPage from "./pages/BehavioralInterviewPage";
+import CompanyMockPage from "./pages/CompanyMockPage";
+import PublicProfilePage from "./pages/PublicProfilePage";
 import CommandPalette from "./components/CommandPalette";
 
 function App() {
@@ -66,6 +70,12 @@ function App() {
         <Route path="/interview" element={isSignedIn ? <InterviewPage /> : <Navigate to={"/"} />} />
         <Route path="/generate" element={isSignedIn ? <GeneratePage /> : <Navigate to={"/"} />} />
         <Route path="/flashcards" element={isSignedIn ? <FlashcardPage /> : <Navigate to={"/"} />} />
+        
+        {/* New Pro Features */}
+        <Route path="/voice-interview" element={isSignedIn ? <VoiceInterviewPage /> : <Navigate to={"/"} />} />
+        <Route path="/behavioral" element={isSignedIn ? <BehavioralInterviewPage /> : <Navigate to={"/"} />} />
+        <Route path="/company-mock" element={isSignedIn ? <CompanyMockPage /> : <Navigate to={"/"} />} />
+        <Route path="/u/:username" element={<PublicProfilePage />} />
       </Routes>
 
       <Toaster toastOptions={{ duration: 3000 }} />

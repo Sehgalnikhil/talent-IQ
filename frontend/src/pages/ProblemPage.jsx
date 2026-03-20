@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { PROBLEMS } from "../data/problems";
 import Navbar from "../components/Navbar";
 
@@ -9,14 +9,22 @@ import OutputPanel from "../components/OutputPanel";
 import CodeEditorPanel from "../components/CodeEditorPanel";
 import { executeCode } from "../lib/piston";
 import axiosInstance from "../lib/axios";
+import { AdaptiveDifficulty, StuckDetector } from "../lib/ml-engine";
+import { ProblemMLInsights } from "../components/MLWidgets";
 
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
-import { ClockIcon, TrophyIcon, MessageSquareIcon, SendIcon, Loader2Icon, XIcon, SparklesIcon } from "lucide-react";
+import { ClockIcon, TrophyIcon, MessageSquareIcon, SendIcon, Loader2Icon, XIcon, SparklesIcon, ShieldAlertIcon, ArrowRightIcon } from "lucide-react";
 
 function ProblemPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  const isMock = searchParams.get("strictMode") === "true";
+  const mockCompany = searchParams.get("company");
+  const mockListStr = searchParams.get("mockList");
+  const mockList = mockListStr ? mockListStr.split(",") : [];
 
   const [currentProblemId, setCurrentProblemId] = useState("two-sum");
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
@@ -61,8 +69,9 @@ function ProblemPage() {
       // Load PB
       const pbs = JSON.parse(localStorage.getItem("personalBests") || "{}");
       setPersonalBest(pbs[id] || null);
-      // Reset chat
+      // Reset chat & StuckDetector
       setChatMessages([]);
+      StuckDetector.reset();
     }
   }, [id, selectedLanguage]);
 
@@ -141,6 +150,9 @@ function ProblemPage() {
         if (!solved.includes(currentProblemId)) {
           localStorage.setItem("solvedProblems", JSON.stringify([...solved, currentProblemId]));
         }
+        
+        // ML: Record adaptive difficulty success
+        AdaptiveDifficulty.recordAttempt(currentProblemId, currentProblem.difficulty, true, timerSeconds);
       } else {
         toast.error("Tests failed. Check your output!");
       }
@@ -173,8 +185,23 @@ function ProblemPage() {
       const updatedSubmissions = [...submissions, newSubmission];
       setSubmissions(updatedSubmissions);
       localStorage.setItem("pastSubmissions", JSON.stringify(updatedSubmissions));
+      
+      // ML: Record adaptive difficulty failure
+      AdaptiveDifficulty.recordAttempt(currentProblemId, currentProblem.difficulty, false, timerSeconds);
     }
     setIsRunning(false);
+  };
+
+  const handleNextMockProblem = () => {
+    const currentIndex = mockList.indexOf(currentProblemId);
+    if (currentIndex < mockList.length - 1) {
+      const nextProb = mockList[currentIndex + 1];
+      toast.success(`Moving to next problem: ${nextProb}`);
+      navigate(`/problem/${nextProb}?strictMode=true&company=${mockCompany}&mockList=${mockListStr}`);
+    } else {
+      toast.success("Assessment Complete! You nailed it. 🎉", { duration: 5000 });
+      navigate("/dashboard");
+    }
   };
 
   const handleGetAIHint = async () => {
@@ -270,9 +297,21 @@ function ProblemPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowChat(!showChat)} className={`btn btn-xs gap-1 ${showChat ? "btn-primary" : "btn-ghost"}`}>
-            <MessageSquareIcon className="size-3.5" /> AI Assistant
-          </button>
+          {isMock ? (
+             <div className="badge badge-error gap-1 mr-2 px-3 py-3 font-bold">
+               <ShieldAlertIcon className="size-4" /> Strict Mode Active
+             </div>
+          ) : (
+            <button onClick={() => setShowChat(!showChat)} className={`btn btn-xs gap-1 ${showChat ? "btn-primary" : "btn-ghost"}`}>
+              <MessageSquareIcon className="size-3.5" /> AI Assistant
+            </button>
+          )}
+
+          {isMock && output?.testsPassed && (
+            <button onClick={handleNextMockProblem} className="btn btn-sm btn-success gap-2 ml-2 shadow-success/30 shadow-lg animate-pulse">
+              Next Problem <ArrowRightIcon className="size-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -308,7 +347,20 @@ function ProblemPage() {
                     isRefactoring={isRefactoring}
                     isEvaluating={isEvaluating}
                     onLanguageChange={handleLanguageChange}
-                    onCodeChange={setCode}
+                    onCodeChange={(newCode) => {
+                      if (newCode.length < code.length) StuckDetector.recordKeystroke("delete");
+                      else StuckDetector.recordKeystroke("type");
+                      
+                      const analysis = StuckDetector.analyze();
+                      if (analysis.isStuck && !showChat) {
+                        toast("You seem stuck. Opening AI Assistant to help! 🤖", { icon: "🧠" });
+                        setShowChat(true);
+                        setChatMessages([{ role: "ai", text: `I noticed you might be stuck (${analysis.reason}). Need a hint? Let me know where you're confused!` }]);
+                        StuckDetector.reset(); // prevent spam
+                      }
+                      
+                      setCode(newCode);
+                    }}
                     onRunCode={handleRunCode}
                     onGetAIHint={handleGetAIHint}
                     onRefactorCode={handleRefactorCode}
@@ -324,6 +376,23 @@ function ProblemPage() {
                   <OutputPanel output={output} expectedOutput={currentProblem.expectedOutput[selectedLanguage]} problem={currentProblem} />
                 </Panel>
               </PanelGroup>
+            </Panel>
+
+            <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+
+            {/* ML Insights Panel */}
+            <Panel defaultSize={20} minSize={15} maxSize={30}>
+              <div className="h-full bg-base-100 border-l border-base-300 overflow-y-auto w-full max-w-sm">
+                <div className="p-3 border-b border-base-300 font-bold text-sm bg-base-200">
+                  <SparklesIcon className="size-4 inline-block mr-1.5 text-primary" />
+                  AI Execution Intelligence
+                </div>
+                <ProblemMLInsights
+                  problemId={currentProblemId}
+                  code={code}
+                  language={selectedLanguage}
+                />
+              </div>
             </Panel>
           </PanelGroup>
         </div>

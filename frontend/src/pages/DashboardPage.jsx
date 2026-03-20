@@ -14,7 +14,15 @@ import StatsCards from "../components/StatsCards";
 import ActiveSessions from "../components/ActiveSessions";
 import RecentSessions from "../components/RecentSessions";
 import CreateSessionModal from "../components/CreateSessionModal";
-import { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, RecommenderWidget } from "../components/DashboardWidgets";
+import { KarmaWidget, ReadinessWidget, PomodoroWidget } from "../components/DashboardWidgets";
+import { 
+  SpacedRepetitionWidget, 
+  AdaptiveDifficultyWidget, 
+  WeaknessHeatmapWidget, 
+  StudyTimeWidget, 
+  BurnoutWidget, 
+  PatternStatsWidget 
+} from "../components/MLWidgets";
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -348,20 +356,19 @@ function DashboardPage() {
             <RecentSessions sessions={recentSessions} isLoading={loadingRecentSessions} />
           </motion.div>
 
-          {/* ─── New Feature Widgets ─── */}
+          {/* ─── ML Feature Widgets ─── */}
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, type: "spring", stiffness: 100 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
+            <SpacedRepetitionWidget />
+            <AdaptiveDifficultyWidget />
+            <WeaknessHeatmapWidget />
+            <StudyTimeWidget />
+            <BurnoutWidget />
+            <PatternStatsWidget />
             <ReadinessWidget />
             <KarmaWidget />
             <PomodoroWidget />
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, type: "spring", stiffness: 100 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-          >
-            <StudyPlanWidget />
-            <RecommenderWidget />
           </motion.div>
         </div>
       </div>

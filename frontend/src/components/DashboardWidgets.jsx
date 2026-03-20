@@ -170,45 +170,61 @@ export function PomodoroWidget() {
     const [running, setRunning] = useState(false);
     const [mode, setMode] = useState("work"); // work | break
     const [sessions, setSessions] = useState(() => parseInt(localStorage.getItem("pomodoroSessions") || "0"));
-    const [focusMode, setFocusMode] = useState(false);
     const intervalRef = useRef(null);
+    const sessionsRef = useRef(sessions);
+    const modeRef = useRef(mode);
+
+    // Keep refs in sync with state
+    useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
+    useEffect(() => { modeRef.current = mode; }, [mode]);
 
     const MODES = { work: { label: "Focus", duration: 25 * 60, color: "text-error" }, break: { label: "Break", duration: 5 * 60, color: "text-success" } };
 
+    // Pure countdown — only decrements seconds
     useEffect(() => {
         if (running) {
             intervalRef.current = setInterval(() => {
                 setSeconds(s => {
                     if (s <= 1) {
-                        clearInterval(intervalRef.current);
-                        setRunning(false);
-                        if (mode === "work") {
-                            const newSessions = sessions + 1;
-                            setSessions(newSessions);
-                            localStorage.setItem("pomodoroSessions", newSessions);
-                            toast.success(`🍅 Pomodoro complete! Take a break. (${newSessions} total)`);
-                            setMode("break");
-                            return 5 * 60;
-                        } else {
-                            toast("Break over! Back to work 💻");
-                            setMode("work");
-                            return 25 * 60;
-                        }
+                        return 0;
                     }
                     return s - 1;
                 });
             }, 1000);
+        } else {
+            clearInterval(intervalRef.current);
         }
         return () => clearInterval(intervalRef.current);
-    }, [running, mode, sessions]);
+    }, [running]);
+
+    // Handle timer completion — triggers when seconds hits 0 while running
+    useEffect(() => {
+        if (seconds === 0 && running) {
+            clearInterval(intervalRef.current);
+            setRunning(false);
+
+            if (modeRef.current === "work") {
+                const newSessions = sessionsRef.current + 1;
+                setSessions(newSessions);
+                localStorage.setItem("pomodoroSessions", String(newSessions));
+                toast.success(`🍅 Pomodoro complete! Take a break. (${newSessions} total)`);
+                setMode("break");
+                setSeconds(MODES.break.duration);
+            } else {
+                toast("Break over! Back to work 💻");
+                setMode("work");
+                setSeconds(MODES.work.duration);
+            }
+        }
+    }, [seconds, running]);
 
     const reset = () => { clearInterval(intervalRef.current); setRunning(false); setSeconds(MODES[mode].duration); };
-    const switchMode = (m) => { setMode(m); setSeconds(MODES[m].duration); setRunning(false); };
+    const switchMode = (m) => { clearInterval(intervalRef.current); setRunning(false); setMode(m); setSeconds(MODES[m].duration); };
     const min = Math.floor(seconds / 60), sec = seconds % 60;
     const progress = (MODES[mode].duration - seconds) / MODES[mode].duration * 100;
 
     return (
-        <div className={`bg-base-100 rounded-2xl p-5 border border-base-300 shadow-sm ${focusMode ? "ring-2 ring-primary" : ""}`}>
+        <div className="bg-base-100 rounded-2xl p-5 border border-base-300 shadow-sm">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold flex items-center gap-2"><TimerIcon className="size-5 text-primary" /> Pomodoro</h3>
                 <div className="flex gap-1">

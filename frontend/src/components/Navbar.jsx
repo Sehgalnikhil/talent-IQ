@@ -73,15 +73,13 @@ function Navbar() {
               <SparklesIcon className="size-4" />
               <span className="font-medium hidden sm:inline">Explore</span>
             </div>
-            <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-300 gap-1">
+            <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-xl bg-base-100/95 backdrop-blur-md rounded-box w-60 border border-base-300 gap-1">
+              <li>
+                <div className="menu-title mt-2 text-primary font-bold">Training</div>
+              </li>
               <li>
                 <Link to="/curated" className={isActive("/curated") ? "bg-primary text-primary-content" : ""}>
                   Curated Tracks
-                </Link>
-              </li>
-              <li>
-                <Link to="/interview" className={isActive("/interview") ? "bg-primary text-primary-content" : ""}>
-                  AI Interview <span className="badge badge-primary badge-xs ml-2">PRO</span>
                 </Link>
               </li>
               <li>
@@ -101,7 +99,42 @@ function Navbar() {
               </li>
               <li>
                 <Link to="/flashcards" className={isActive("/flashcards") ? "bg-primary text-primary-content" : ""}>
-                  Smart Flashcards <span className="badge badge-success badge-xs ml-1">NEW</span>
+                  Smart Flashcards
+                </Link>
+              </li>
+
+              {/* Advanced Pro Features Section */}
+              <li>
+                <div className="menu-title mt-2 text-error font-bold flex items-center gap-1"><SparklesIcon className="size-3" /> Interview Sims</div>
+              </li>
+              <li>
+                <Link to="/interview" className={isActive("/interview") ? "bg-error text-error-content" : ""}>
+                  FAANG AI Simulator (Code + Voice) <span className="badge badge-error badge-xs ml-1 font-bold text-[10px]">ULTIMATE</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/company-mock" className={isActive("/company-mock") ? "bg-error text-error-content" : ""}>
+                  Company Mock Exams
+                </Link>
+              </li>
+              <li>
+                <Link to="/voice-interview" className={isActive("/voice-interview") ? "bg-error text-error-content" : ""}>
+                  Verbal Audio Interview
+                </Link>
+              </li>
+              <li>
+                <Link to="/behavioral" className={isActive("/behavioral") ? "bg-error text-error-content" : ""}>
+                  STAR Interview Simulator
+                </Link>
+              </li>
+              
+              <li>
+                <div className="menu-title mt-2 text-secondary font-bold">Portfolio</div>
+              </li>
+              <li>
+                {/* using "developer" placeholder if there is no specific clerk username setup available directly here without querying */}
+                <Link to="/u/Developer" className={isActive("/u/Developer") ? "bg-secondary text-secondary-content" : ""}>
+                  My Public Portfolio
                 </Link>
               </li>
             </ul>
