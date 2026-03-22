@@ -59,10 +59,21 @@ function SpeedrunPage() {
     const [activeSabotage, setActiveSabotage] = useState(null);
 
     // Feature #15: ELO Rating
-    const [elo, setElo] = useState(() => parseInt(localStorage.getItem("speedrunElo") || "1200", 10));
+    const [elo, setElo] = useState(1200);
     const [eloChange, setEloChange] = useState(null);
-    const [matchHistory, setMatchHistory] = useState(() => JSON.parse(localStorage.getItem("speedrunHistory") || "[]"));
+    const [matchHistory, setMatchHistory] = useState([]);
     const currentRank = getRank(elo);
+
+    useEffect(() => {
+        axiosInstance.get("/users/stats")
+            .then(res => {
+                if (res.data.speedrun) {
+                    setElo(res.data.speedrun.elo || 1200);
+                    setMatchHistory(res.data.speedrun.history || []);
+                }
+            })
+            .catch(err => console.error("Speedrun Stats fail", err));
+    }, []);
 
     // Sounds and effect refs
     const timerRef = useRef(null);
@@ -121,12 +132,9 @@ function SpeedrunPage() {
             const newElo = Math.max(0, elo + change);
             setEloChange(change);
             setElo(newElo);
-            localStorage.setItem("speedrunElo", String(newElo));
 
             // Track wins for badges
             if (won) {
-                const wins = parseInt(localStorage.getItem("speedrunWins") || "0", 10);
-                localStorage.setItem("speedrunWins", String(wins + 1));
                 canvasConfetti({ particleCount: 200, spread: 180, origin: { y: 0.6 }, zIndex: 9999 });
                 toast.success("You won the match! 🎉");
             } else {
@@ -143,10 +151,19 @@ function SpeedrunPage() {
                 time: matchTime,
                 opponent: opponent?.name || "Unknown"
             };
-            const history = JSON.parse(localStorage.getItem("speedrunHistory") || "[]");
-            history.push(entry);
-            localStorage.setItem("speedrunHistory", JSON.stringify(history));
+            
+            const history = [...matchHistory, entry];
             setMatchHistory(history);
+
+            // 🔥 Production DB Sync
+            axiosInstance.post("/users/metadata/update", {
+                key: "speedrun",
+                value: {
+                    elo: newElo,
+                    wins: won ? 1 : 0, // Wins are processed better by aggregates on queries
+                    history: history
+                }
+            }).catch(err => console.error("Could not save matching weights", err));
         });
 
         socket.on("opponent_disconnected", (data) => {

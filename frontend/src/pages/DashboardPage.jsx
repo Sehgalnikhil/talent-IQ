@@ -14,7 +14,7 @@ import StatsCards from "../components/StatsCards";
 import ActiveSessions from "../components/ActiveSessions";
 import RecentSessions from "../components/RecentSessions";
 import CreateSessionModal from "../components/CreateSessionModal";
-import { KarmaWidget, ReadinessWidget, PomodoroWidget } from "../components/DashboardWidgets";
+import { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget } from "../components/DashboardWidgets";
 import { 
   SpacedRepetitionWidget, 
   AdaptiveDifficultyWidget, 
@@ -52,10 +52,35 @@ function DashboardPage() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [dailyTip, setDailyTip] = useState("");
 
-  // Real data from localStorage
-  const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
-  const submissions = JSON.parse(localStorage.getItem("pastSubmissions") || "[]");
-  const badges = getEarnedBadges();
+  const [solved, setSolved] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [badges, setBadges] = useState([]);
+  
+  // Custom Metadata buckets 
+  const [speedrun, setSpeedrun] = useState({ elo: 1200, wins: 0, history: [] });
+  const [pomodoroSessions, setPomodoroSessions] = useState(0);
+  const [studyPlan, setStudyPlan] = useState(null);
+  const [personalBests, setPersonalBests] = useState({});
+
+  useEffect(() => {
+    // Fetch live data from backend replacing local mocks
+    if (user) {
+        axiosInstance.get("/users/stats")
+            .then(res => {
+                setSolved(res.data.problemsSolved || []);
+                setBadges([res.data.badge || "Beginner"]);
+                setSubmissions(res.data.submissions || []);
+                setSpeedrun(res.data.speedrun || { elo: 1200, wins: 0, history: [] });
+                setPomodoroSessions(res.data.pomodoroSessions || 0);
+                setStudyPlan(res.data.studyPlan || null);
+                setPersonalBests(res.data.personalBests || {});
+            })
+            .catch(err => {
+                console.warn("DB user not initialized yet, falling back to clean state", err);
+                setSolved([]);
+            });
+    }
+  }, [user]);
 
   useEffect(() => {
     const tips = [
@@ -382,9 +407,10 @@ function DashboardPage() {
             <StudyTimeWidget />
             <BurnoutWidget />
             <PatternStatsWidget />
-            <ReadinessWidget />
-            <KarmaWidget />
-            <PomodoroWidget />
+            <ReadinessWidget solved={solved} speedrun={speedrun} submissions={submissions} currentStreak={currentStreak} />
+            <KarmaWidget solved={solved} speedrun={speedrun} currentStreak={currentStreak} />
+            <PomodoroWidget initialSessions={pomodoroSessions} />
+            <StudyPlanWidget initialPlan={studyPlan} solvedCount={solved.length} />
           </motion.div>
         </div>
       </div>

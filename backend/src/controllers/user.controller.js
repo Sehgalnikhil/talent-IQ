@@ -31,8 +31,15 @@ export const getUserStats = async (req, res) => {
         const { clerkId } = req.auth; // Passed from Clerk middleware
         if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
 
-        const user = await User.findOne({ clerkId });
-        if (!user) return res.status(404).json({ error: "User not found" });
+        // Upsert implicitly so we don't break UI for missing backend hooks
+        let user = await User.findOne({ clerkId });
+        if (!user) {
+            user = await User.create({
+                clerkId,
+                name: "Candidate_" + clerkId.substring(clerkId.length - 4),
+                email: clerkId + "@placeholder.com"
+            });
+        }
 
         res.status(200).json({
             name: user.name,
@@ -42,6 +49,14 @@ export const getUserStats = async (req, res) => {
             problems: user.problemsSolved.length,
             profileImage: user.profileImage,
             problemsSolved: user.problemsSolved,
+            // Extended Data Points
+            submissions: user.submissions,
+            personalBests: user.personalBests,
+            flashcards: user.flashcards,
+            aiCustomTracks: user.aiCustomTracks,
+            speedrun: user.speedrun,
+            pomodoroSessions: user.pomodoroSessions,
+            studyPlan: user.studyPlan
         });
     } catch (error) {
         console.error("Stats Error:", error);
@@ -57,8 +72,14 @@ export const updateUserStats = async (req, res) => {
 
         if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
 
-        const user = await User.findOne({ clerkId });
-        if (!user) return res.status(404).json({ error: "User not found" });
+        let user = await User.findOne({ clerkId });
+        if (!user) {
+            user = await User.create({
+                clerkId,
+                name: "Candidate_" + clerkId.substring(clerkId.length - 4),
+                email: clerkId + "@placeholder.com"
+            });
+        }
 
         if (problemId && !user.problemsSolved.includes(problemId)) {
             user.problemsSolved.push(problemId);
@@ -77,5 +98,32 @@ export const updateUserStats = async (req, res) => {
     } catch (error) {
         console.error("Update Stats Error:", error);
         res.status(500).json({ error: "Failed to update user stats" });
+    }
+};
+
+// Generic Live Data Sync 
+export const updateUserMetadata = async (req, res) => {
+    try {
+        const { clerkId } = req.auth;
+        const { key, value } = req.body;
+
+        if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
+
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Update exact key if it exists on expanded schema
+        if (key && value !== undefined) {
+             user[key] = value;
+             // Mark Modified if it's an Object mixed type
+             user.markModified(key);
+             await user.save();
+             return res.status(200).json({ success: true, message: `Updated ${key}` });
+        }
+
+        res.status(400).json({ error: "Missing key or value fields." });
+    } catch (error) {
+        console.error("Metadata Sync Error:", error);
+        res.status(500).json({ error: "Failed to sync metadata." });
     }
 };

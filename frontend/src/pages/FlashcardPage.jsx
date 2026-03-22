@@ -14,7 +14,7 @@ const CATEGORY_COLORS = {
 };
 
 function FlashcardPage() {
-    const [cards, setCards] = useState(() => JSON.parse(localStorage.getItem("flashcards") || "[]"));
+    const [cards, setCards] = useState([]);
     const [mode, setMode] = useState("browse"); // browse | study | add | generate
     const [currentIdx, setCurrentIdx] = useState(0);
     const [flipped, setFlipped] = useState(false);
@@ -27,9 +27,23 @@ function FlashcardPage() {
     const [genCode, setGenCode] = useState("");
     const [generating, setGenerating] = useState(false);
 
-    const saveCards = (updated) => {
+    useEffect(() => {
+         // Load from Production DB 
+         axiosInstance.get("/users/stats")
+            .then(res => setCards(res.data.flashcards || []))
+            .catch(err => console.warn("Failed to load cards", err));
+    }, []);
+
+    const saveCards = async (updated) => {
         setCards(updated);
-        localStorage.setItem("flashcards", JSON.stringify(updated));
+        try {
+            await axiosInstance.post("/users/metadata/update", {
+               key: "flashcards",
+               value: updated
+            });
+        } catch (err) {
+            console.error("Failed to sync flashcards with server", err);
+        }
     };
 
     const dueCards = cards.filter(c => {

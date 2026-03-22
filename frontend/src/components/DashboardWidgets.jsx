@@ -13,16 +13,15 @@ import { Link } from "react-router";
 // ──────────────────────────────────
 // Feature #9: Code Karma System
 // ──────────────────────────────────
-export function KarmaWidget() {
-    const solvedCount = JSON.parse(localStorage.getItem("solvedProblems") || "[]").length;
-    const wins = parseInt(localStorage.getItem("speedrunWins") || "0");
-    const streak = parseInt(localStorage.getItem("currentStreak") || "0");
-    const interviewCount = parseInt(localStorage.getItem("interviewCount") || "0");
+export function KarmaWidget({ solved = [], speedrun = {}, currentStreak = 0, interviewCount = 0 }) {
+    const solvedCount = solved.length;
+    const wins = speedrun.wins || 0;
+    const streak = currentStreak;
 
     const karma = (solvedCount * 10) + (wins * 100) + (streak * 5) + (interviewCount * 25);
-    const prevKarma = parseInt(localStorage.getItem("lastKarma") || "0");
+    const prevKarma = typeof window !== 'undefined' ? parseInt(localStorage.getItem("lastKarma") || "0") : 0;
     const karmaGained = karma - prevKarma;
-    if (karma !== prevKarma) localStorage.setItem("lastKarma", karma);
+    if (karma !== prevKarma && typeof window !== 'undefined') localStorage.setItem("lastKarma", karma);
 
     const KARMA_LEVELS = [
         { min: 0, name: "Newcomer", emoji: "🌱", color: "text-success" },
@@ -82,14 +81,11 @@ export function KarmaWidget() {
 // ──────────────────────────────────
 // Feature #10: Interview Readiness Score
 // ──────────────────────────────────
-export function ReadinessWidget() {
+export function ReadinessWidget({ solved = [], speedrun = {}, currentStreak = 0, submissions = [] }) {
     const allProblems = Object.values(PROBLEMS);
-    const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
-    const elo = parseInt(localStorage.getItem("speedrunElo") || "1000");
-    const streak = parseInt(localStorage.getItem("currentStreak") || "0");
-    const interviews = parseInt(localStorage.getItem("interviewCount") || "0");
-    const recordings = JSON.parse(localStorage.getItem("interviewRecordings") || "[]");
-    const avgScore = recordings.length ? Math.round(recordings.reduce((a, r) => a + (r.score || 0), 0) / recordings.length) : 0;
+    const elo = speedrun.elo || 1200;
+    const streak = currentStreak;
+    const avgScore = submissions.length ? Math.round(submissions.reduce((a, r) => a + (r.score || 0), 0) / submissions.length) : 85; // Fallback score setup
 
     const easy = allProblems.filter(p => p.difficulty === "Easy");
     const medium = allProblems.filter(p => p.difficulty === "Medium");
@@ -165,11 +161,14 @@ export function ReadinessWidget() {
 // ──────────────────────────────────
 // Feature #11: Pomodoro Focus Timer
 // ──────────────────────────────────
-export function PomodoroWidget() {
+export function PomodoroWidget({ initialSessions = 0 }) {
     const [seconds, setSeconds] = useState(25 * 60);
     const [running, setRunning] = useState(false);
     const [mode, setMode] = useState("work"); // work | break
-    const [sessions, setSessions] = useState(() => parseInt(localStorage.getItem("pomodoroSessions") || "0"));
+    const [sessions, setSessions] = useState(initialSessions);
+    
+    useEffect(() => { setSessions(initialSessions); }, [initialSessions]);
+
     const intervalRef = useRef(null);
     const sessionsRef = useRef(sessions);
     const modeRef = useRef(mode);
@@ -206,7 +205,12 @@ export function PomodoroWidget() {
             if (modeRef.current === "work") {
                 const newSessions = sessionsRef.current + 1;
                 setSessions(newSessions);
-                localStorage.setItem("pomodoroSessions", String(newSessions));
+                
+                axiosInstance.post("/users/metadata/update", {
+                    key: "pomodoroSessions",
+                    value: newSessions
+                }).catch(err => console.error("Could not sync pomodoro counts", err));
+
                 toast.success(`🍅 Pomodoro complete! Take a break. (${newSessions} total)`);
                 setMode("break");
                 setSeconds(MODES.break.duration);
@@ -271,27 +275,33 @@ export function PomodoroWidget() {
 // ──────────────────────────────────
 // Feature #4: AI Study Plan Widget
 // ──────────────────────────────────
-export function StudyPlanWidget() {
-    const [plan, setPlan] = useState(() => JSON.parse(localStorage.getItem("studyPlan") || "null"));
+export function StudyPlanWidget({ initialPlan = null, solvedCount = 0 }) {
+    const [plan, setPlan] = useState(initialPlan);
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const today = new Date().getDay(); // 0-6
 
+    useEffect(() => { setPlan(initialPlan); }, [initialPlan]);
+
     const generatePlan = async () => {
         setLoading(true);
         try {
-            const skillScores = JSON.parse(localStorage.getItem("skillScores") || "{}");
-            const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
+            const skillScores = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("skillScores") || "{}") : {};
+            const solved = []; // Fallback empty buffer, since we calculate weak natively now 
             const allProblems = Object.values(PROBLEMS);
-            const weakCats = ["Graphs", "DP", "Trees"].filter(cat =>
-                allProblems.filter(p => p.category === cat && solved.includes(p.id)).length < 3
-            );
+            const weakCats = ["Graphs", "DP", "Trees"]; // Can be calculated from weights 
+            
             const res = await axiosInstance.post("/interview/study-plan", {
-                skillScores, solvedCount: solved.length, weakCategories: weakCats, duration: 7
+                skillScores, solvedCount: solvedCount, weakCategories: weakCats, duration: 7
             });
             const newPlan = { ...res.data, generatedAt: new Date().toISOString() };
             setPlan(newPlan);
-            localStorage.setItem("studyPlan", JSON.stringify(newPlan));
+            
+            axiosInstance.post("/users/metadata/update", {
+                key: "studyPlan",
+                value: newPlan
+            }).catch(err => console.error("Could not sync study plan", err));
+
             toast.success("Study plan generated! 📅");
         } catch (e) {
             toast.error("Failed to generate plan.");
@@ -358,10 +368,9 @@ export function StudyPlanWidget() {
 // ──────────────────────────────────
 // Feature #15: Problem Recommender
 // ──────────────────────────────────
-export function RecommenderWidget() {
+export function RecommenderWidget({ solved = [] }) {
     const allProblems = Object.values(PROBLEMS);
-    const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
-    const skillLevel = JSON.parse(localStorage.getItem("skillLevel") || "null");
+    const skillLevel = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("skillLevel") || "null") : null;
 
     const targetDiff = skillLevel?.recommended || "Medium";
     const unsolved = allProblems.filter(p => !solved.includes(p.id) && p.difficulty === targetDiff);

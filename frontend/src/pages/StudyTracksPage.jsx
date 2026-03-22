@@ -16,10 +16,12 @@ function StudyTracksPage() {
 
     // Load saved custom tracks
     useEffect(() => {
-        const savedTracks = JSON.parse(localStorage.getItem("aiCustomTracks") || "[]");
-        setCustomTracks(savedTracks);
-        const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
-        setSolvedProblems(solved);
+        axiosInstance.get("/users/stats")
+           .then(res => {
+               setCustomTracks(res.data.aiCustomTracks || []);
+               setSolvedProblems(res.data.problemsSolved || []);
+           })
+           .catch(err => console.error("Failed to fetch custom tracks", err));
     }, []);
 
     const handleGenerateTrack = async () => {
@@ -43,10 +45,11 @@ function StudyTracksPage() {
                 aiKeywords: aiData.problems || [] // save the AI generated concepts
             };
 
-            setCustomTracks(prev => {
-                const updated = [newTrack, ...prev];
-                localStorage.setItem("aiCustomTracks", JSON.stringify(updated));
-                return updated;
+            const tracks = [newTrack, ...customTracks];
+            setCustomTracks(tracks);
+            await axiosInstance.post("/users/metadata/update", {
+                key: "aiCustomTracks",
+                value: tracks
             });
             setCustomTopic("");
             toast.success("Custom Track Generated!", { id: "track" });

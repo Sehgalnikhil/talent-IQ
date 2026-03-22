@@ -279,7 +279,14 @@ function ProblemPage() {
 
         const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
         if (!solved.includes(currentProblemId)) {
-          localStorage.setItem("solvedProblems", JSON.stringify([...solved, currentProblemId]));
+          const newSolvedArray = [...solved, currentProblemId];
+          localStorage.setItem("solvedProblems", JSON.stringify(newSolvedArray));
+          
+          // 🔥 Production DB Sync
+          axiosInstance.post("/users/stats/update", {
+             pointsGained: isMock ? 50 : 15,
+             problemId: currentProblemId
+          }).catch(err => console.error("Failed to sync points to global leaderboard DB", err));
         }
         
         // ML: Record adaptive difficulty success
