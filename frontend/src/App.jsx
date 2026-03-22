@@ -1,7 +1,8 @@
 import { useUser } from "@clerk/clerk-react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import HomePage from "./pages/HomePage";
 import DashboardPage from "./pages/DashboardPage";
@@ -22,11 +23,14 @@ import VoiceInterviewPage from "./pages/VoiceInterviewPage";
 import BehavioralInterviewPage from "./pages/BehavioralInterviewPage";
 import CompanyMockPage from "./pages/CompanyMockPage";
 import PublicProfilePage from "./pages/PublicProfilePage";
+import FullMockInterviewPage from "./pages/FullMockInterviewPage";
 import CommandPalette from "./components/CommandPalette";
 import ClerkAxiosInterceptor from "./components/ClerkAxiosInterceptor";
+import PageTransition from "./components/PageTransition";
 
 function App() {
   const { isSignedIn, isLoaded } = useUser();
+  const location = useLocation();
 
   // ✅ Use React state so route re-evaluates correctly after onboarding completes
   const [onboardingDone, setOnboardingDone] = useState(
@@ -45,40 +49,43 @@ function App() {
   return (
     <>
       <ClerkAxiosInterceptor>
-        <Routes>
-          <Route path="/" element={!isSignedIn ? <HomePage /> : <Navigate to={"/dashboard"} />} />
-          <Route path="/onboarding" element={isSignedIn ? <OnboardingPage /> : <Navigate to={"/"} />} />
-          <Route
-            path="/dashboard"
-            element={
-              isSignedIn
-                ? onboardingDone
-                  ? <DashboardPage />
-                  : <Navigate to="/onboarding" />
-                : <Navigate to={"/"} />
-            }
-          />
-  
-          <Route path="/problems" element={isSignedIn ? <ProblemsPage /> : <Navigate to={"/"} />} />
-          <Route path="/problem/:id" element={isSignedIn ? <ProblemPage /> : <Navigate to={"/"} />} />
-          <Route path="/session/:id" element={isSignedIn ? <SessionPage /> : <Navigate to={"/"} />} />
-  
-          <Route path="/leaderboard" element={isSignedIn ? <LeaderboardPage /> : <Navigate to={"/"} />} />
-          <Route path="/speedrun" element={isSignedIn ? <SpeedrunPage /> : <Navigate to={"/"} />} />
-          <Route path="/curated" element={isSignedIn ? <StudyTracksPage /> : <Navigate to={"/"} />} />
-          <Route path="/curated/:trackId" element={isSignedIn ? <TrackPage /> : <Navigate to={"/"} />} />
-          <Route path="/whiteboard" element={isSignedIn ? <WhiteboardPage /> : <Navigate to={"/"} />} />
-          <Route path="/playground" element={isSignedIn ? <PlaygroundPage /> : <Navigate to={"/"} />} />
-          <Route path="/interview" element={isSignedIn ? <InterviewPage /> : <Navigate to={"/"} />} />
-          <Route path="/generate" element={isSignedIn ? <GeneratePage /> : <Navigate to={"/"} />} />
-          <Route path="/flashcards" element={isSignedIn ? <FlashcardPage /> : <Navigate to={"/"} />} />
-          
-          {/* New Pro Features */}
-          <Route path="/voice-interview" element={isSignedIn ? <VoiceInterviewPage /> : <Navigate to={"/"} />} />
-          <Route path="/behavioral" element={isSignedIn ? <BehavioralInterviewPage /> : <Navigate to={"/"} />} />
-          <Route path="/company-mock" element={isSignedIn ? <CompanyMockPage /> : <Navigate to={"/"} />} />
-          <Route path="/u/:username" element={<PublicProfilePage />} />
-        </Routes>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={!isSignedIn ? <PageTransition><HomePage /></PageTransition> : <Navigate to={"/dashboard"} />} />
+            <Route path="/onboarding" element={isSignedIn ? <PageTransition><OnboardingPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route
+              path="/dashboard"
+              element={
+                isSignedIn
+                  ? onboardingDone
+                    ? <PageTransition><DashboardPage /></PageTransition>
+                    : <Navigate to="/onboarding" />
+                  : <Navigate to={"/"} />
+              }
+            />
+    
+            <Route path="/problems" element={isSignedIn ? <PageTransition><ProblemsPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/problem/:id" element={isSignedIn ? <PageTransition><ProblemPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/session/:id" element={isSignedIn ? <PageTransition><SessionPage /></PageTransition> : <Navigate to={"/"} />} />
+    
+            <Route path="/leaderboard" element={isSignedIn ? <PageTransition><LeaderboardPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/speedrun" element={isSignedIn ? <PageTransition><SpeedrunPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/curated" element={isSignedIn ? <PageTransition><StudyTracksPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/curated/:trackId" element={isSignedIn ? <PageTransition><TrackPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/whiteboard" element={isSignedIn ? <PageTransition><WhiteboardPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/playground" element={isSignedIn ? <PageTransition><PlaygroundPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/interview" element={isSignedIn ? <PageTransition><InterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/full-gauntlet" element={isSignedIn ? <PageTransition><FullMockInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/generate" element={isSignedIn ? <PageTransition><GeneratePage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/flashcards" element={isSignedIn ? <PageTransition><FlashcardPage /></PageTransition> : <Navigate to={"/"} />} />
+            
+            {/* New Pro Features */}
+            <Route path="/voice-interview" element={isSignedIn ? <PageTransition><VoiceInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/behavioral" element={isSignedIn ? <PageTransition><BehavioralInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/company-mock" element={isSignedIn ? <PageTransition><CompanyMockPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/u/:username" element={<PageTransition><PublicProfilePage /></PageTransition>} />
+          </Routes>
+        </AnimatePresence>
       </ClerkAxiosInterceptor>
 
       <Toaster toastOptions={{ duration: 3000 }} />
@@ -88,3 +95,4 @@ function App() {
 }
 
 export default App;
+

@@ -3,7 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useState, useEffect, useMemo } from "react";
 import { useActiveSessions, useCreateSession, useMyRecentSessions } from "../hooks/useSessions";
 import axiosInstance from "../lib/axios";
-import { BrainCircuitIcon, SparklesIcon, TrendingUpIcon, TargetIcon, RocketIcon, ZapIcon, FlameIcon, ClockIcon, CalendarIcon, LockIcon, CheckCircleIcon } from "lucide-react";
+import { BrainCircuitIcon, SparklesIcon, TrendingUpIcon, TargetIcon, RocketIcon, ZapIcon, FlameIcon, ClockIcon, CalendarIcon, LockIcon, CheckCircleIcon, TrophyIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { PROBLEMS } from "../data/problems";
 import { getEarnedBadges } from "../lib/badges.jsx";
@@ -23,6 +23,19 @@ import {
   BurnoutWidget, 
   PatternStatsWidget 
 } from "../components/MLWidgets";
+import { useMotionValue, useTransform, animate, useMotionTemplate } from "framer-motion";
+
+import SpotlightCard from '../components/SpotlightCard';
+
+const CountUp = ({ value }) => {
+    const count = useMotionValue(0);
+    const rounded = useTransform(count, Math.round);
+    useEffect(() => {
+        const controls = animate(count, value, { duration: 1.5, ease: "easeOut" });
+        return controls.stop;
+    }, [value]);
+    return <motion.span>{rounded}</motion.span>;
+};
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -186,6 +199,9 @@ function DashboardPage() {
                 <Link to={`/problem/${dailyChallenge.problem.id}`} className="btn btn-warning btn-sm shadow-lg gap-2 font-bold">
                   {dailyChallenge.isDone ? "Review" : "Solve Now"} <ZapIcon className="size-4" />
                 </Link>
+                <Link to="/full-gauntlet" className="btn btn-primary btn-sm shadow-[0_0_15px_rgba(var(--color-primary),0.5)] gap-2 font-bold group">
+                  Start Gauntlet <TrophyIcon className="size-4 group-hover:scale-110 transition-transform" />
+                </Link>
               </div>
             </div>
           </motion.div>
@@ -208,14 +224,14 @@ function DashboardPage() {
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Feature #3: REAL HEATMAP + Feature #4: SPARKLINES */}
             <motion.div variants={itemVariants} className="col-span-1 lg:col-span-2 group">
-              <div className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-primary/30 transition-all duration-500 overflow-hidden relative p-8 rounded-3xl">
+              <SpotlightCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-primary/30 transition-all duration-500 relative p-8 rounded-3xl">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none transition-transform group-hover:scale-110"></div>
 
                 <h3 className="text-2xl font-bold mb-2 flex items-center justify-between z-10 relative">
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-base-content to-base-content/60">Activity Portfolio</span>
                   <div className="flex items-center gap-3">
-                    <div className="badge badge-outline font-bold gap-1"><FlameIcon className="size-3 text-orange-500" /> {currentStreak} day streak</div>
-                    <div className="badge badge-primary font-bold shadow-sm shadow-primary/40"><TrendingUpIcon className="size-3 mr-1" /> {submissions.length} submissions</div>
+                    <div className="badge badge-outline font-bold gap-1"><FlameIcon className="size-3 text-orange-500" /> <CountUp value={currentStreak} /> day streak</div>
+                    <div className="badge badge-primary font-bold shadow-sm shadow-primary/40"><TrendingUpIcon className="size-3 mr-1" /> <CountUp value={submissions.length} /> submissions</div>
                   </div>
                 </h3>
 
@@ -264,12 +280,12 @@ function DashboardPage() {
                     <span>More</span>
                   </div>
                 </div>
-              </div>
+              </SpotlightCard>
             </motion.div>
 
             {/* AI Language Analytics */}
             <motion.div variants={itemVariants} className="col-span-1 group">
-              <div className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-secondary/30 transition-all duration-500 flex flex-col relative overflow-hidden p-8 rounded-3xl">
+              <SpotlightCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-secondary/30 transition-all duration-500 flex flex-col relative p-8 rounded-3xl">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/5 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none transition-transform group-hover:scale-110"></div>
                 <h3 className="text-xl font-bold mb-6 flex items-center justify-between z-10 relative">
                   <span>AI Language Analytics</span>
@@ -309,7 +325,7 @@ function DashboardPage() {
                     <p className="text-sm font-semibold opacity-60">Solve problems to unlock AI Language Analytics!</p>
                   </div>
                 )}
-              </div>
+              </SpotlightCard>
             </motion.div>
           </motion.div>
 

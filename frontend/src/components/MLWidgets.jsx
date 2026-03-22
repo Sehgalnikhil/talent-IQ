@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import {
   SpacedRepetition, AdaptiveDifficulty, PerformancePredictor,
-  WeaknessAnalyzer, StudyTimeAnalyzer, BurnoutPredictor, SmartTagger
+  WeaknessAnalyzer, StudyTimeAnalyzer, BurnoutPredictor, SmartTagger,
+  ComplexityAnalyzer, SimilarityScorer
 } from "../lib/ml-engine";
 
 // ──────────────────────────────────
@@ -475,7 +476,6 @@ export function ProblemMLInsights({ problemId, code, language }) {
   useEffect(() => {
     if (code && code.length > 20) {
       const timer = setTimeout(() => {
-        const { ComplexityAnalyzer, SimilarityScorer } = require("../lib/ml-engine");
         setAnalysis(ComplexityAnalyzer.analyze(code, language));
         setPatterns(SmartTagger.detectPatterns(code));
         setSimilarity(SimilarityScorer.score(code));

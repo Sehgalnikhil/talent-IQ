@@ -16,7 +16,8 @@ function CodeEditorPanel({
   isRefactoring,
   onRefactorCode,
   isEvaluating,
-  onEvaluateCode
+  onEvaluateCode,
+  isMock
 }) {
   return (
     <div className="h-full bg-base-300 flex flex-col">
@@ -58,7 +59,7 @@ function CodeEditorPanel({
         </div>
 
         <div className="flex gap-2">
-          {onGetAIHint && (
+          {!isMock && onGetAIHint && (
             <div className="dropdown dropdown-end">
               <div tabIndex={0} role="button" className={`btn btn-secondary btn-outline btn-sm gap-2 whitespace-nowrap hidden sm:flex ${isAskingAI || isRefactoring || isEvaluating ? 'opacity-70 pointer-events-none' : ''}`}>
                 {isAskingAI || isRefactoring || isEvaluating ? (

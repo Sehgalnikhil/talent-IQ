@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Webcam from "react-webcam";
 import { CameraIcon, StopCircleIcon, PlayIcon, MicIcon, UploadCloudIcon, FrownIcon, SmileIcon, RefreshCwIcon, StarIcon, PresentationIcon } from "lucide-react";
@@ -23,11 +23,33 @@ export default function BehavioralInterviewPage() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [feedback, setFeedback] = useState(null);
+    const [answerText, setAnswerText] = useState("");
+    const [recognition, setRecognition] = useState(null);
+
+    useEffect(() => {
+        const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+        if (SpeechRecognition) {
+            const recog = new SpeechRecognition();
+            recog.continuous = true;
+            recog.interimResults = true;
+            recog.lang = "en-US";
+            
+            recog.onresult = (event) => {
+                let transcript = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                setAnswerText(transcript);
+            };
+            setRecognition(recog);
+        }
+    }, []);
 
     const handleStartCaptureClick = useCallback(() => {
         setRecordedChunks([]);
         setVideoUrl(null);
         setFeedback(null);
+        setAnswerText(""); // Clear previous
         
         try {
             mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
@@ -39,10 +61,14 @@ export default function BehavioralInterviewPage() {
             );
             mediaRecorderRef.current.start();
             setIsRecording(true);
+            
+            if (recognition) {
+                try { recognition.start(); } catch (e) { console.warn(e); }
+            }
         } catch (error) {
             toast.error("Camera access required to record your response.");
         }
-    }, [webcamRef, setIsRecording, mediaRecorderRef]);
+    }, [webcamRef, setIsRecording, mediaRecorderRef, recognition]);
 
     const handleDataAvailable = useCallback(
         ({ data }) => {
@@ -56,7 +82,9 @@ export default function BehavioralInterviewPage() {
     const handleStopCaptureClick = useCallback(() => {
         mediaRecorderRef.current.stop();
         setIsRecording(false);
-        // Wait for next tick to stitch video blob
+        if (recognition) {
+            try { recognition.stop(); } catch (e) { console.warn(e); }
+        }
         setTimeout(() => {
             if (recordedChunks.length) {
                 const blob = new Blob(recordedChunks, {
@@ -66,7 +94,7 @@ export default function BehavioralInterviewPage() {
                 setVideoUrl(url);
             }
         }, 100);
-    }, [mediaRecorderRef, webcamRef, setIsRecording, recordedChunks]);
+    }, [mediaRecorderRef, webcamRef, setIsRecording, recordedChunks, recognition]);
 
     const handleDownload = useCallback(() => {
         if (recordedChunks.length) {
@@ -89,28 +117,25 @@ export default function BehavioralInterviewPage() {
         setVideoUrl(null);
         setRecordedChunks([]);
         setFeedback(null);
+        setAnswerText("");
     };
 
     const analyzeResponse = async () => {
-        if (recordedChunks.length === 0) return toast.error("Record a video first!");
+        if (!answerText.trim() && recordedChunks.length === 0) return toast.error("Record a video or paste your script first!");
         
         setIsAnalyzing(true);
-        // Fake analysis delay for MVP, ideally upload blob to backend using FormData
-        // We'll mock the Gemini Vision response grading the STAR method
-        setTimeout(() => {
-            setIsAnalyzing(false);
-            setFeedback({
-                score: Math.floor(Math.random() * 30 + 70), // 70-100
-                starAnalysis: {
-                    situation: "Clearly explained the context. (Good)",
-                    task: "You didn't really explain your specific role. (Needs Improvement)",
-                    action: "Strong technical detailing of steps taken. (Excellent)",
-                    result: "Missed the business impact metric. Quantify your result! (Needs Improvement)"
-                },
-                tone: "Confident but spoke slightly too fast."
+        try {
+            const res = await axiosInstance.post("/interview/evaluate-behavioral", {
+                question: QUESTIONS[currentQuestionIndex],
+                answer: answerText.trim() || "User presented a 1-minute pitch regarding the situation."
             });
-            toast.success("AI analyzed your body language and STAR response!");
-        }, 4000);
+            setFeedback(res.data);
+            toast.success("AI analyzed your STAR response phrasing!");
+        } catch (e) {
+            toast.error("Analysis online support is currently busy.");
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     return (
@@ -184,6 +209,30 @@ export default function BehavioralInterviewPage() {
                                 </>
                             )}
                         </div>
+                        {/* Manual Textbox input script setup structures */}
+                        <div className="card bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300 mt-0 flex flex-col">
+                             <label className="text-xs uppercase font-black text-base-content/50 mb-1.5 flex justify-between">
+                                <span>🎯 Script Outline / Transcription Support</span>
+                                <span className="text-[10px] text-primary">Paste your script to get AI Grading</span>
+                             </label>
+                             <textarea 
+                                value={answerText}
+                                onChange={e => setAnswerText(e.target.value)}
+                                placeholder="Write or paste your response script outline here so AI can analyze the content directly in addition to your delivery!"
+                                className="textarea textarea-bordered h-24 text-sm font-medium resize-none bg-base-200/30"
+                             />
+                             {/* Analyze text trigger button */}
+                             {answerText.trim() && !videoUrl && (
+                                  <button 
+                                      onClick={analyzeResponse} 
+                                      disabled={isAnalyzing} 
+                                      className="btn btn-secondary btn-sm mt-3 gap-2 font-black text-white shadow-secondary/20 shadow-lg w-full rounded-xl"
+                                  >
+                                      {isAnalyzing ? <span className="loading loading-spinner loading-xs" /> : <StarIcon className="size-3.5 fill-current" />}
+                                      Analyze Written Response
+                                  </button>
+                             )}
+                        </div>
                     </div>
 
                     {/* Right: Question & Feedback */}
@@ -223,26 +272,26 @@ export default function BehavioralInterviewPage() {
                                     <div className="space-y-4 text-sm">
                                         <div className="bg-base-200 p-3 rounded-xl border-l-4 border-primary">
                                             <span className="font-bold block mb-1">Situation</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis.situation}</span>
+                                            <span className="text-base-content/80">{feedback.starAnalysis?.situation || "Critique unavailable."}</span>
                                         </div>
                                         <div className="bg-base-200 p-3 rounded-xl border-l-4 border-error">
                                             <span className="font-bold block mb-1">Task</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis.task}</span>
+                                            <span className="text-base-content/80">{feedback.starAnalysis?.task || "Critique unavailable."}</span>
                                         </div>
                                         <div className="bg-base-200 p-3 rounded-xl border-l-4 border-success">
                                             <span className="font-bold block mb-1">Action</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis.action}</span>
+                                            <span className="text-base-content/80">{feedback.starAnalysis?.action || "Critique unavailable."}</span>
                                         </div>
                                         <div className="bg-base-200 p-3 rounded-xl border-l-4 border-warning">
                                             <span className="font-bold block mb-1">Result</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis.result}</span>
+                                            <span className="text-base-content/80">{feedback.starAnalysis?.result || "Critique unavailable."}</span>
                                         </div>
                                         
                                         <div className="mt-6 flex items-start gap-4 p-4 bg-info/10 rounded-xl border border-info/20">
                                             <SmileIcon className="size-8 text-info shrink-0" />
                                             <div>
                                                 <h4 className="font-bold text-info mb-1">Delivery Tone</h4>
-                                                <p className="text-xs">{feedback.tone}</p>
+                                                <p className="text-xs">{feedback.tone || "Tone assessment unavailable"}</p>
                                             </div>
                                         </div>
                                     </div>

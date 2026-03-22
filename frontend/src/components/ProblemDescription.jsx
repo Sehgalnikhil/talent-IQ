@@ -4,7 +4,7 @@ import { LightbulbIcon, MessageSquareIcon, HistoryIcon, BookOpenIcon, CheckIcon,
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 
-function ProblemDescription({ problem, currentProblemId, onProblemChange, allProblems, submissions, onCodeLoad }) {
+function ProblemDescription({ problem, currentProblemId, onProblemChange, allProblems, submissions, onCodeLoad, isMock }) {
   const [showHints, setShowHints] = useState(false);
   const [activeTab, setActiveTab] = useState("description"); // description, solutions, submissions
   const [eli5, setEli5] = useState(null);
@@ -35,15 +35,17 @@ function ProblemDescription({ problem, currentProblemId, onProblemChange, allPro
         <div className="flex items-start justify-between mb-3">
           <h1 className="text-3xl font-bold text-base-content">{problem.title}</h1>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleELI5}
-              disabled={loadingEli5}
-              className="btn btn-xs btn-outline btn-warning gap-1"
-              title="Explain Like I'm 5"
-            >
-              {loadingEli5 ? <Loader2Icon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}
-              ELI5
-            </button>
+            {!isMock && (
+              <button
+                onClick={handleELI5}
+                disabled={loadingEli5}
+                className="btn btn-xs btn-outline btn-warning gap-1"
+                title="Explain Like I'm 5"
+              >
+                {loadingEli5 ? <Loader2Icon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}
+                ELI5
+              </button>
+            )}
             <span className={`badge ${getDifficultyBadgeClass(problem.difficulty)}`}>
               {problem.difficulty}
             </span>
@@ -52,23 +54,25 @@ function ProblemDescription({ problem, currentProblemId, onProblemChange, allPro
         <p className="text-base-content/60">{problem.category}</p>
 
         {/* Problem selector */}
-        <div className="mt-4">
-          <select
-            className="select select-sm w-full"
-            value={currentProblemId}
-            onChange={(e) => {
-              setShowHints(false);
-              setActiveTab("description");
-              onProblemChange(e.target.value);
-            }}
-          >
-            {allProblems.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title} - {p.difficulty}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!isMock && (
+          <div className="mt-4">
+            <select
+              className="select select-sm w-full"
+              value={currentProblemId}
+              onChange={(e) => {
+                setShowHints(false);
+                setActiveTab("description");
+                onProblemChange(e.target.value);
+              }}
+            >
+              {allProblems.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title} - {p.difficulty}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}

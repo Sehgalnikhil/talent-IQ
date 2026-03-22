@@ -91,56 +91,63 @@ function FlashcardPage() {
     const categories = ["All", ...new Set(cards.map(c => c.category).filter(Boolean))];
 
     return (
-        <div className="min-h-screen bg-base-200">
+        <div className="min-h-screen bg-base-300 relative overflow-hidden flex flex-col text-base-content">
             <Navbar />
-            <div className="max-w-3xl mx-auto px-4 py-8">
+            
+            {/* Ambient background glows */}
+            <div className="absolute top-0 right-0 size-96 bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse" />
+            <div className="absolute bottom-0 left-0 size-96 bg-secondary/10 rounded-full blur-3xl -z-10" />
+
+            <div className="max-w-3xl mx-auto px-4 py-12 w-full z-10 flex-1 flex flex-col justify-center">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-black flex items-center gap-3">
-                            <BookOpenIcon className="size-8 text-primary" /> Smart Flashcards
+                        <h1 className="text-4xl font-black flex items-center gap-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            <BookOpenIcon className="size-9 text-primary animate-bounce" /> Smart Flashcards
                         </h1>
-                        <p className="text-base-content/60 mt-1">{cards.length} cards · {dueCards.length} due for review</p>
+                        <p className="text-base-content/50 mt-1 font-bold">{cards.length} cards in deck · {dueCards.length} due for review</p>
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setMode("generate")} className="btn btn-primary btn-sm gap-1"><SparklesIcon className="size-4" /> AI Generate</button>
-                        <button onClick={() => setMode("add")} className="btn btn-outline btn-sm gap-1"><PlusIcon className="size-4" /> Add Card</button>
+                    <div className="flex gap-2 bg-base-100/40 backdrop-blur-xl p-1 rounded-2xl border border-white/5 shadow-inner">
+                        <button onClick={() => setMode("generate")} className={`btn btn-sm gap-1 rounded-xl font-black border-none ${mode === "generate" ? "bg-primary text-primary-content" : "btn-ghost"}`}><SparklesIcon className="size-4" /> Generate</button>
+                        <button onClick={() => setMode("add")} className={`btn btn-sm gap-1 rounded-xl font-black border-none ${mode === "add" ? "bg-primary text-primary-content" : "btn-ghost"}`}><PlusIcon className="size-4" /> Add</button>
+                        <button onClick={() => setMode("browse")} className={`btn btn-sm gap-1 rounded-xl font-black border-none ${mode === "browse" ? "bg-primary text-primary-content" : "btn-ghost"}`}><RotateCcwIcon className="size-4" /> Browse</button>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Mode: Study */}
                 {mode === "study" && dueCards.length > 0 && (
-                    <div className="text-center">
-                        <div className="text-sm text-base-content/50 mb-4 font-bold">
+                    <div className="text-center flex-1 flex flex-col items-center justify-center">
+                        <div className="text-xs text-base-content/40 mb-4 font-black tracking-widest uppercase">
                             Card {(currentIdx % dueCards.length) + 1} / {dueCards.length}
                         </div>
                         {/* 3D Flip Card */}
-                        <div className="relative h-64 cursor-pointer mb-6" onClick={() => setFlipped(f => !f)}
-                            style={{ perspective: "1000px" }}>
+                        <div className="relative h-72 w-full max-w-md cursor-pointer mb-8" onClick={() => setFlipped(f => !f)}
+                            style={{ perspective: "1500px" }}>
                             <motion.div className="relative w-full h-full" style={{ transformStyle: "preserve-3d" }}
-                                animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.5 }}>
+                                animate={{ rotateY: flipped ? 180 : 0 }} transition={{ type: "spring", stiffness: 120, damping: 15 }}>
                                 {/* Front */}
-                                <div className="absolute inset-0 bg-base-100 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 border border-base-300"
+                                <div className="absolute inset-0 bg-base-100/60 backdrop-blur-xl rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 border border-white/5 select-none"
                                     style={{ backfaceVisibility: "hidden" }}>
-                                    <div className={`badge mb-4 ${CATEGORY_COLORS[studyCard?.category] || "badge-ghost"}`}>{studyCard?.category || "General"}</div>
-                                    <p className="text-xl font-bold text-center">{studyCard?.question}</p>
-                                    <p className="text-xs text-base-content/40 mt-6">Click to reveal answer</p>
+                                    <div className={`badge badge-md font-black shadow-inner border-none mb-4 ${CATEGORY_COLORS[studyCard?.category] || "badge-ghost"}`}>{studyCard?.category || "General"}</div>
+                                    <p className="text-xl font-black text-center text-base-content/90 leading-relaxed">{studyCard?.question}</p>
+                                    <span className="text-xs uppercase font-black text-base-content/30 mt-8 flex items-center gap-1 animate-pulse"><RotateCcwIcon className="size-3" /> Click to flip</span>
                                 </div>
                                 {/* Back */}
-                                <div className="absolute inset-0 bg-primary/5 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 border border-primary/20"
+                                <div className="absolute inset-0 bg-primary/10 backdrop-blur-3xl rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 border border-primary/20 select-none"
                                     style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                                    <p className="text-lg text-center leading-relaxed">{studyCard?.answer}</p>
-                                    {studyCard?.problem && <p className="text-xs text-base-content/40 mt-4">From: {studyCard.problem}</p>}
+                                    <span className="text-xs font-black uppercase text-primary mb-4">Answer</span>
+                                    <p className="text-lg font-bold text-center leading-relaxed text-base-content">{studyCard?.answer}</p>
+                                    {studyCard?.problem && <p className="text-xs font-black text-base-content/30 mt-4 bg-base-300 px-3 py-1 rounded-full">Source: {studyCard.problem}</p>}
                                 </div>
                             </motion.div>
                         </div>
                         {flipped && (
-                            <div className="flex justify-center gap-4">
-                                <button onClick={() => markCard(false)} className="btn btn-error btn-lg gap-2"><XCircleIcon className="size-5" /> Hard</button>
-                                <button onClick={() => markCard(true)} className="btn btn-success btn-lg gap-2"><CheckCircleIcon className="size-5" /> Got it!</button>
-                            </div>
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center gap-4 w-full max-w-md">
+                                <button onClick={() => markCard(false)} className="btn btn-error flex-1 font-black shadow-lg shadow-error/20 rounded-2xl"><XCircleIcon className="size-5" /> Hard</button>
+                                <button onClick={() => markCard(true)} className="btn btn-success flex-1 font-black shadow-lg shadow-success/20 rounded-2xl"><CheckCircleIcon className="size-5" /> Got it!</button>
+                            </motion.div>
                         )}
-                        {!flipped && <button onClick={() => { setMode("browse"); setCurrentIdx(0); }} className="btn btn-ghost btn-sm mt-4">Exit Study Mode</button>}
+                        {!flipped && <button onClick={() => { setMode("browse"); setCurrentIdx(0); }} className="btn btn-ghost btn-sm mt-4 font-black text-base-content/40">Exit Study Mode</button>}
                     </div>
                 )}
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import { MicIcon, MicOffIcon, PlayIcon, SquareIcon, MessageSquareIcon, Volume2Icon } from "lucide-react";
 import toast from "react-hot-toast";
@@ -25,7 +26,7 @@ export default function VoiceInterviewPage() {
             
             recognitionRef.current.onresult = (event) => {
                 let currentTranscript = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
+                for (let i = 0; i < event.results.length; i++) {
                     currentTranscript += event.results[i][0].transcript;
                 }
                 setTranscript(currentTranscript);
@@ -58,6 +59,17 @@ export default function VoiceInterviewPage() {
         utterance.rate = 0.95; // Slightly slower for clarity
         utterance.pitch = 1.0;
         
+        // Automatic turn-taking handles Node flawless
+        utterance.onend = () => {
+            if (recognitionRef.current && localStorage.getItem("voice_interview_active") === "true") {
+                try {
+                    setTranscript(""); // Clear previous nodes Node setups
+                    recognitionRef.current.start();
+                    setIsListening(true);
+                } catch (e) { console.warn(e); }
+            }
+        };
+
         synthesisRef.current.speak(utterance);
     };
 
@@ -65,11 +77,18 @@ export default function VoiceInterviewPage() {
         if (isListening) {
             recognitionRef.current.stop();
             setIsListening(false);
-            if (transcript.trim()) {
-                handleUserSubmit(transcript);
-                setTranscript("");
-            }
+            
+            // Async buffer syncer layout Node flawless
+            setTimeout(() => {
+                setTranscript(prev => {
+                    if (prev.trim()) {
+                        handleUserSubmit(prev);
+                    }
+                    return ""; // Clear layout
+                });
+            }, 300);
         } else {
+            setTranscript(""); // Clear before speaking Node
             recognitionRef.current.start();
             setIsListening(true);
         }
@@ -80,14 +99,29 @@ export default function VoiceInterviewPage() {
         setMessages(newMessages);
         
         try {
+            // Build Contextual Dialogue History String to pass turn memories Node
+            const dialogueContext = newMessages.map(m => `${m.role === "user" ? "Candidate" : "Interviewer"}: ${m.text}`).join("\n");
+
+            const prompt = `You are an elite Senior FAANG Technical Interviewer conducting a live interactive mock screening over voice. 
+            
+            Strict Guidelines:
+            1. Keep responses highly conversational and CONCISE (2-3 sentences max) since it's going to be read ALOUD.
+            2. Never use Code Blocks, emojis, or Markdown (**bolding**).
+            3. Follow up strictly on candidate statements. If their logic is vague, drill deeper. 
+            4. Introduce natural fillers occasionally ("I see", "Got it", "That's a good point").
+            
+            Previous Dialogue Stream:
+            ${dialogueContext}
+            
+            Interviewer Response (respond as Interviewer following up sequential Node setups absolute flawlessly):`;
+
             // Using the existing chat endpoint as a proxy for the interviewer
-            const res = await axiosInstance.post("/interview/chat", { 
-                prompt: `You are an expert technical interviewer conducting a live mock interview over voice. 
-                Keep your responses short, conversational, and spoken. Do not use markdown like bold text or code blocks, since this will be read aloud by Text-to-Speech.
-                The candidate said: "${text}"
-                React naturally to what they said, then ask the next technical question or dig deeper.` 
-            });
-            const aiResponse = res.data.response || "I see. Could you elaborate on that?";
+            const res = await axiosInstance.post("/interview/chat", { prompt });
+            let aiResponse = res.data.response || "I see. Could you elaborate on that?";
+            
+            // Safety Strip redundant interviewer markers the AI might output
+            aiResponse = aiResponse.replace(/^(Interviewer:)/i, '').trim();
+
             setMessages([...newMessages, { role: "ai", text: aiResponse }]);
             speak(aiResponse);
         } catch (error) {
@@ -95,13 +129,21 @@ export default function VoiceInterviewPage() {
         }
     };
 
-    const startInterview = () => {
-        setIsInterviewActive(true);
-        speak(messages[0].text);
+    const startInterview = async () => {
+        try {
+            // Explicitly prompt for mic access node streams
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            setIsInterviewActive(true);
+            localStorage.setItem("voice_interview_active", "true");
+            speak(messages[0].text);
+        } catch (error) {
+            toast.error("Microphone access is required to take the voice interview.");
+        }
     };
 
     const endInterview = () => {
         setIsInterviewActive(false);
+        localStorage.setItem("voice_interview_active", "false");
         if (isListening) toggleListen();
         if (synthesisRef.current) synthesisRef.current.cancel();
         toast("Interview concluded. Check your dashboard for feedback!", { icon: "🏁" });
@@ -133,12 +175,20 @@ export default function VoiceInterviewPage() {
                             </button>
                         ) : (
                             <div className="flex flex-col items-center z-10">
-                                <div className="flex items-center gap-2 h-16">
-                                    {[...Array(9)].map((_, i) => (
-                                        <div 
+                                <div className="flex items-center gap-1.5 h-16">
+                                    {[...Array(11)].map((_, i) => (
+                                        <motion.div 
                                             key={i} 
-                                            className={`w-3 rounded-full bg-primary transition-all duration-75 ${isListening ? 'animate-pulse' : 'h-2 opacity-30 object-none px-0'}`}
-                                            style={{ height: isListening ? `${Math.random() * 40 + 20}px` : '8px', animationDelay: `${i * 0.1}s` }}
+                                            animate={{ 
+                                                height: isListening ? [10, 40, 20, 50, 10] : 10 
+                                            }}
+                                            transition={{ 
+                                                repeat: Infinity, 
+                                                duration: 1 + Math.random() * 0.5, 
+                                                delay: i * 0.08, 
+                                                ease: "easeInOut" 
+                                            }}
+                                            className={`w-2.5 rounded-full bg-primary shadow-[0_0_15px_rgba(59,130,246,0.3)] ${!isListening && 'opacity-30'}`}
                                         />
                                     ))}
                                 </div>

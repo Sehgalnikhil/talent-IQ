@@ -2,18 +2,24 @@ import Navbar from "../components/Navbar";
 import { BookOpenIcon, StarIcon, CheckCircleIcon, ArrowRightIcon, ZapIcon, BrainCircuitIcon, DatabaseIcon, CpuIcon, LayersIcon, Code2Icon, FlameIcon, SparklesIcon, PlusIcon } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
+import { PROBLEMS } from "../data/problems";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 function StudyTracksPage() {
     const [customTracks, setCustomTracks] = useState([]);
     const [isGeneratingTrack, setIsGeneratingTrack] = useState(false);
     const [customTopic, setCustomTopic] = useState("");
 
+    const [solvedProblems, setSolvedProblems] = useState([]);
+
     // Load saved custom tracks
     useEffect(() => {
         const savedTracks = JSON.parse(localStorage.getItem("aiCustomTracks") || "[]");
         setCustomTracks(savedTracks);
+        const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
+        setSolvedProblems(solved);
     }, []);
 
     const handleGenerateTrack = async () => {
@@ -59,8 +65,7 @@ function StudyTracksPage() {
             icon: <StarIcon className="size-6 text-warning" />,
             color: "warning",
             gradient: "from-warning/20 to-warning/5",
-            progress: 30, // percentage
-            total: 75,
+            filterFunc: (p, i) => i < 75,
             level: "Intermediate"
         },
         {
@@ -70,8 +75,7 @@ function StudyTracksPage() {
             icon: <BrainCircuitIcon className="size-6 text-info" />,
             color: "info",
             gradient: "from-info/20 to-info/5",
-            progress: 0,
-            total: 50,
+            filterFunc: (p, i) => i % 2 !== 0 && i < 100,
             level: "Advanced"
         },
         {
@@ -81,8 +85,7 @@ function StudyTracksPage() {
             icon: <CheckCircleIcon className="size-6 text-success" />,
             color: "success",
             gradient: "from-success/20 to-success/5",
-            progress: 100,
-            total: 25,
+            filterFunc: (p) => p.category.includes("Dynamic Programming"),
             level: "Advanced"
         },
         {
@@ -92,8 +95,7 @@ function StudyTracksPage() {
             icon: <LayersIcon className="size-6 text-primary" />,
             color: "primary",
             gradient: "from-primary/20 to-primary/5",
-            progress: 15,
-            total: 40,
+            filterFunc: (p, i) => i % 3 === 0 && i < 120,
             level: "Expert"
         },
         {
@@ -103,8 +105,7 @@ function StudyTracksPage() {
             icon: <DatabaseIcon className="size-6 text-secondary" />,
             color: "secondary",
             gradient: "from-secondary/20 to-secondary/5",
-            progress: 0,
-            total: 35,
+            filterFunc: (p, i) => i >= 10 && i <= 45,
             level: "Beginner"
         },
         {
@@ -114,8 +115,7 @@ function StudyTracksPage() {
             icon: <ZapIcon className="size-6 text-accent" />,
             color: "accent",
             gradient: "from-accent/20 to-accent/5",
-            progress: 80,
-            total: 15,
+            filterFunc: (p, i) => p.difficulty === "Easy" && i < 30,
             level: "Beginner"
         }
     ];
@@ -169,62 +169,89 @@ function StudyTracksPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[...customTracks, ...coreTracks].map((track) => (
-                        <div
-                            key={track.id}
-                            className="group relative bg-base-100/80 backdrop-blur-xl border border-base-300/50 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-2 transition-all duration-500 ease-out"
-                        >
-                            {/* Card Background Gradient */}
-                            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${track.gradient} rounded-bl-full opacity-50 group-hover:opacity-100 transition-opacity duration-500`} />
+                <motion.div 
+                    variants={{
+                        hidden: { opacity: 0 },
+                        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                    }}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                >
+                    {[...customTracks, ...coreTracks].map((track) => {
+                        const allProblems = Object.values(PROBLEMS);
+                        let trackProblems = [];
+                        if (track.level === "Personalized") {
+                            const seed = track.id.length * track.title.length;
+                            trackProblems = allProblems.slice(0, track.total).map((p, i) => allProblems[(seed + i) % allProblems.length]);
+                        } else {
+                            trackProblems = allProblems.filter(track.filterFunc);
+                        }
+                        
+                        const solvedCount = trackProblems.filter((p) => solvedProblems.includes(p.id)).length;
+                        const total = trackProblems.length;
+                        const progress = total > 0 ? Math.round((solvedCount / total) * 100) : 0;
 
-                            <div className="p-8 h-full flex flex-col relative z-10">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className={`size-14 rounded-2xl bg-${track.color}/10 border border-${track.color}/20 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
-                                        {track.iconType === "SparklesIcon" ? <SparklesIcon className="size-6 text-fuchsia-500" /> : track.icon}
+                        return (
+                            <motion.div
+                                key={track.id}
+                                variants={{
+                                    hidden: { opacity: 0, y: 30, scale: 0.95 },
+                                    show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 100, damping: 15 } }
+                                }}
+                                className="group relative bg-base-100/80 backdrop-blur-xl border border-base-300/50 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-2 transition-all duration-500 ease-out"
+                            >
+                                {/* Card Background Gradient */}
+                                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${track.gradient} rounded-bl-full opacity-50 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                                <div className="p-8 h-full flex flex-col relative z-10">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className={`size-14 rounded-2xl bg-${track.color}/10 border border-${track.color}/20 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
+                                            {track.iconType === "SparklesIcon" ? <SparklesIcon className="size-6 text-fuchsia-500" /> : track.icon}
+                                        </div>
+                                        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${track.level === "Personalized" ? 'bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20' : `bg-${track.color}/10 text-${track.color} border-${track.color}/20`}`}>
+                                            {track.level}
+                                        </span>
                                     </div>
-                                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${track.level === "Personalized" ? 'bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20' : `bg-${track.color}/10 text-${track.color} border-${track.color}/20`}`}>
-                                        {track.level}
-                                    </span>
-                                </div>
 
-                                <h2 className="text-2xl font-bold mb-3 tracking-tight group-hover:text-primary transition-colors">{track.title}</h2>
-                                <p className="text-base-content/60 text-sm leading-relaxed mb-8 flex-1">
-                                    {track.description}
-                                </p>
+                                    <h2 className="text-2xl font-bold mb-3 tracking-tight group-hover:text-primary transition-colors">{track.title}</h2>
+                                    <p className="text-base-content/60 text-sm leading-relaxed mb-8 flex-1">
+                                        {track.description}
+                                    </p>
 
-                                <div className="space-y-3 mb-8 w-full">
-                                    <div className="flex justify-between text-sm font-semibold text-base-content/80">
-                                        <span>{Math.round((track.progress / 100) * track.total)} / {track.total} Solved</span>
-                                        <span className={`text-${track.color}`}>{track.progress}%</span>
+                                    <div className="space-y-3 mb-8 w-full">
+                                        <div className="flex justify-between text-sm font-semibold text-base-content/80">
+                                            <span>{solvedCount} / {total} Solved</span>
+                                            <span className={`text-${track.color}`}>{progress}%</span>
+                                        </div>
+                                        <div className="relative w-full h-2.5 rounded-full bg-base-300 overflow-hidden">
+                                            <div
+                                                className={`absolute top-0 left-0 h-full bg-${track.color} transition-all duration-1000 ease-out`}
+                                                style={{ width: `${progress}%` }}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="relative w-full h-2.5 rounded-full bg-base-300 overflow-hidden">
-                                        <div
-                                            className={`absolute top-0 left-0 h-full bg-${track.color} transition-all duration-1000 ease-out`}
-                                            style={{ width: `${track.progress}%` }}
-                                        />
+
+                                    <div className="mt-auto">
+                                        {progress === 100 ? (
+                                            <button className={`btn w-full gap-2 border-2 border-success bg-success/10 text-success hover:bg-success hover:text-success-content hover:border-success shadow-sm rounded-xl transition-all`}>
+                                                <CheckCircleIcon className="size-5" /> Track Completed
+                                            </button>
+                                        ) : progress > 0 ? (
+                                            <Link to={`/curated/${track.id}`} className={`btn w-full gap-2 border-2 text-${track.color} border-${track.color} hover:bg-${track.color} hover:text-${track.color}-content hover:border-${track.color} bg-transparent shadow-sm rounded-xl transition-all group-hover:shadow-${track.color}/20 min-h-[3rem] h-12 flex items-center justify-center`}>
+                                                Continue Track <ArrowRightIcon className="size-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                                            </Link>
+                                        ) : (
+                                            <Link to={`/curated/${track.id}`} className={`btn bg-${track.color} border-none text-${track.color}-content hover:brightness-110 w-full gap-2 shadow-lg shadow-${track.color}/20 rounded-xl transition-all min-h-[3rem] h-12 flex items-center justify-center`}>
+                                                Enroll Now <Code2Icon className="size-4 ml-1" />
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
-
-                                <div className="mt-auto">
-                                    {track.progress === 100 ? (
-                                        <button className={`btn w-full gap-2 border-2 border-success bg-success/10 text-success hover:bg-success hover:text-success-content hover:border-success shadow-sm rounded-xl transition-all`}>
-                                            <CheckCircleIcon className="size-5" /> Track Completed
-                                        </button>
-                                    ) : track.progress > 0 ? (
-                                        <Link to={`/curated/${track.id}`} className={`btn w-full gap-2 border-2 text-${track.color} border-${track.color} hover:bg-${track.color} hover:text-${track.color}-content hover:border-${track.color} bg-transparent shadow-sm rounded-xl transition-all group-hover:shadow-${track.color}/20 min-h-[3rem] h-12`}>
-                                            Continue Track <ArrowRightIcon className="size-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                                        </Link>
-                                    ) : (
-                                        <Link to={`/curated/${track.id}`} className={`btn bg-${track.color} border-none text-${track.color}-content hover:brightness-110 w-full gap-2 shadow-lg shadow-${track.color}/20 rounded-xl transition-all min-h-[3rem] h-12`}>
-                                            Enroll Now <Code2Icon className="size-4 ml-1" />
-                                        </Link>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                            </motion.div>
+                        );
+                    })}
+                </motion.div>
             </div>
         </div>
     );
