@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SparklesIcon, ZapIcon, BrainCircuitIcon, TagIcon, Loader2Icon, RefreshCwIcon, ArrowRightIcon, CopyIcon, ChevronDownIcon } from "lucide-react";
 import Navbar from "../components/Navbar";
@@ -19,9 +19,16 @@ function GeneratePage() {
     const [problem, setProblem] = useState(null);
     const [showHint, setShowHint] = useState(false);
     const [showApproach, setShowApproach] = useState(false);
-    const [savedProblems, setSavedProblems] = useState(() =>
-        JSON.parse(localStorage.getItem("generatedProblems") || "[]")
-    );
+    const [savedProblems, setSavedProblems] = useState([]);
+
+    // Fetch on mounting Initial configuration
+    useEffect(() => {
+        axiosInstance.get("/users/stats").then(res => {
+            if (res.data.savedProblems) {
+                setSavedProblems(res.data.savedProblems);
+            }
+        }).catch(() => {});
+    }, []);
 
     const generate = async () => {
         setLoading(true);
@@ -40,12 +47,18 @@ function GeneratePage() {
         }
     };
 
-    const saveProblem = () => {
+    const saveProblem = async () => {
         if (!problem) return;
         const saved = [...savedProblems, { ...problem, id: Date.now(), topic, difficulty }];
         setSavedProblems(saved);
-        localStorage.setItem("generatedProblems", JSON.stringify(saved));
-        toast.success("Problem saved! 📌");
+        
+        try {
+             await axiosInstance.post("/users/metadata/update", { key: "savedProblems", value: saved });
+             toast.success("Problem saved to Profile! 📌");
+        } catch (err) {
+             localStorage.setItem("generatedProblems", JSON.stringify(saved));
+             toast.success("Saved locally (Offline) 📌");
+        }
     };
 
     const copyProblem = () => {

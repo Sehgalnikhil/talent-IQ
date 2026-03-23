@@ -60,9 +60,22 @@ function ProblemPage() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef(null);
 
+  const [pastMocks, setPastMocks] = useState([]);
+  const [allPersonalBests, setAllPersonalBests] = useState({});
+  const [solvedProblems, setSolvedProblems] = useState([]);
+
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("pastSubmissions") || "[]");
-    setSubmissions(saved);
+    axiosInstance.get("/users/stats")
+      .then(res => {
+          setPastMocks(res.data.pastMocks || []);
+          setAllPersonalBests(res.data.personalBests || {});
+          setSolvedProblems(res.data.problemsSolved || []);
+          
+          // Legacy support (if still binding on other local caches)
+          const saved = JSON.parse(localStorage.getItem("pastSubmissions") || "[]");
+          setSubmissions(saved);
+      })
+      .catch(err => console.error("Could not stats load mocks", err));
   }, []);
 
   // Feature #7: Load personal best on problem change
@@ -83,8 +96,7 @@ function ProblemPage() {
         setTimerSeconds(0);
         setTimerRunning(true);
         // Load PB
-        const pbs = JSON.parse(localStorage.getItem("personalBests") || "{}");
-        setPersonalBest(pbs[id] || null);
+        setPersonalBest(allPersonalBests[id] || null);
         // Reset chat & StuckDetector
         setChatMessages([]);
         StuckDetector.reset();
@@ -267,22 +279,28 @@ function ProblemPage() {
         setTimerRunning(false); // Stop timer
 
         // Feature #7: Save personal best
-        const pbs = JSON.parse(localStorage.getItem("personalBests") || "{}");
+        const pbs = { ...allPersonalBests };
         if (!pbs[currentProblemId] || timerSeconds < pbs[currentProblemId]) {
           pbs[currentProblemId] = timerSeconds;
-          localStorage.setItem("personalBests", JSON.stringify(pbs));
+          setAllPersonalBests(pbs);
+          
+          axiosInstance.post("/users/metadata/update", {
+             key: "personalBests",
+             value: pbs
+          }).catch(err => console.error("Could not sync PB", err));
+
           setPersonalBest(timerSeconds);
           if (pbs[currentProblemId]) { // was existing PB
             toast.success(`New Personal Best! ${formatTime(timerSeconds)} 🎉`);
           }
         }
 
-        const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
+        const solved = solvedProblems;
         if (!solved.includes(currentProblemId)) {
           const newSolvedArray = [...solved, currentProblemId];
-          localStorage.setItem("solvedProblems", JSON.stringify(newSolvedArray));
+          setSolvedProblems(newSolvedArray);
           
-          // 🔥 Production DB Sync
+          // 🔥 Production DB Sync 
           axiosInstance.post("/users/stats/update", {
              pointsGained: isMock ? 50 : 15,
              problemId: currentProblemId
@@ -304,9 +322,13 @@ function ProblemPage() {
         code: code,
         timestamp: Date.now()
       };
-      const updatedSubmissions = [...submissions, newSubmission];
-      setSubmissions(updatedSubmissions);
-      localStorage.setItem("pastSubmissions", JSON.stringify(updatedSubmissions));
+       const updatedSubmissions = [...submissions, newSubmission];
+       setSubmissions(updatedSubmissions);
+       
+       axiosInstance.post("/users/metadata/update", {
+           key: "pastSubmissions",
+           value: updatedSubmissions
+       }).catch(err => console.error("Could not sync submissions", err));
 
     } else {
       setOutput({ ...result, timeTaken });
@@ -322,7 +344,10 @@ function ProblemPage() {
       };
       const updatedSubmissions = [...submissions, newSubmission];
       setSubmissions(updatedSubmissions);
-      localStorage.setItem("pastSubmissions", JSON.stringify(updatedSubmissions));
+      axiosInstance.post("/users/metadata/update", {
+          key: "pastSubmissions",
+          value: updatedSubmissions
+      }).catch(err => console.error("Could not sync submissions", err));
       
       // ML: Record adaptive difficulty failure
       AdaptiveDifficulty.recordAttempt(currentProblemId, currentProblem.difficulty, false, timerSeconds);
@@ -352,7 +377,6 @@ function ProblemPage() {
       });
 
       // Save History for Mock Page Panel triggers flawlessly
-      const pastMocks = JSON.parse(localStorage.getItem("pastMocks") || "[]");
       const newMockEntry = {
           company: mockCompany?.toUpperCase() || "MOCK",
           verdict: verdict,
@@ -360,7 +384,14 @@ function ProblemPage() {
           passed: output?.testsPassed || false,
           timestamp: Date.now()
       };
-      localStorage.setItem("pastMocks", JSON.stringify([...pastMocks, newMockEntry]));
+      
+      const updatedMocks = [...pastMocks, newMockEntry];
+      setPastMocks(updatedMocks);
+
+      axiosInstance.post("/users/metadata/update", {
+          key: "pastMocks",
+          value: updatedMocks
+      }).catch(err => console.error("Could not sync mock session", err));
       
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setShowVerdictModal(true);

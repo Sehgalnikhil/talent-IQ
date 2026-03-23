@@ -166,15 +166,32 @@ function TrackPage() {
     const { trackId } = useParams();
     const navigate = useNavigate();
 
+    const [isLoading, setIsLoading] = useState(true);
+    const [solvedProblems, setSolvedProblems] = useState([]);
+    const [aiCustomTracks, setAiCustomTracks] = useState([]);
+    const [activeBossModal, setActiveBossModal] = useState(false);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await axiosInstance.get("/users/stats");
+                setSolvedProblems(res.data.problemsSolved || []);
+                setAiCustomTracks(res.data.aiCustomTracks || []);
+            } catch (err) {
+                console.error("Failed to load user stats");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
     // Determine the track
     let track = trackDetails[trackId];
     let isCustom = false;
 
-    if (!track && trackId.startsWith("custom-ai")) {
-        // Synchronously load from local storage to prevent redirect flash
-        const savedCustomTracks = JSON.parse(localStorage.getItem("aiCustomTracks") || "[]");
-        const customTrack = savedCustomTracks.find(t => t.id === trackId);
-
+    if (!track && trackId?.startsWith("custom-ai")) {
+        const customTrack = aiCustomTracks.find(t => t.id === trackId);
         if (customTrack) {
             track = {
                 ...customTrack,
@@ -185,22 +202,13 @@ function TrackPage() {
         }
     }
 
-    const [solvedProblems, setSolvedProblems] = useState([]);
-    const [activeBossModal, setActiveBossModal] = useState(false);
-
-    // Add fake users to cohort leaderboard
-    const cohortLeaderboard = [
-        { name: "You", points: 840, solved: 14, rank: 1, isMe: true },
-        { name: "DevMaster99", points: 720, solved: 12, rank: 2, isMe: false },
-        { name: "O(1)_Wizard", points: 650, solved: 10, rank: 3, isMe: false },
-        { name: "NullPointer", points: 410, solved: 6, rank: 4, isMe: false },
-        { name: "BTree_Hugger", points: 200, solved: 3, rank: 5, isMe: false },
-    ];
-
-    useEffect(() => {
-        const solved = JSON.parse(localStorage.getItem("solvedProblems") || "[]");
-        setSolvedProblems(solved);
-    }, []);
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-base-200 flex items-center justify-center">
+                <div className="loading loading-spinner loading-lg text-primary"></div>
+            </div>
+        );
+    }
 
     if (!track) {
         return <Navigate to="/curated" />;
@@ -219,6 +227,15 @@ function TrackPage() {
 
     const solvedCount = trackProblems.filter((p) => solvedProblems.includes(p.id)).length;
     const offerProbability = Math.min(99, 15 + (solvedCount / trackProblems.length) * 82);
+
+    // Add fake users to cohort leaderboard
+    const cohortLeaderboard = [
+        { name: "You", points: 840, solved: 14, rank: 1, isMe: true },
+        { name: "DevMaster99", points: 720, solved: 12, rank: 2, isMe: false },
+        { name: "O(1)_Wizard", points: 650, solved: 10, rank: 3, isMe: false },
+        { name: "NullPointer", points: 410, solved: 6, rank: 4, isMe: false },
+        { name: "BTree_Hugger", points: 200, solved: 3, rank: 5, isMe: false },
+    ];
 
     // Group problems into "Nodes/Tiers" to simulate a Skill Tree DAG
     const tiers = [];

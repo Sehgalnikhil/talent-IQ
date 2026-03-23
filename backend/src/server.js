@@ -50,16 +50,18 @@ if (ENV.NODE_ENV === "production") {
 }
 
 const startServer = async () => {
-  try {
-    await connectDB();
+    // 1. Start listening immediately so endpoints bind up full-time
+    httpServer.listen(5055, () => console.log("Server is running on port: 5055"));
 
-    // Initialize WebSockets
-    initSocket(httpServer, ENV.CLIENT_URL);
-
-    httpServer.listen(ENV.PORT, () => console.log("Server is running on port:", ENV.PORT));
-  } catch (error) {
-    console.error("💥 Error starting the server", error);
-  }
+    try {
+        await connectDB();
+        
+        // Initialize WebSockets
+        initSocket(httpServer, ENV.CLIENT_URL);
+    } catch (error) {
+        console.error("💥 Error connecting to MongoDB:", error);
+        console.log("⚠️ Server continues running in OFFLINE mode.");
+    }
 };
 
 startServer();

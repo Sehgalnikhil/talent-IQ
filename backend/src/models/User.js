@@ -66,6 +66,10 @@ const userSchema = new mongoose.Schema(
     studyPlan: {
       type: Object,
       default: null
+    },
+    savedProblems: {
+      type: [Object],
+      default: []
     }
   },
   { timestamps: true } // createdAt, updatedAt

@@ -22,6 +22,7 @@ import SpotlightCard from '../components/SpotlightCard';
 import { useNavigate } from 'react-router';
 import { executeCode } from '../lib/piston';
 import axiosInstance from '../lib/axios';
+import toast from 'react-hot-toast';
 
 const ROUNDS = [
   { id: 'aptitude', title: 'Aptitude & Logical', icon: LineChartIcon, description: 'Quantitative, logical reasoning, and data interpretation.', time: '15 mins' },
@@ -122,6 +123,11 @@ export default function FullMockInterviewPage() {
   const [collabChatInput, setCollabChatInput] = useState("");
   const [isCollabLoading, setIsCollabLoading] = useState(false);
 
+  // Dynamic Configurations
+  const [dynamicCoding, setDynamicCoding] = useState({ title: "Rate Limiter", description: "Design an API Rate Limiter.", difficulty: "Medium", starter_code: `function isPalindrome(s) {\n  // Write your code here...\n  \n  return true;\n}` });
+  const [dynamicCaseStudy, setDynamicCaseStudy] = useState({ problem: "Design a Spam Detection System", context: "Build an end-to-end ML architecture to classify SMS/Emails as Spam or Not Spam for 1B active daily users." });
+  const [dynamicSysDesign, setDynamicSysDesign] = useState({ problem: "Architect a scalable backend or custom task node", constraints: "Limit latency to < 50ms for 1M reads/sec." });
+
   const navigate = useNavigate();
 
   const handleRunCode = async () => {
@@ -153,7 +159,7 @@ export default function FullMockInterviewPage() {
     try {
       const res = await axiosInstance.post("/interview/chat", {
         chatLog: newLog,
-        interviewType: "ML_Technical",
+        interviewType: "ML Technical",
         hostility: 5
       });
       setMlChatLog([...newLog, { role: "ai", text: res.data.reply }]);
@@ -199,7 +205,7 @@ export default function FullMockInterviewPage() {
     try {
       const res = await axiosInstance.post("/interview/chat", {
         chatLog: newLog,
-        interviewType: "Pair_Programming",
+        interviewType: "Pair Programming",
         codeSnippet: collabCode
       });
       setCollabChatLog([...newLog, { role: "ai", text: res.data.reply }]);
@@ -305,30 +311,53 @@ export default function FullMockInterviewPage() {
 
       // Dynamically override initial state constraints
       if (configuration) {
-        setAptitudeQuestions([
-          { 
-            id: 1, 
-            text: configuration.firstQuestion || "What is a core algorithmic tradeoff?", 
-            options: ["A", "B", "C", "D"], // We could mock full option array gen later
-            answer: "A" 
-          },
-          ...APTITUDE_QUESTIONS.slice(1)
-        ]);
+        if (configuration.aptitude?.length > 0) {
+          const formattedAptitude = configuration.aptitude.map((q, idx) => ({
+            id: q.id || idx + 1,
+            text: q.question || q.text || "Problem context description.",
+            options: q.options || [],
+            answer: q.answer || ""
+          }));
+          setAptitudeQuestions(formattedAptitude);
+        }
 
-        setResumeChatLog([
-          { role: "ai", text: `I reviewed your resume. ${configuration.resumeSummary || "Let's dive in."} Could you elaborate on this?` }
-        ]);
+        if (configuration.coding) {
+          setDynamicCoding(configuration.coding);
+          setCodingCode(configuration.coding.starter_code || "");
+        }
 
-        setMlChatLog([
-          { role: "ai", text: `Welcome to the ${targetRole} ML Architecture Phase. Based on your background, ${configuration.caseStudyContext} How would you approach the data pipeline bottleneck?`}
-        ]);
+        if (configuration.case_study) {
+          setDynamicCaseStudy(configuration.case_study);
+        }
+
+        if (configuration.system_design) {
+          setDynamicSysDesign(configuration.system_design);
+        }
+
+        if (configuration.resumeSummary) {
+          setResumeChatLog([
+            { role: "ai", text: `I reviewed your resume. ${configuration.resumeSummary || "Let's dive in."} Could you elaborate on this?` }
+          ]);
+        }
+
+        if (configuration.ml_concepts_start) {
+          setMlChatLog([
+            { role: "ai", text: configuration.ml_concepts_start }
+          ]);
+        }
+
+        if (configuration.pair_programming) {
+          setCollabCode(configuration.pair_programming.starter_code || "");
+          setCollabChatLog([
+             { role: "ai", text: `Hey! Let's approach this: ${configuration.pair_programming.problem}. How should we start on the right structure?` }
+          ]);
+        }
       }
       
       setIsStarted(true);
     } catch (err) {
       console.error("Failed to initialize Gauntlet loop with AI:", err);
-      // Fallback: still start for demo purposes right now if backend fails
-      setIsStarted(true); 
+      toast.error("Failed to parse resume configuration with AI. Please try initiating again.");
     } finally {
       setIsInitializing(false);
     }
@@ -677,11 +706,10 @@ export default function FullMockInterviewPage() {
                     <div className="flex-1 flex flex-col md:flex-row gap-6 w-full h-full mt-4">
                        <div className="flex-1 bg-base-200/50 rounded-2xl border border-base-200 p-6 flex flex-col overflow-y-auto">
                            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
-                             <FileTextIcon className="size-5"/> Design a Spam Detection System
+                             <FileTextIcon className="size-5"/> {dynamicCaseStudy.problem}
                            </h3>
                            <p className="text-sm opacity-80 mb-6 leading-relaxed">
-                             Build an end-to-end ML architecture to classify SMS/Emails as Spam or Not Spam for 1B active daily users. 
-                             Document your approach covering data, features, model, and monitoring.
+                             {dynamicCaseStudy.context}
                            </p>
                            
                            <div className="flex flex-wrap gap-2 mb-6">

@@ -5,6 +5,8 @@
 ✨ Highlights:
 
 - 🧑‍💻 VSCode-Powered Code Editor
+- 🤖 **AI Interview Orchestrator** (9-Stage personalized flows off Resumes)
+- 🧠 **Code Cognitive Complexity Analyzer** (Benchmarking Big-O static telemetry metrics)
 - 🔐 Authentication via Clerk
 - 🎥 1-on-1 Video Interview Rooms
 - 🧭 Dashboard with Live Stats
@@ -18,8 +20,6 @@
 - 🧠 Background Jobs with Inngest (async tasks)
 - 🧰 REST API with Node.js & Express
 - ⚡ Data Fetching & Caching via TanStack Query
-- 🤖 CodeRabbit for PR Analysis & Code Optimization
-- 🧑‍💻 Git & GitHub Workflow (branches, PRs, merges)
 - 🚀 Deployment on Sevalla (free-tier friendly)
 
 ---
@@ -29,7 +29,7 @@
 ### Backend (`/backend`)
 
 ```bash
-PORT=3000
+PORT=5055
 NODE_ENV=development
 
 DB_URL=your_mongodb_connection_url
@@ -44,6 +44,8 @@ CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 
 CLIENT_URL=http://localhost:5173
+
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### Frontend (`/frontend`)
@@ -51,7 +53,7 @@ CLIENT_URL=http://localhost:5173
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:5055/api
 
 VITE_STREAM_API_KEY=your_stream_api_key
 ```
@@ -61,7 +63,6 @@ VITE_STREAM_API_KEY=your_stream_api_key
 ## 🔧 Run the Backend
 
 ```bash
-
 cd backend
 npm install
 npm run dev
@@ -71,8 +72,7 @@ npm run dev
 
 ## 🔧 Run the Frontend
 
-```
-bash
+```bash
 cd frontend
 npm install
 npm run dev

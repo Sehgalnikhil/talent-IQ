@@ -56,7 +56,8 @@ export const getUserStats = async (req, res) => {
             aiCustomTracks: user.aiCustomTracks,
             speedrun: user.speedrun,
             pomodoroSessions: user.pomodoroSessions,
-            studyPlan: user.studyPlan
+            studyPlan: user.studyPlan,
+            savedProblems: user.savedProblems || []
         });
     } catch (error) {
         console.error("Stats Error:", error);

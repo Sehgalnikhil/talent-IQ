@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router";
 import { BuildingIcon, LockIcon, TimerIcon, PlayIcon, ShieldAlertIcon, AwardIcon, CheckCircleIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-
+import axiosInstance from "../lib/axios";
 const COMPANIES = [
     { id: "meta", name: "Meta", logo: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg", timeLimit: 45, problemCount: 2, problems: "two-sum,valid-anagram", color: "from-blue-600 to-sky-400", bg: "bg-blue-500/10", glow: "shadow-blue-500/10" },
     { id: "google", name: "Google", logo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg", timeLimit: 45, problemCount: 2, problems: "reverse-linked-list,longest-substring", color: "from-red-500 to-yellow-500", bg: "bg-red-500/10", glow: "shadow-red-500/10" },
@@ -32,8 +32,10 @@ export default function CompanyMockPage() {
     const [agreed, setAgreed] = useState(false);
     const [pastMocks, setPastMocks] = useState([]);
 
-    useState(() => {
-       setPastMocks(JSON.parse(localStorage.getItem("pastMocks") || "[]"));
+    useEffect(() => {
+        axiosInstance.get("/users/stats")
+          .then(res => setPastMocks(res.data.pastMocks || []))
+          .catch(err => console.error("Could not stats load mocks", err));
     }, []);
 
     const startMockAssessment = () => {
