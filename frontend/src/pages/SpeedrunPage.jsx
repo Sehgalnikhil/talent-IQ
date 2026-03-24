@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import canvasConfetti from "canvas-confetti";
 import Editor from "@monaco-editor/react";
 import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "../lib/axios";
 
 // Feature #15: ELO Rank system
 const ELO_RANKS = [

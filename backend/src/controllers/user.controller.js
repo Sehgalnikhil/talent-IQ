@@ -1,3 +1,4 @@
+import { exec } from "child_process";
 import User from "../models/User.js";
 
 // Fetch global leaderboard
@@ -28,7 +29,7 @@ export const getLeaderboard = async (req, res) => {
 // Fetch current user stats
 export const getUserStats = async (req, res) => {
     try {
-        const { clerkId } = req.auth; // Passed from Clerk middleware
+        const clerkId = req.auth.userId; // Passed from Clerk middleware
         if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
 
         // Upsert implicitly so we don't break UI for missing backend hooks
@@ -68,7 +69,7 @@ export const getUserStats = async (req, res) => {
 // Update user performance (after mock interview or problem)
 export const updateUserStats = async (req, res) => {
     try {
-        const { clerkId } = req.auth;
+        const clerkId = req.auth.userId;
         const { pointsGained, problemId } = req.body;
 
         if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
@@ -105,7 +106,7 @@ export const updateUserStats = async (req, res) => {
 // Generic Live Data Sync 
 export const updateUserMetadata = async (req, res) => {
     try {
-        const { clerkId } = req.auth;
+        const clerkId = req.auth.userId;
         const { key, value } = req.body;
 
         if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
@@ -126,5 +127,53 @@ export const updateUserMetadata = async (req, res) => {
     } catch (error) {
         console.error("Metadata Sync Error:", error);
         res.status(500).json({ error: "Failed to sync metadata." });
+    }
+};
+
+// Executive Python Machine Learning prediction node
+export const predictHireability = async (req, res) => {
+    try {
+        const clerkId = req.auth.userId;
+        if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
+
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Aggregate live metrics to feed the 10,000 Trained Model
+        const experienceYears = user.submissions?.length > 10 ? 4 : 1; 
+        const avgSkills = user.points > 2000 ? 85 : 55;
+        const avgSpeed = user.personalBests ? 
+            Object.values(user.personalBests).reduce((a,b) => a+b, 0) / (Object.values(user.personalBests).length || 1) 
+            : 1800;
+
+        const data = {
+            experience: experienceYears,
+            skills_score: avgSkills,
+            aptitude_score: 75, // Sample base
+            coding_speed_sec: Math.round(avgSpeed),
+            sys_design_score: 6
+        };
+
+        const scriptPath = "src/ai/predict_hireability.py";
+        const pythonScript = `python3 ${scriptPath} '${JSON.stringify(data)}'`;
+
+        exec(pythonScript, (error, stdout, stderr) => {
+            if (error) {
+                console.error("ML Execute Error:", stderr);
+                import('fs').then(fs => fs.writeFileSync("/tmp/ml_error.txt", `Error: ${error.message}\nStderr: ${stderr}\nStdout: ${stdout}`));
+                return res.status(500).json({ error: "ML Inference failed", details: stderr });
+            }
+            try {
+                const prediction = JSON.parse(stdout);
+                res.status(200).json(prediction);
+            } catch (pErr) {
+                import('fs').then(fs => fs.writeFileSync("/tmp/ml_error.txt", `ParseError: ${pErr.message}\nStdout: ${stdout}`));
+                res.status(500).json({ error: "Malformed ML output", raw: stdout });
+            }
+        });
+
+    } catch (error) {
+        console.error("Predict Hireability Error:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };

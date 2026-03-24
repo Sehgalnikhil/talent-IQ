@@ -23,6 +23,34 @@ import { useNavigate } from 'react-router';
 import { executeCode } from '../lib/piston';
 import axiosInstance from '../lib/axios';
 import toast from 'react-hot-toast';
+import DecodingText from '../components/DecodingText';
+
+const AptitudeOptionCard = ({ children, isSelected, onClick }) => {
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+        <div
+            onClick={onClick}
+            onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-300 relative overflow-hidden ${isSelected ? 'border-[#00daf3] bg-[#00daf3]/10 shadow-[0_0_15px_rgba(0,218,243,0.2)]' : 'border-[#494455]/40 hover:border-[#00daf3]/40 hover:bg-[#00daf3]/5 bg-[#1a1c20]'}`}
+        >
+            <div
+                className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
+                style={{
+                    opacity: isHovered ? 1 : 0,
+                    background: `radial-gradient(400px circle at ${position.x}px ${position.y}px, rgba(0, 227, 253, 0.08), transparent 80%)`,
+                }}
+            />
+            {children}
+        </div>
+    );
+};
 
 const ROUNDS = [
   { id: 'aptitude', title: 'Aptitude & Logical', icon: LineChartIcon, description: 'Quantitative, logical reasoning, and data interpretation.', time: '15 mins' },
@@ -67,9 +95,12 @@ export default function FullMockInterviewPage() {
   const [aptitudeQIndex, setAptitudeQIndex] = useState(0);
   const [aptitudeAnswers, setAptitudeAnswers] = useState({});
   const [aptitudeTimeLeft, setAptitudeTimeLeft] = useState(15 * 60);
+  const [isAptitudeLocked, setIsAptitudeLocked] = useState(false);
 
   // Global Grading
   const [calculatedFinalScore, setCalculatedFinalScore] = useState(84); // Default to 84 until Evaluation phase
+  const [aiReport, setAiReport] = useState(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   // Coding Round States
   const [codingCode, setCodingCode] = useState(`function isPalindrome(s) {\n  // Write your code here...\n  \n  return true;\n}`);
@@ -230,6 +261,10 @@ export default function FullMockInterviewPage() {
   const currentRound = ROUNDS[currentRoundIndex];
 
   const handleNext = async () => {
+    if (currentRoundIndex === 0) {
+      setIsAptitudeLocked(true);
+    }
+
     if (currentRoundIndex < ROUNDS.length - 1) {
       const nextIndex = currentRoundIndex + 1;
       
@@ -244,31 +279,36 @@ export default function FullMockInterviewPage() {
             }
           });
           const aptitudePct = Math.round((aptitudeCorrect / aptitudeQuestions.length) * 100) || 75;
-          
-          let codingPct = codingOutput.includes("Error") ? 30 : 92;
-          let calculatedTotal = Math.round((aptitudePct + codingPct + 88 + 90 + 85 + 85 + 90 + 95) / 8);
+          const codingPct = codingOutput.includes("Error") ? 30 : 85;
+
+          const calculatedTotal = Math.round((aptitudePct + codingPct + 80 + 85) / 4);
           setCalculatedFinalScore(calculatedTotal);
+
+          setIsEvaluating(true);
+          const feedbackRes = await axiosInstance.post("/interview/chat", {
+             chatLog: [
+               { role: "user", text: `Generate a Final Evaluation Report. Aptitude Score: ${aptitudePct}%, Coding Score: ${codingPct}%. Analyze these strictly and return valid JSON.` }
+             ],
+             interviewType: "Final Evaluation"
+          });
+
+          let parsed = {};
+          try {
+             const jsonMatch = feedbackRes.data.reply.match(/\{[\s\S]*\}/);
+             parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
+          } catch (e) {
+             parsed = { feedback: feedbackRes.data.reply || "Assessment Finished.", hire_decision: "Yes", level: "L4", strengths: ["Analytical"], weaknesses: ["Verbose"] };
+          }
+          setAiReport(parsed);
 
           await axiosInstance.post("/interview/save-session", {
              targetRole,
              difficulty: targetDifficulty,
              finalScore: calculatedTotal,
-             roundScores: {
-                aptitude: aptitudePct,
-                coding: codingPct,
-                mlConcepts: 88,
-                caseStudy: 90,
-                systemDesign: 85,
-                debugging: 85,
-                resume: 90,
-                hrVoice: 95,
-                pairProgramming: 85
-             },
-             aiFeedback: {
-               strengths: "Excellent system limits understanding. Great ML domain depth.",
-               weaknesses: "Slight hesitation formatting the binary tree logic efficiently."
-             }
+             roundScores: { aptitude: aptitudePct, coding: codingPct },
+             aiFeedback: parsed
           });
+          setIsEvaluating(false);
           console.log("Gauntlet Sync Successful");
         } catch (err) {
           console.error("Failed to sync final Gauntlet logic:", err);
@@ -564,25 +604,26 @@ export default function FullMockInterviewPage() {
                       
                       <div className="bg-[#111317] p-6 rounded-2xl border border-[#494455]/30 shadow-inner mb-8 relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#00daf3]/5 to-[#9244f4]/5 pointer-events-none"></div>
-                        <p className="text-lg font-medium leading-relaxed mb-6 relative z-10 text-white shadow-sm">{aptitudeQuestions[aptitudeQIndex].text}</p>
+                        <p className="text-lg font-medium leading-relaxed mb-6 relative z-10 text-white shadow-sm"><DecodingText text={aptitudeQuestions[aptitudeQIndex].text} /></p>
                         
                         <div className="space-y-3 relative z-10">
-                           {aptitudeQuestions[aptitudeQIndex].options.map((opt, i) => {
-                             const qId = aptitudeQuestions[aptitudeQIndex].id;
-                             const isSelected = aptitudeAnswers[qId] === opt;
-                             return (
-                               <label key={i} className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-300 ${isSelected ? 'border-[#00daf3] bg-[#00daf3]/10 shadow-[0_0_15px_rgba(0,218,243,0.2)]' : 'border-[#494455]/40 hover:border-[#00daf3]/40 hover:bg-[#00daf3]/5 bg-[#1a1c20]'}`}>
-                                 <input 
-                                   type="radio" 
-                                   name={`aptitude_q${qId}`} 
-                                   className="radio radio-primary border border-white/30 checked:border-[#00daf3] checked:bg-[#00daf3]" 
-                                   checked={isSelected}
-                                   onChange={() => setAptitudeAnswers(prev => ({ ...prev, [qId]: opt }))}
-                                 />
-                                 <span className={`font-medium ${isSelected ? 'text-[#00daf3]' : 'text-[#cac3d8]'}`}>{opt}</span>
-                               </label>
-                             );
-                           })}
+                            {aptitudeQuestions[aptitudeQIndex].options.map((opt, i) => {
+                              const qId = aptitudeQuestions[aptitudeQIndex].id;
+                              const isSelected = aptitudeAnswers[qId] === opt;
+                              return (
+                                <AptitudeOptionCard key={i} isSelected={isSelected} onClick={() => !isAptitudeLocked && setAptitudeAnswers(prev => ({ ...prev, [qId]: opt }))}>
+                                    <input 
+                                      type="radio" 
+                                      name={`aptitude_q${qId}`} 
+                                      className="radio radio-primary border border-white/30 checked:border-[#00daf3] checked:bg-[#00daf3]" 
+                                      checked={isSelected}
+                                      disabled={isAptitudeLocked}
+                                      onChange={() => !isAptitudeLocked && setAptitudeAnswers(prev => ({ ...prev, [qId]: opt }))}
+                                    />
+                                    <span className={`font-medium ${isSelected ? 'text-[#00daf3]' : 'text-[#cac3d8]'} ${isAptitudeLocked ? 'opacity-60 cursor-not-allowed' : ''}`}>{opt}</span>
+                                </AptitudeOptionCard>
+                              );
+                            })}
                         </div>
                       </div>
 
@@ -1101,68 +1142,84 @@ export default function FullMockInterviewPage() {
                        </div>
                     </div>
                   ) : currentRound.id === 'final_report' ? (
-                    <div className="flex-1 flex flex-col gap-6 w-full h-full mt-4">
-                       {/* Top Banner Analysis */}
-                       <div className="bg-gradient-to-r from-[#9244f4]/20 to-[#00daf3]/20 border border-[#9244f4]/30 rounded-2xl p-8 shadow-[0_0_30px_rgba(146,68,244,0.15)] relative overflow-hidden flex flex-col items-center justify-center text-center">
-                           <div className="absolute inset-0 bg-[#111317]/50 pointer-events-none"></div>
-                           <TrophyIcon className="size-16 text-warning mb-4 relative z-10 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
-                           <h2 className="text-3xl font-black text-white relative z-10 mb-2">Gauntlet Protocol Complete</h2>
-                           <p className="text-[#00daf3] relative z-10 font-mono text-sm uppercase tracking-widest font-bold">Estimated Level: L5 Senior Software Engineer</p>
-                           
-                           <div className="flex gap-12 mt-8 relative z-10">
-                              <div className="text-center">
-                                 <div className="text-4xl font-black text-success drop-shadow-[0_0_10px_rgba(0,169,110,0.5)]">{calculatedFinalScore}<span className="text-lg opacity-50">/100</span></div>
-                                 <div className="text-xs font-bold uppercase tracking-wider opacity-70 mt-1">Aggregate Score</div>
-                              </div>
-                              <div className="text-center">
-                                 <div className="text-4xl font-black text-[#d8b9ff] drop-shadow-[0_0_10px_rgba(146,68,244,0.5)]">Top 8%</div>
-                                 <div className="text-xs font-bold uppercase tracking-wider opacity-70 mt-1">Global Percentile</div>
-                              </div>
-                              <div className="text-center">
-                                 <div className="text-4xl font-black text-warning drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]">Pass</div>
-                                 <div className="text-xs font-bold uppercase tracking-wider opacity-70 mt-1">FAANG Prediction</div>
+                     <div className="flex-1 flex flex-col gap-6 w-full h-full mt-4 relative">
+                        {isEvaluating && (
+                            <div className="absolute inset-0 bg-[#1a112c]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center text-center rounded-2xl border border-[#9244f4]/30">
+                                <span className="loading loading-spinner text-primary size-12 mb-4"></span>
+                                <p className="text-sm font-mono text-[#00daf3] animate-pulse font-black uppercase tracking-widest">Compiling Full Gauntlet Evaluation...</p>
+                            </div>
+                        )}
+                        {/* Top Banner Analysis */}
+                        <div className="bg-gradient-to-r from-[#9244f4]/20 to-[#00daf3]/20 border border-[#9244f4]/30 rounded-2xl p-8 shadow-[0_0_30px_rgba(146,68,244,0.15)] relative overflow-hidden flex flex-col items-center justify-center text-center">
+                            <div className="absolute inset-0 bg-[#111317]/50 pointer-events-none"></div>
+                            <TrophyIcon className="size-16 text-warning mb-4 relative z-10 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
+                            <h2 className="text-3xl font-black text-white relative z-10 mb-2">Gauntlet Protocol Complete</h2>
+                            <p className="text-[#00daf3] relative z-10 font-mono text-sm uppercase tracking-widest font-bold">Estimated Level: {aiReport?.level || "L4 Mid-Level"}</p>
+                            
+                            <div className="flex gap-12 mt-8 relative z-10">
+                               <div className="text-center">
+                                  <div className="text-4xl font-black text-success drop-shadow-[0_0_10px_rgba(0,169,110,0.5)]">{calculatedFinalScore}<span className="text-lg opacity-50">/100</span></div>
+                                  <div className="text-xs font-bold uppercase tracking-wider opacity-70 mt-1">Aggregate Score</div>
+                               </div>
+                               <div className="text-center">
+                                  <div className="text-4xl font-black text-[#d8b9ff] drop-shadow-[0_0_10px_rgba(146,68,244,0.5)]">Top {Math.max(1, 100 - calculatedFinalScore)}%</div>
+                                  <div className="text-xs font-bold uppercase tracking-wider opacity-70 mt-1">Global Percentile</div>
+                               </div>
+                               <div className="text-center">
+                                  <div className="text-4xl font-black text-warning drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]">{aiReport?.hire_decision || "Pass"}</div>
+                                  <div className="text-xs font-bold uppercase tracking-wider opacity-70 mt-1">FAANG Prediction</div>
+                               </div>
+                            </div>
+                        </div>
+ 
+                        {/* Granular Breakdown Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                           <div className="bg-[#111317] rounded-2xl border border-base-200 p-6 shadow-xl">
+                              <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><LineChartIcon className="size-5 text-primary"/> Competency Radar</h3>
+                              <div className="space-y-4">
+                                 {[
+                                   { label: 'Aptitude & Logic', val: calculatedFinalScore >= 75 ? 85 : 70, color: 'progress-error' },
+                                   { label: 'Data Structures & Algos', val: codingOutput.includes("Error") ? 30 : 85, color: 'progress-primary' },
+                                   { label: 'System Design Scaling', val: 80, color: 'progress-secondary' },
+                                   { label: 'General Evaluation Score', val: calculatedFinalScore, color: 'progress-success' }
+                                 ].map(skill => (
+                                    <div key={skill.label}>
+                                       <div className="flex justify-between text-xs mb-1 font-mono">
+                                         <span className="opacity-80">{skill.label}</span>
+                                         <span className="font-bold">{skill.val}%</span>
+                                       </div>
+                                       <progress className={`progress ${skill.color} w-full`} value={skill.val} max="100"></progress>
+                                    </div>
+                                 ))}
                               </div>
                            </div>
-                       </div>
-
-                       {/* Granular Breakdown Grid */}
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-                          <div className="bg-[#111317] rounded-2xl border border-base-200 p-6 shadow-xl">
-                             <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><LineChartIcon className="size-5 text-primary"/> Competency Radar</h3>
-                             <div className="space-y-4">
-                                {[
-                                  { label: 'Data Structures & Algos', val: 85, color: 'progress-error' },
-                                  { label: 'System Design', val: 92, color: 'progress-primary' },
-                                  { label: 'Machine Learning Context', val: 78, color: 'progress-secondary' },
-                                  { label: 'Pair Programming / Collab', val: 88, color: 'progress-accent' },
-                                  { label: 'Behavioral & Leadership', val: 95, color: 'progress-success' }
-                                ].map(skill => (
-                                   <div key={skill.label}>
-                                      <div className="flex justify-between text-xs mb-1 font-mono">
-                                        <span className="opacity-80">{skill.label}</span>
-                                        <span className="font-bold">{skill.val}%</span>
-                                      </div>
-                                      <progress className={`progress ${skill.color} w-full`} value={skill.val} max="100"></progress>
-                                   </div>
-                                ))}
-                             </div>
-                          </div>
-                          
-                          <div className="bg-[#1a1c20] rounded-2xl border border-[#00daf3]/20 p-6 shadow-inner flex flex-col">
-                             <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><BrainCircuitIcon className="size-5 text-[#00daf3]"/> AI Feedback Synthesis</h3>
-                             <div className="flex-1 bg-[#111317] rounded-xl p-5 border border-base-300 font-serif text-sm leading-loose overflow-y-auto text-base-content/80 relative">
-                                <span className="absolute top-0 right-4 p-2 font-mono text-[10px] opacity-40 uppercase tracking-widest">Gemini Analysis</span>
-                                <p className="mb-4 text-[#d8b9ff]">
-                                  <strong>Strengths:</strong> Highly exceptional understanding of Distributed System tradeoffs. The candidate accurately mapped Cassandra's usage for read-heavy streaming loads vs PostgreSQL metadata locking. Communication during the Pair Programming was extremely collaborative and articulate.
-                                </p>
-                                <p className="text-error/90">
-                                  <strong>Areas to Improve:</strong> Implementation of the ML Case Study pipeline glossed over class imbalance issues within the initial model constraints. Review handling of unhandled async/await block logic within Node.js middleware.
-                                </p>
-                             </div>
-                             <button className="btn w-full mt-4 bg-gradient-to-r from-success to-info text-white font-bold border-none shadow-[0_0_20px_rgba(0,169,110,0.3)]">Export Full PDF Dossier</button>
-                          </div>
-                       </div>
-                    </div>
+                           
+                           <div className="bg-[#1a1c20] rounded-2xl border border-[#00daf3]/20 p-6 shadow-inner flex flex-col">
+                              <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><BrainCircuitIcon className="size-5 text-[#00daf3]"/> AI Feedback Synthesis</h3>
+                              <div className="flex-1 bg-[#111317] rounded-xl p-5 border border-base-300 font-serif text-sm leading-loose overflow-y-auto text-base-content/80 relative">
+                                 <span className="absolute top-0 right-4 p-2 font-mono text-[10px] opacity-40 uppercase tracking-widest">Gemini Analysis</span>
+                                 <div className="mb-4 text-[#d8b9ff] space-y-3">
+                                    <p><strong>Feedback:</strong> {aiReport?.feedback || "Summarization pending analysis..."}</p>
+                                    {aiReport?.strengths?.length > 0 && (
+                                        <div><strong>Strengths:</strong>
+                                            <ul className="list-disc list-inside ml-2">
+                                                {aiReport.strengths.map((s,i) => <li key={i}>{s}</li>)}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {aiReport?.weaknesses?.length > 0 && (
+                                        <div><strong>Areas to Improve:</strong>
+                                            <ul className="list-disc list-inside ml-2 text-error/90">
+                                                {aiReport.weaknesses.map((w,i) => <li key={i}>{w}</li>)}
+                                            </ul>
+                                        </div>
+                                    )}
+                                 </div>
+                              </div>
+                              <button className="btn w-full mt-4 bg-gradient-to-r from-success to-info text-white font-bold border-none shadow-[0_0_20px_rgba(0,169,110,0.3)]">Export Full PDF Dossier</button>
+                           </div>
+                        </div>
+                     </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center border-2 border-dashed border-base-300 rounded-2xl bg-base-200/20 relative z-10 mt-4">
                        <div className="text-center max-w-md">

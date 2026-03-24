@@ -2,8 +2,9 @@
 // ML FEATURE WIDGETS — Dashboard Components for 10 ML Features
 // ═══════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "../lib/axios";;
 import { Link } from "react-router";
 import toast from "react-hot-toast";
 import {
@@ -130,7 +131,11 @@ export function AdaptiveDifficultyWidget() {
       </h3>
 
       {/* Recommended Zone */}
-      <div className={`rounded-xl p-4 mb-4 ${rc.bg} border ${rc.border}`}>
+      <motion.div 
+        whileHover={{ y: -4, scale: 1.02 }} 
+        transition={{ type: "spring", stiffness: 400 }} 
+        className={`rounded-xl p-4 mb-4 ${rc.bg} border ${rc.border} cursor-pointer shadow-sm hover:shadow-md`}
+      >
         <div className="text-xs uppercase font-bold text-base-content/40 mb-1">Recommended</div>
         <div className={`text-2xl font-black ${rc.text}`}>{recommended}</div>
         <div className="flex items-center gap-2 mt-2">
@@ -140,7 +145,7 @@ export function AdaptiveDifficultyWidget() {
             <div className="text-[10px] text-base-content/40">{zone.tip}</div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Success Rates */}
       <div className="space-y-2">
@@ -346,6 +351,23 @@ export function BurnoutWidget() {
         </span>
       </div>
 
+      {/* 💓 Dynamic EKG Core Pulse View Node */}
+      <div className="bg-base-300/40 rounded-xl p-2 mb-4 relative overflow-hidden flex items-center justify-center">
+         <svg className="w-full h-12" viewBox="0 0 100 25" preserveAspectRatio="none">
+            <motion.path 
+               d="M0 12 L35 12 L38 2 L41 22 L44 12 L47 12 L50 8 L53 12 L100 12" 
+               stroke={data.burnoutScore >= 60 ? "#ef4444" : data.burnoutScore >= 35 ? "#f59e0b" : "#10b981"} 
+               strokeWidth="2" 
+               fill="none" 
+               initial={{ strokeDashoffset: 100 }}
+               animate={{ strokeDashoffset: [100, 0] }} 
+               transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} 
+               strokeDasharray="40 10" 
+            />
+         </svg>
+         <div className={`absolute right-4 size-2 rounded-full animate-ping ${data.burnoutScore >= 60 ? "bg-error" : data.burnoutScore >= 35 ? "bg-warning" : "bg-success"}`} />
+      </div>
+
       {/* Burnout Gauge */}
       <div className="relative h-4 bg-base-200 rounded-full overflow-hidden mb-4">
         <motion.div
@@ -468,6 +490,47 @@ export function ProblemMLInsights({ problemId, code, language }) {
   const [prediction, setPrediction] = useState(null);
   const [patterns, setPatterns] = useState([]);
   const [similarity, setSimilarity] = useState(null);
+  const [stress, setStress] = useState(30);
+  const [oracleIssues, setOracleIssues] = useState([]);
+  const [isLints, setIsLints] = useState(false);
+  const lastCodeLength = useRef(code?.length || 0);
+
+  useEffect(() => {
+    if (code && code.length > 10) {
+        setIsLints(true);
+        const timer = setTimeout(async () => {
+             try {
+                const res = await axiosInstance.post("/interview/oracle-lint", { code, language });
+                setOracleIssues(res.data.issues || []);
+             } catch (e) {} finally { setIsLints(false); }
+        }, 1500);
+        return () => clearTimeout(timer);
+    }
+  }, [code, language]);
+
+  useEffect(() => {
+    if (code !== undefined) {
+      const currentLength = code.length;
+      const lengthDelta = Math.abs(currentLength - lastCodeLength.current);
+      lastCodeLength.current = currentLength;
+
+      if (lengthDelta > 0) {
+          setStress(prev => {
+             // Typing raises focus, deletions raise anxiety node
+             const change = lengthDelta > 2 ? 8 : 2;
+             return Math.min(100, Math.max(10, prev + change));
+          });
+      }
+    }
+  }, [code]);
+
+  // Gradually cool down stress level when quiet
+  useEffect(() => {
+    const cooldown = setInterval(() => {
+       setStress(prev => Math.max(20, prev - 3));
+    }, 1500);
+    return () => clearInterval(cooldown);
+  }, []);
 
   useEffect(() => {
     setPrediction(PerformancePredictor.predict(problemId));
@@ -486,6 +549,26 @@ export function ProblemMLInsights({ problemId, code, language }) {
 
   return (
     <div className="space-y-3 p-3">
+      {/* 🧬 Biometric Stress Metric Node */}
+      <div className="bg-base-200/50 rounded-xl p-3 border border-base-300">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2 flex items-center justify-between">
+             <span className="flex items-center gap-1"><HeartPulseIcon className="size-3 text-error" /> Biometric Cadence</span>
+             <span className={`badge badge-xs ${stress > 60 ? "badge-error" : stress > 35 ? "badge-warning" : "badge-success"}`}>{stress > 60 ? "High Stress" : stress > 35 ? "Normal" : "Focused"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+             <div className="flex-1 h-3 bg-base-300 rounded-full overflow-hidden relative">
+                <motion.div 
+                   animate={{ width: `${stress}%` }} 
+                   className={`h-full rounded-full ${stress > 60 ? "bg-error" : stress > 35 ? "bg-warning" : "bg-success"}`} 
+                />
+             </div>
+             <span className="text-sm font-black font-mono">{stress}%</span>
+          </div>
+          <div className="text-[9px] text-base-content/40 mt-1 flex items-center gap-1">
+             <div className="size-1.5 rounded-full bg-success animate-ping" /> Analyzing keystroke biomechatronics...
+          </div>
+      </div>
+
       {/* Performance Prediction */}
       {prediction && (
         <div className="bg-base-200/50 rounded-xl p-3">
@@ -559,6 +642,28 @@ export function ProblemMLInsights({ problemId, code, language }) {
           </div>
         </div>
       )}
+
+      {/* 🔮 AI Bug Index Oracle */}
+      <div className="bg-base-200/50 rounded-xl p-3 border border-base-300/40">
+           <div className="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2 flex items-center justify-between">
+               <span className="flex items-center gap-1"><SparklesIcon className="size-3 text-cyan-500" /> AI Oracle (Live)</span>
+               {isLints && <span className="loading loading-spinner loading-xs text-cyan-500" />}
+           </div>
+           {oracleIssues.length > 0 ? (
+               <div className="space-y-1.5 border-t border-base-300/30 pt-1.5 mt-1.5">
+                   {oracleIssues.map((issue, i) => (
+                       <div key={i} className="flex items-start gap-1 p-1.5 bg-error/5 border border-error/20 rounded-lg">
+                           <ShieldAlertIcon className="size-3 text-error mt-0.5" />
+                           <span className="text-[10px] text-base-content/80">{issue}</span>
+                       </div>
+                   ))}
+               </div>
+           ) : (
+                <p className="text-[10px] text-base-content/40 text-center py-2 flex items-center justify-center gap-1">
+                   {isLints ? "Analyzing buffers..." : "Clean analysis. No major risks found."}
+                </p>
+           )}
+      </div>
     </div>
   );
 }

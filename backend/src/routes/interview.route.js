@@ -6,7 +6,8 @@ import {
     startGithubMock,
     // New features
     reviewCode, explainProblemELI5, generateStudyPlan, generateProblem, generateFlashcards, evaluateBehavioral,
-    startGauntlet, saveGauntletSession, getGauntletLeaderboard
+    startGauntlet, saveGauntletSession, getGauntletLeaderboard, visualizeFlow,
+    translateCode, oracleLint
 } from "../controllers/interview.controller.js";
 
 const router = express.Router();
@@ -28,6 +29,9 @@ router.post("/coach", getCoachHint);
 router.post("/skill-report", generateSkillReport);
 router.post("/generate-track", generateCustomTrack);
 router.post("/run-code", runCodeAI);
+router.post("/visualize-flow", visualizeFlow);
+router.post("/translate", translateCode);
+router.post("/oracle-lint", oracleLint);
 router.post("/analyze-diagram", analyzeDiagram);
 router.post("/trace", generateExecutionTrace);
 router.post("/auto-draw", generateAutoDrawDiagram);

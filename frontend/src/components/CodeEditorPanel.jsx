@@ -1,6 +1,10 @@
+import { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon, SettingsIcon } from "lucide-react";
+import { Loader2Icon, PlayIcon, SettingsIcon, RotateCcwIcon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
+import { loader } from "@monaco-editor/react";
+import axiosInstance from "../lib/axios";
+import toast from "react-hot-toast";
 
 function CodeEditorPanel({
   selectedLanguage,
@@ -19,6 +23,40 @@ function CodeEditorPanel({
   onEvaluateCode,
   isMock
 }) {
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const handleTranslate = async (toLang) => {
+      if (!code || isTranslating) return;
+      setIsTranslating(true);
+      try {
+          const res = await axiosInstance.post("/interview/translate", { code, fromLanguage: selectedLanguage, toLanguage: toLang });
+          if (res.data.code) {
+               onCodeChange(res.data.code);
+               onLanguageChange({ target: { value: toLang } });
+               toast.success(`Ported to ${toLang}! 🔁`);
+          }
+      } catch (e) {
+          toast.error("Code Port failed.");
+      } finally {
+          setIsTranslating(false);
+      }
+  };
+
+  useEffect(() => {
+    loader.init().then(monaco => {
+        monaco.editor.defineTheme('talentiq-dark', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [{ token: 'comment', foreground: '6272a4', fontStyle: 'italic' }],
+            colors: {
+                'editor.background': '#111317',
+                'editor.lineHighlightBackground': '#181a1f',
+                'editor.selectionBackground': '#44475a50',
+                'editorCursor.foreground': '#00e3fd'
+            }
+        });
+    });
+  }, []);
   return (
     <div className="h-full bg-base-300 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-t border-base-300">
@@ -35,6 +73,21 @@ function CodeEditorPanel({
               </option>
             ))}
           </select>
+
+          <div className="dropdown dropdown-bottom ml-1">
+             <div tabIndex={0} role="button" className={`btn btn-xs btn-outline btn-info gap-1 flex items-center ${isTranslating ? "opacity-50 pointer-events-none" : ""}`}>
+                {isTranslating ? <Loader2Icon className="size-3 animate-spin"/> : <RotateCcwIcon className="size-3" />} Translate
+             </div>
+             <ul tabIndex={0} className="dropdown-content z-[10] menu p-1 shadow bg-base-200 rounded-box w-36 border border-base-300 mt-1">
+                {Object.entries(LANGUAGE_CONFIG).filter(([key]) => key !== selectedLanguage).map(([key, lang]) => (
+                    <li key={key}>
+                       <button onClick={() => handleTranslate(key)} className="text-xs p-1.5 flex items-center gap-1.5">
+                          ➟ {lang.name}
+                       </button>
+                    </li>
+                ))}
+             </ul>
+          </div>
           <div className="dropdown dropdown-bottom dropdown-end ml-2">
             <div tabIndex={0} role="button" className="btn btn-sm btn-ghost p-1 flex items-center justify-center">
               <SettingsIcon className="size-4" />
@@ -101,7 +154,7 @@ function CodeEditorPanel({
           language={LANGUAGE_CONFIG[selectedLanguage].monacoLang}
           value={code}
           onChange={onCodeChange}
-          theme="vs-dark"
+          theme="talentiq-dark"
           options={{
             fontSize: fontSize || 16,
             lineNumbers: "on",

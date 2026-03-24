@@ -3,6 +3,7 @@ const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 
 let genAI = null;
 let model = null;
@@ -12,14 +13,45 @@ const getModel = () => {
     try {
         if (process.env.GEMINI_API_KEY) {
             genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            // Reverting back to 2.5-flash. The 1.5-flash model threw 404 for this specific API key configuration.
-            model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            // Swapping to 1.5-flash to bypass daily quota caps flawless flawlessly.
+            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
             return model;
         }
     } catch (error) {
         console.log("Error initializing Gemini:", error.message);
     }
     return null;
+};
+
+export const askAIWithFallback = async (prompt, isJson = true) => {
+    // 🚀 TRY LOCAL OLLAMA FIRST TO SAVE GEMINI QUOTAS
+    try {
+         const payload = {
+             model: process.env.OLLAMA_MODEL || "qwen2",
+             prompt: prompt,
+             stream: false
+         };
+         
+         if (isJson) payload.format = "json";
+
+         const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
+         const resp = await axios.post(ollamaUrl, payload);
+         return resp.data.response;
+    } catch (ollamaErr) {
+         console.warn("⚠️ Local Ollama Offline. Switching to Gemini...", ollamaErr.message);
+    }
+
+    try {
+        const aiModel = getModel();
+        if (aiModel) {
+            const result = await aiModel.generateContent(prompt);
+            return result.response.text();
+        } else {
+            throw new Error("Gemini API key is not configured.");
+        }
+    } catch (err) {
+         throw new Error(`Both attempts failed: ${err.message}`);
+    }
 };
 
 export const analyzeResume = async (req, res) => {
@@ -53,13 +85,7 @@ export const chatWithInterviewer = async (req, res) => {
     try {
         const { chatLog, code, interviewType, hostility } = req.body;
 
-        const aiModel = getModel();
-        if (!aiModel) {
-            return res.status(200).json({
-                reply: "I am running in Mock Mode because GEMINI_API_KEY is not set. But your code looks interesting. Can you tell me your time complexity?",
-                isCodeRequested: false
-            });
-        }
+        // 🚀 PREFER LOCAL OLLAMA FIRST (No early model exit here)
 
         let modeInstructions = "";
         switch (interviewType) {
@@ -149,8 +175,13 @@ Here is the chat history: ${JSON.stringify(chatLog)}\n
 Based on the conversation context, decide WHICH of the 3 interviewers should reply next. 
 Your response MUST start with their exact bracketed name, e.g. "[DSA Engineer]: " followed by their short 1-2 sentence response. Do not include multiple people in one message.`;
 
-        const result = await aiModel.generateContent(systemPrompt);
-        const text = result.response.text();
+        let text = "";
+        try {
+            text = await askAIWithFallback(systemPrompt, false);
+        } catch (err) {
+            console.error("AI Generation Error inside chatWithInterviewer:", err);
+            return res.status(200).json({ reply: "I reviewed your answers. Could you tell me more about your scalable designs?", response: "I reviewed your answers." });
+        }
 
         res.status(200).json({ reply: text, response: text });
     } catch (error) {
@@ -345,50 +376,149 @@ export const generateCustomTrack = async (req, res) => {
 export const runCodeAI = async (req, res) => {
     try {
         const { language, code } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) {
-            return res.status(200).json({ output: "Mock execution: Hello World", success: true });
+        const fs = require('fs');
+        const { exec } = require('child_process');
+        const path = require('path');
+
+        if (!code) return res.status(400).json({ success: false, error: "Code cannot be empty" });
+
+        const supported = ["javascript", "python", "python3", "cpp", "java", "c"];
+        if (!supported.includes(language?.toLowerCase())) {
+             return res.status(400).json({ success: false, error: `${language} not supported yet in this local view flawlessly.` });
         }
 
-        const prompt = `You are a strict code compiler and execution engine.
-Language: ${language}
-Code:
+        const extMap = { javascript: "js", python: "py", python3: "py", cpp: "cpp", java: "java", c: "c" };
+        const ext = extMap[language.toLowerCase()] || "js";
+        const tempFile = path.join("/tmp", `solution_${Date.now()}.${ext}`);
+        
+        fs.writeFileSync(tempFile, code);
+
+        let cmd = `node ${tempFile}`;
+        if (language.includes("python")) cmd = `python3 ${tempFile}`;
+        else if (language.toLowerCase() === "cpp" || language.toLowerCase() === "c") {
+             cmd = `g++ ${tempFile} -o ${tempFile}.out && ${tempFile}.out`;
+        } else if (language.toLowerCase() === "java") {
+             // Java needs class Main mapping Node flawless Node.
+             const javaFile = path.join("/tmp", "Main.java");
+             fs.writeFileSync(javaFile, code);
+             cmd = `javac ${javaFile} && java -cp /tmp Main`;
+        }
+
+        exec(cmd, { timeout: 5000 }, (error, stdout, stderr) => {
+             // Cleanup
+             try { fs.unlinkSync(tempFile); } catch (e) {}
+             if (language.toLowerCase() === "java") {
+                  try { fs.unlinkSync("/tmp/Main.java"); fs.unlinkSync("/tmp/Main.class"); } catch (e) {}
+             } else if (language.toLowerCase() === "cpp") {
+                  try { fs.unlinkSync(`${tempFile}.out`); } catch (e) {}
+             }
+
+             const output = stdout || "";
+             const errorLogs = stderr || "";
+
+             if (error && error.killed) {
+                  return res.status(200).json({ success: false, output, errorType: "Runtime Error", error: "Execution Timed Out (5s limit exceeded)" });
+             }
+
+             res.status(200).json({
+                  success: error ? false : true,
+                  output: output,
+                  errorType: error ? "Runtime/Compile Error" : "",
+                  error: errorLogs.trim() || (error ? error.message : "")
+             });
+        });
+
+    } catch (e) {
+        console.error("Local Sandbox execution error:", e);
+        res.status(500).json({ success: false, error: `Failed to execute code: ${e.message}`, errorType: "Execution Server Error" });
+    }
+};
+
+export const visualizeFlow = async (req, res) => {
+    try {
+        const { code, language } = req.body;
+        const aiModel = getModel();
+        if (!aiModel) return res.status(200).json({ svg: "<svg></svg>" });
+
+        const prompt = `You are an elite Algorithm Visualizer. Analyze this ${language} code and generate a clean, responsive SVG flowchart detailing its absolute execution flow.
+
+CODE:
 ${code}
 
-Simulate the execution of this code. 
-Return ONLY a valid JSON object matching this schema:
-{
-  "success": boolean (true if runs without crashing, false if runtime/compile error),
-  "output": "Exact stdout printed here if any, or empty string",
-  "errorType": "Compile Error OR Runtime Error (leave empty if success)",
-  "error": "If success is false, provide the EXACT realistic compiler/runtime error stack trace like LeetCode. E.g. 'ReferenceError: x is not defined at line 2' or 'SyntaxError: Unexpected token'. Leave empty if success is true."
-}`;
+SVG REQUIREMENTS:
+1. Compact Flowchart view with vital nodes (Starts, loops, conditionals, stops).
+2. Use dark mode values (Background: #111317, Borders: #00e3fd, Text: #ffffff).
+3. Use <rect> for operations, <polygon> (diamonds) for conditionals and decisions.
+4. Scale SVG accurately using viewBox coordinates template.
+5. Return ONLY the raw valid <svg> block inside raw response securely.
+Make it concise and speedy.`;
+
+        let output = "";
+        try {
+            output = await askAIWithFallback(prompt, false);
+        } catch (err) {
+            console.error("AI Generation Error inside VisualizeFlow:", err);
+            return res.status(200).json({ svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100"><rect width="100%" height="100%" fill="#111317"/><text x="20" y="50" fill="#ff5555" font-family="monospace">Generation failed on both Gemini and Ollama fallback: ${err.message || 'Unknown limit'}</text></svg>` });
+        }
+        
+        console.log("=== VISUALIZE FLOW AI OUTPUT ===");
+        console.log(output);
+
+        if (output.includes("\`\`\`")) {
+             output = output.replace(/\`\`\`(xml|svg)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
+        }
+
+        // Match exact <svg> tag for safety
+        const match = output.match(/<svg[\s\S]*<\/svg>/i);
+        res.status(200).json({ svg: match ? match[0] : output });
+
+    } catch (e) {
+        console.error("VisualizeFlow Error:", e);
+        res.status(500).json({ error: "Failed to visualize code." });
+    }
+};
+
+export const translateCode = async (req, res) => {
+    try {
+        const { code, fromLanguage, toLanguage } = req.body;
+        const aiModel = getModel();
+        if (!aiModel || !code) return res.status(200).json({ code: code || "" });
+
+        const prompt = `You are an elite developer. Translate this ${fromLanguage} code into idiomatic, identical ${toLanguage}. 
+Output ONLY the raw code block. No explanations, no markdown wrap.`;
+
         const result = await aiModel.generateContent(prompt);
         let output = result.response.text();
         
-        // Remove codeblocks
         if (output.includes("\`\`\`")) {
-            output = output.replace(/\`\`\`(json)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
+             output = output.replace(/\`\`\`(javascript|cpp|python|java|c)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
         }
-
-        // Safe JSON Matcher
-        const match = output.match(/\{[\s\S]*\}/);
-        const parsed = match ? JSON.parse(match[0]) : JSON.parse(output);
-
-        res.status(200).json(parsed);
+        res.status(200).json({ code: output });
     } catch (e) {
-        console.error("AI runCode error:", e);
-        
-        // Safety Fallback for Quota Limits to ensure Frontend UI never breaks
-        if (e.status === 429 || e.message?.includes("Quota exceeded")) {
-             return res.status(200).json({ 
-                 success: true, 
-                 output: `[GEMINI QUOTA EXCEEDED FALLBACK]\nSimulating execution for ${req.body.language || "code"}:\nAll tests passed successfully!`, 
-                 errorType: "" 
-             });
-        }
+        res.status(500).json({ error: "Translation failed." });
+    }
+};
 
-        res.status(500).json({ success: false, error: `Failed to simulate code execution: ${e.message}`, errorType: "Server Error" });
+export const oracleLint = async (req, res) => {
+    try {
+        const { code, language } = req.body;
+        const aiModel = getModel();
+        if (!aiModel || !code ) return res.status(200).json({ issues: [] });
+
+        const prompt = `Inspect this ${language} code for logic/syntax errors (infinite loops, index-out-of-bounds, unhandled pointers).
+Return ONLY a valid JSON object with a single top-level key "issues" holding an array of strings. 
+Example Format: { "issues": ["Infinite loop risk at line 5", "Variable x never incremented"] }`;
+
+        const result = await aiModel.generateContent(prompt);
+        let output = result.response.text();
+        
+        if (output.includes("\`\`\`")) {
+             output = output.replace(/\`\`\`(json)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
+        }
+        res.status(200).json(JSON.parse(output));
+
+    } catch (e) {
+        res.status(200).json({ issues: [] }); // Fail gracefully for silence
     }
 };
 
@@ -541,11 +671,23 @@ Analyze it and respond ONLY in valid JSON:
   "summary": "2-3 sentence overall review",
   "betterApproach": "Optional: describe a more optimal approach if one exists, else null"
 }`;
-        const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text();
+        let rawText = "";
+        try {
+            rawText = await askAIWithFallback(prompt);
+        } catch (err) {
+            console.error("AI Generation Review Error:", err);
+            return res.status(200).json({ rating: 7, summary: "AI Review temporarily rate limited/blocked on both lines. Make sure Ollama llama3 is online." });
+        }
+
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         const jsonString = jsonMatch ? jsonMatch[0] : "{}";
-        res.status(200).json(JSON.parse(jsonString));
+        let parsed = { rating: 7, summary: "Failed to parse AI review output." };
+        try {
+            parsed = JSON.parse(jsonString);
+        } catch (err) {
+            console.error("AI JSON Parse Error:", rawText);
+        }
+        res.status(200).json(parsed);
     } catch (e) {
         console.error("Code review failed", e);
         res.status(500).json({ error: "Review failed" });
@@ -626,15 +768,13 @@ Respond ONLY in valid JSON matching this exact structure:
     "java": "string_of_first_example_output"
   }
 }`;
-        const result = await aiModel.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { 
-                maxOutputTokens: 1500, 
-                temperature: 0.6,
-                responseMimeType: "application/json"
-            }
-        });
-        const rawText = result.response.text();
+        let rawText = "";
+        try {
+            rawText = await askAIWithFallback(prompt);
+        } catch (err) {
+            console.error("AI Generation Review Error inside GenerateProblem:", err);
+            return res.status(500).json({ error: "Generation failed on both Gemini and local Ollama interfaces." });
+        }
         const jsonString = rawText.trim() || "{}";
         
         try {
@@ -742,17 +882,7 @@ export const startGauntlet = async (req, res) => {
         const pdfData = await pdfParse(file.buffer);
         const resumeText = pdfData.text.trim();
 
-        const model = getModel();
-        if (!model) {
-            return res.status(200).json({
-                message: "Mock Mode Configuration",
-                configuration: {
-                    resumeSummary: "Running in mock setup. Verify items locally.",
-                    caseStudyContext: "Standard design scalable context architectures setup.",
-                    firstQuestion: "Standard FAANG logical prompt."
-                }
-            });
-        }
+        // 🚀 PREFER LOCAL OLLAMA FIRST (No early model exit here)
         
         const prompt = `You are an AI Interview Orchestrator.
 Your job is to generate a FULL personalized interview blueprint based on the candidate's core parameters.
@@ -778,53 +908,69 @@ Return STRICT valid JSON using this exact schema:
 {
   "aptitude": [
     {
-      "question": "A custom aptitude/logical question related to their domain",
-      "options": ["Option A","Option B","Option C","Option D"],
-      "answer": "Option A"
+      "question": "Generate EXACTLY 5 custom aptitude or logical questions (Indices 1 to 5) tailored strictly to their resume tech stack.",
+      "options": [
+        "Custom, plausible answer option 1 covering the problem context.",
+        "Custom, plausible answer option 2 covering the problem context.",
+        "Custom, plausible answer option 3 covering the problem context.",
+        "Custom, plausible answer option 4 covering the problem context."
+      ],
+      "answer": "The EXACT string content of the correct option choice here."
     }
   ],
 
-  "coding": {
-    "title": "Problem title (e.g. Rate Limiter)",
-    "description": "Short description of the problem candidate needs to solve containing edge specs.",
-    "difficulty": "Easy | Medium | Hard",
-    "starter_code": "Javascript starter function snippet"
-  },
+  "coding": [
+    {
+      "title": "A custom problem title (Problem 1).",
+      "description": "Generate EXACTLY 2 distinct hard-level DSA problems tailored for their context. Problem 1 description.",
+      "difficulty": "Hard",
+      "starter_code": "Javascript starter skeleton setup"
+    }
+  ],
 
-  "ml_concepts_start": "Personalized AI/ML starter question tailored to their projects.",
+  "ml_concepts_start": "Personalized Hard startup AI question prompt tailored strictly to their resume tech stack. Assume 5-6 hard difficulty question increments dialogues loop.",
 
   "case_study": {
-    "problem": "Spam Detection System OR dynamic custom task",
-    "context": "Context breakdown and framing details."
+    "problem": "Generate a unique real-world business case study problem matching their industry or project domain background.",
+    "context": "Comprehensive context breakdown."
   },
 
   "system_design": {
-    "problem": "Architect a scalable backend or custom task node",
-    "constraints": "Strict scaling limits guidelines (e.g. 1M QPS)"
+    "problem": "Architect a unique scalable system design prompt (Hard difficulty) matching their background.",
+    "constraints": "Strict scaling limits guideline."
   },
 
-  "resumeSummary": "A brutal 1-paragraph summary of their experience and where you will press hard.",
+  "debugging": [
+    {
+      "file_name": "filename.ts",
+      "buggy_code": "Provide EXACTLY 2 distinct buggy/vulnerable snippets tailored strictly to their resume tech stack. Problem 1 buggy snippet.",
+      "bug_explanation": "Explain logic bug setup context for analysis review."
+    }
+  ],
+
+  "resumeSummary": "A brutal critical analysis paragraph.",
 
   "pair_programming": {
-    "problem": "Live coding problem description context",
-    "starter_code": "Javascript rate limiter or class template snippet"
+    "problem": "Detailed custom live pair programming scenario matching their background.",
+    "starter_code": "Starter skeleton structure"
   }
 }
 
 ---
 
 RULES:
-1. PERSONALIZATION (MOST IMPORTANT): Focus strictly on their skills and role. Avoid generic textbooks questions; ask "why" and "what if".
-2. NO GENERIC QUESTIONS: Focus on tradeoffs (e.g. DB choices, trade-offs).
-3. DIFFICULTY: ${difficulty} (Junior -> easy, Mid -> moderate, FAANG -> HARD tricky edge cases).
+1. ITEM SPECS: aptitute MUST list exactly 5 MCQs. coding MUST list exactly 2 hard DS problems inside array state. debugging MUST list exactly 2 bug snippets inside array state.
+2. DIFFICULTY: STRICTLY Hard/FAANG complexity levels for all technical dialogue nodes.
+3. PERSONALIZATION: Focus strictly on their skills and role. Avoid generic textbooks questions.
+4. DYNAMIC GENERATION: DO NOT use the exact placeholder text provided inside the schema template. Every field MUST be uniquely generated and tailored for this candidate (No literal match).
+5. SPEED & CONCISENESS (CRITICAL FOR LOCAL MODELS): Keep descriptions, scenario framing, and summaries extremely brief and compact. Use max 1-2 short sentences for describing problems. Skip filler text or long setup blocks for faster generation.
 
 OUTPUT STRICT JSON ONLY.`;
 
         let generatedConfig;
         try {
-            const result = await model.generateContent(prompt);
-            let rawJson = result.response.text();
-            const jsonMatch = rawJson.match(/\{[\s\S]*\}/);
+            const rawJson = await askAIWithFallback(prompt);
+            const jsonMatch = rawJson ? rawJson.match(/\{[\s\S]*\}/) : null;
             const jsonString = jsonMatch ? jsonMatch[0] : "{}";
             generatedConfig = JSON.parse(jsonString);
         } catch (parseError) {

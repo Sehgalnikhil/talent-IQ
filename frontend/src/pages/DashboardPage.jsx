@@ -14,7 +14,7 @@ import StatsCards from "../components/StatsCards";
 import ActiveSessions from "../components/ActiveSessions";
 import RecentSessions from "../components/RecentSessions";
 import CreateSessionModal from "../components/CreateSessionModal";
-import { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget } from "../components/DashboardWidgets";
+import { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, HireabilityWidget } from "../components/DashboardWidgets";
 import { 
   SpacedRepetitionWidget, 
   AdaptiveDifficultyWidget, 
@@ -27,6 +27,8 @@ import { useMotionValue, useTransform, animate, useMotionTemplate } from "framer
 
 import SpotlightCard from '../components/SpotlightCard';
 
+import ErrorBoundary from '../components/ErrorBoundary';
+
 const CountUp = ({ value }) => {
     const count = useMotionValue(0);
     const rounded = useTransform(count, Math.round);
@@ -36,6 +38,8 @@ const CountUp = ({ value }) => {
     }, [value]);
     return <motion.span>{rounded}</motion.span>;
 };
+
+import FloatingParticles from "../components/FloatingParticles";
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -188,6 +192,7 @@ function DashboardPage() {
     <>
       <div className="min-h-screen bg-gradient-to-b from-base-300 to-base-200 font-sans selection:bg-primary/30 pb-20">
         <Navbar />
+        <FloatingParticles />
         <WelcomeSection onCreateSession={() => setShowCreateModal(true)} />
 
         <div className="max-w-7xl mx-auto px-6 space-y-8 mt-2">
@@ -401,16 +406,17 @@ function DashboardPage() {
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, type: "spring", stiffness: 100 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            <SpacedRepetitionWidget />
-            <AdaptiveDifficultyWidget />
-            <WeaknessHeatmapWidget />
-            <StudyTimeWidget />
-            <BurnoutWidget />
-            <PatternStatsWidget />
-            <ReadinessWidget solved={solved} speedrun={speedrun} submissions={submissions} currentStreak={currentStreak} />
-            <KarmaWidget solved={solved} speedrun={speedrun} currentStreak={currentStreak} />
-            <PomodoroWidget initialSessions={pomodoroSessions} />
-            <StudyPlanWidget initialPlan={studyPlan} solvedCount={solved.length} />
+            <ErrorBoundary><SpacedRepetitionWidget /></ErrorBoundary>
+            <ErrorBoundary><AdaptiveDifficultyWidget /></ErrorBoundary>
+            <ErrorBoundary><WeaknessHeatmapWidget /></ErrorBoundary>
+            <ErrorBoundary><StudyTimeWidget /></ErrorBoundary>
+            <ErrorBoundary><BurnoutWidget /></ErrorBoundary>
+            <ErrorBoundary><PatternStatsWidget /></ErrorBoundary>
+            <ErrorBoundary><ReadinessWidget solved={solved} speedrun={speedrun} submissions={submissions} currentStreak={currentStreak} /></ErrorBoundary>
+            <ErrorBoundary><KarmaWidget solved={solved} speedrun={speedrun} currentStreak={currentStreak} /></ErrorBoundary>
+            <ErrorBoundary><HireabilityWidget /></ErrorBoundary>
+            <ErrorBoundary><PomodoroWidget initialSessions={pomodoroSessions} /></ErrorBoundary>
+            <ErrorBoundary><StudyPlanWidget initialPlan={studyPlan} solvedCount={solved.length} /></ErrorBoundary>
           </motion.div>
         </div>
       </div>

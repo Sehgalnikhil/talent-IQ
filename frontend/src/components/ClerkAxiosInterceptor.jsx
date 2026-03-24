@@ -10,6 +10,7 @@ export default function ClerkAxiosInterceptor({ children }) {
       async (config) => {
         try {
           const token = await getToken();
+          console.log("🔑 Clerk Token fetched over Interceptor:", token ? "YES (populated)" : "NO (NULL/EMPTY)");
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }

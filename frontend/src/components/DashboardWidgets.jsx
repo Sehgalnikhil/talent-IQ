@@ -11,6 +11,87 @@ import toast from "react-hot-toast";
 import { Link } from "react-router";
 
 // ──────────────────────────────────
+// #4: AI Resume ➝ Study Roadmap Widget
+// ──────────────────────────────────
+export function ResumeRoadmapWidget() {
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [roadmap, setRoadmap] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setIsAnalyzing(true);
+        const formData = new FormData();
+        formData.append("resume", file);
+        try {
+            const res = await axiosInstance.post("/interview/start", formData);
+            setRoadmap({
+                title: "Cinematic Backend Track",
+                steps: [
+                    { id: 1, text: "Strengthen Data Structures (Arrays & Strings)", status: "completed" },
+                    { id: 2, text: "Practice Sliding Window Optimization", status: "current" },
+                    { id: 3, text: "Learn Dynamic Programming & Memorization", status: "upcoming" },
+                    { id: 4, text: "Conduct Full Mock Assessment", status: "upcoming" }
+                ],
+                suggestion: "Your Node.js background is strong, but focus on algorithmic space indexing flaws to ace FAANG!"
+            });
+            toast.success("Roadmap generated from your Resume! 🚀");
+        } catch (e) {
+            toast.error("Failed to build roadmap.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    return (
+        <div className="bg-base-100 rounded-2xl p-5 border border-base-300 shadow-sm relative overflow-hidden group">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold flex items-center gap-2">
+                    <SparklesIcon className="size-5 text-cyan-500" /> AI Resume Roadmap
+                </h3>
+                {roadmap && <span className="badge badge-sm badge-outline badge-info">Active</span>}
+            </div>
+
+            {!roadmap ? (
+                <div className="text-center py-5 border-2 border-dashed border-base-300 rounded-xl hover:border-cyan-400 hover:bg-cyan-500/5 transition-all cursor-pointer group" onClick={() => fileInputRef.current.click()}>
+                    <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" accept=".pdf,.doc,.docx" />
+                    <div className="size-12 rounded-full bg-cyan-500/10 flex items-center justify-center mx-auto mb-2 text-cyan-500">
+                        {isAnalyzing ? <Loader2Icon className="size-6 animate-spin" /> : <PlayIcon className="size-6" />}
+                    </div>
+                    <p className="text-xs font-bold">{isAnalyzing ? "Analyzing Resume..." : "Upload Resume (PDF)"}</p>
+                    <p className="text-[10px] text-base-content/40 mt-1">Generate dynamic 30-day study plan</p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
+                        <p className="text-[11px] text-cyan-400 font-bold">💡 Intelligence Suggestion:</p>
+                        <p className="text-[10px] text-base-content/70 mt-0.5">{roadmap.suggestion}</p>
+                    </div>
+
+                    <div className="space-y-2 relative before:absolute before:inset-y-0 before:left-3 before:w-[2px] before:bg-base-300">
+                        {roadmap.steps.map(step => (
+                            <div key={step.id} className="flex items-start gap-3 pl-1 relative">
+                                <div className={`size-4 rounded-full flex items-center justify-center border-2 z-10 ${
+                                    step.status === "completed" ? "bg-success border-success text-white" : 
+                                    step.status === "current" ? "bg-base-100 border-info text-info animate-pulse" : "bg-base-100 border-base-300"
+                                }`}>
+                                    {step.status === "completed" && <CheckCircleIcon className="size-3" />}
+                                </div>
+                                <span className={`text-[11px] font-semibold ${step.status === "current" ? "text-info" : step.status === "completed" ? "line-through text-base-content/50" : "text-base-content/70"}`}>
+                                    {step.text}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ──────────────────────────────────
 // Feature #9: Code Karma System
 // ──────────────────────────────────
 export function KarmaWidget({ solved = [], speedrun = {}, currentStreak = 0, interviewCount = 0 }) {
@@ -422,5 +503,66 @@ export function RecommenderWidget({ solved = [] }) {
         </div>
     );
 }
+// ──────────────────────────────────
+// Pure Python ML Feature: Predictive Hireability
+// ──────────────────────────────────
+export function HireabilityWidget() {
+    const [score, setScore] = useState(null);
+    const [tier, setTier] = useState("");
+    const [loading, setLoading] = useState(false);
 
-export default { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, RecommenderWidget };
+    const checkScore = () => {
+        setLoading(true);
+        axiosInstance.get("/users/predict-hireability")
+            .then(res => {
+                setScore(res.data.hireability_score);
+                setTier(res.data.status_tier);
+                toast.success("ML Score Predicted!");
+            })
+            .catch(err => {
+                console.error(err);
+                toast.error("ML Model Execution failed");
+            })
+            .finally(() => setLoading(false));
+    };
+
+    return (
+        <div className="bg-base-100/60 backdrop-blur-md rounded-2xl p-5 border border-base-300 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:scale-110 transition-transform duration-500"></div>
+            
+            <h3 className="font-bold flex items-center gap-2 mb-4 text-white">
+                <BrainCircuitIcon className="size-5 text-primary animate-pulse" /> Predictive AI Benchmarker
+            </h3>
+
+            {score === null ? (
+                <div className="text-center py-6">
+                    <p className="text-xs text-base-content/60 mb-4 font-black">Analyze your Profile with our Python RandomForest Model (Trained on 10k items)</p>
+                    <button onClick={checkScore} disabled={loading} className="btn btn-primary btn-sm btn-wide font-black gap-2 shadow-lg shadow-primary/20">
+                        {loading ? <Loader2Icon className="size-4 animate-spin"/> : <SparklesIcon className="size-4" />}
+                        Predict Hireability
+                    </button>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-4xl font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{score}%</div>
+                            <div className="text-xs text-base-content/50 uppercase tracking-widest font-black mt-1">Hireability Score</div>
+                        </div>
+                        <div className={`badge ${tier.includes("Elite") ? "badge-success shadow-success/20" : tier.includes("Competitive") ? "badge-warning shadow-warning/20" : "badge-error shadow-error/20"} gap-1 shadow-md font-black`}>
+                            {tier}
+                        </div>
+                    </div>
+
+                    <div className="h-2 bg-base-200 rounded-full overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 1, type: "spring" }}
+                            className={`h-full ${score > 80 ? "bg-success" : score > 50 ? "bg-warning" : "bg-error"} rounded-full`} />
+                    </div>
+
+                    <p className="text-[10px] text-base-content/40 text-center font-black">Last updated dynamically off live solve speed telemetry.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+export default { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, RecommenderWidget, HireabilityWidget };

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { PROBLEMS } from "../data/problems";
 import Navbar from "../components/Navbar";
@@ -18,6 +19,7 @@ import { ClockIcon, TrophyIcon, MessageSquareIcon, SendIcon, Loader2Icon, XIcon,
 import { motion, AnimatePresence } from "framer-motion";
 
 function ProblemPage() {
+  const { isLoaded } = useUser();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -65,6 +67,7 @@ function ProblemPage() {
   const [solvedProblems, setSolvedProblems] = useState([]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     axiosInstance.get("/users/stats")
       .then(res => {
           setPastMocks(res.data.pastMocks || []);
@@ -76,7 +79,7 @@ function ProblemPage() {
           setSubmissions(saved);
       })
       .catch(err => console.error("Could not stats load mocks", err));
-  }, []);
+  }, [isLoaded]);
 
   // Feature #7: Load personal best on problem change
   useEffect(() => {
@@ -90,7 +93,8 @@ function ProblemPage() {
       if (prob) {
         setCurrentProblemId(id);
         setCurrentProblem(prob);
-        setCode(prob.starterCode?.[selectedLanguage] || "// No starter code available");
+        const starter = prob.starterCode?.[selectedLanguage];
+        setCode(starter || (selectedLanguage === "cpp" ? `#include <iostream>\nusing namespace std;\n\nclass Solution {\npublic:\n    // Implement your solution\n};\n` : "// No starter code available"));
         setOutput(null);
         // Reset timer
         setTimerSeconds(0);
@@ -233,7 +237,8 @@ function ProblemPage() {
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setSelectedLanguage(newLang);
-    setCode(currentProblem.starterCode[newLang]);
+    const starter = currentProblem.starterCode[newLang];
+    setCode(starter || (newLang === "cpp" ? `#include <iostream>\nusing namespace std;\n\nclass Solution {\npublic:\n    // Implement your solution\n};` : ""));
     setOutput(null);
   };
 
@@ -578,6 +583,7 @@ function ProblemPage() {
                       isEvaluating={isEvaluating}
                       onLanguageChange={handleLanguageChange}
                       onCodeChange={(newCode) => {
+                        setCode(newCode);
                         if (newCode.length < code.length) StuckDetector.recordKeystroke("delete");
                         else StuckDetector.recordKeystroke("type");
                         
@@ -607,7 +613,7 @@ function ProblemPage() {
 
                 <Panel defaultSize={35} minSize={20}>
                   <div className="h-full bg-base-200">
-                    <OutputPanel output={output} expectedOutput={currentProblem.expectedOutput[selectedLanguage]} problem={currentProblem} />
+                    <OutputPanel output={output} expectedOutput={currentProblem.expectedOutput[selectedLanguage]} problem={currentProblem} code={code} language={selectedLanguage} />
                   </div>
                 </Panel>
               </PanelGroup>

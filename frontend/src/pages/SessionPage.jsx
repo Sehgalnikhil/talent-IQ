@@ -74,8 +74,8 @@ function SessionPage() {
     const newLang = e.target.value;
     setSelectedLanguage(newLang);
     // use problem-specific starter code
-    const starterCode = problemData?.starterCode?.[newLang] || "";
-    setCode(starterCode);
+    const starterCode = problemData?.starterCode?.[newLang];
+    setCode(starterCode || (newLang === "cpp" ? `#include <iostream>\nusing namespace std;\n\nclass Solution {\npublic:\n    // Implement your solution\n};` : ""));
     setOutput(null);
   };
 
