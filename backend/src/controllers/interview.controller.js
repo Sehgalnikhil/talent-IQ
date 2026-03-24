@@ -359,17 +359,16 @@ export const generateSkillReport = async (req, res) => {
 export const generateCustomTrack = async (req, res) => {
     try {
         const { topic } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) {
-            return res.status(200).json({ trackId: "custom", title: topic + " Mastery", description: "AI generated mock track.", total: 10, problems: ["p1", "p2"] });
-        }
+        const prompt = `Generate a custom study track for learning: "${topic}". Return ONLY valid JSON: {"trackId": "custom-ai", "title": "...", "description": "...", "total": 5, "problems": ["Concept 1", "Concept 2", "Concept 3", "Concept 4", "Concept 5"]}`;
 
-        const prompt = `Generate a custom study track for learning: "${topic}". Return ONLY JSON: {"trackId": "custom-ai", "title": "...", "description": "...", "total": 5, "problems": ["Concept 1", "Concept 2", "Concept 3", "Concept 4", "Concept 5"]}`;
-        const result = await aiModel.generateContent(prompt);
-        const jsonString = result.response.text().replace(/```json\n?|```/gi, "").trim();
+        const rawJson = await askAIWithFallback(prompt, true);
+        const jsonMatch = rawJson ? rawJson.match(/\{[\s\S]*\}/) : null;
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+
         res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
-        res.status(500).json({ error: "Failed to generate track" });
+        console.error("Generate Custom Track Error:", e);
+        res.status(500).json({ error: "Failed to generate track using fallback addresses." });
     }
 };
 
