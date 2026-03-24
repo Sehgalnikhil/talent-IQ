@@ -1,4 +1,5 @@
 import { Link, useParams, Navigate, useNavigate } from "react-router";
+import axiosInstance from "../lib/axios";
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import { PROBLEMS } from "../data/problems";
