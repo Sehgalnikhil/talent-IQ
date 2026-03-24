@@ -25,7 +25,9 @@ import {
 } from "../components/MLWidgets";
 import { useMotionValue, useTransform, animate, useMotionTemplate } from "framer-motion";
 
-import SpotlightCard from '../components/SpotlightCard';
+import TiltCard from '../components/TiltCard';
+import LiquidMeshBackground from '../components/LiquidMeshBackground';
+
 
 import ErrorBoundary from '../components/ErrorBoundary';
 
@@ -58,7 +60,6 @@ function DashboardPage() {
 
   const [solved, setSolved] = useState([]);
   const [submissions, setSubmissions] = useState([]);
-  const [badges, setBadges] = useState([]);
   
   // Custom Metadata buckets 
   const [speedrun, setSpeedrun] = useState({ elo: 1200, wins: 0, history: [] });
@@ -72,7 +73,6 @@ function DashboardPage() {
         axiosInstance.get("/users/stats")
             .then(res => {
                 setSolved(res.data.problemsSolved || []);
-                setBadges([res.data.badge || "Beginner"]);
                 setSubmissions(res.data.submissions || []);
                 setSpeedrun(res.data.speedrun || { elo: 1200, wins: 0, history: [] });
                 setPomodoroSessions(res.data.pomodoroSessions || 0);
@@ -85,6 +85,16 @@ function DashboardPage() {
             });
     }
   }, [user]);
+
+  // Recalculate achievement badges live from performance telemetry
+  const badges = useMemo(() => {
+      return getEarnedBadges({
+          solvedCount: solved.length,
+          submissions: submissions,
+          speedrunWins: speedrun?.wins || 0,
+          interviewCount: 0 // setup fallback
+      });
+  }, [solved, speedrun, submissions]);
 
   useEffect(() => {
     const tips = [
@@ -190,8 +200,9 @@ function DashboardPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-b from-base-300 to-base-200 font-sans selection:bg-primary/30 pb-20">
+      <div className="min-h-screen bg-gradient-to-b from-base-300 to-base-200 font-sans selection:bg-primary/30 pb-20 relative overflow-hidden">
         <Navbar />
+        <LiquidMeshBackground />
         <FloatingParticles />
         <WelcomeSection onCreateSession={() => setShowCreateModal(true)} />
 
@@ -247,14 +258,47 @@ function DashboardPage() {
               <SparklesIcon className="size-6 text-primary animate-pulse" />
             </div>
             <div>
-              <p className="text-sm font-medium text-base-content/80 tracking-wide">{dailyTip}</p>
+              <p className="text-sm font-medium text-base-content/80 tracking-wide">{aiReport?.recommendation || dailyTip}</p>
             </div>
           </motion.div>
+
+          {/* Speedrun Arena Node Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, type: "spring", stiffness: 80 }}
+            className="w-full"
+          >
+            <TiltCard onClick={() => navigate("/speedrun")} className="p-8 bg-gradient-to-br from-[#1a1c23]/90 to-[#0c0e12]/95 border border-error/20 shadow-[0_0_50px_rgba(239,68,68,0.1)] hover:border-error/40 group cursor-pointer">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 pointer-events-none">
+                <div className="flex items-center gap-5">
+                  <div className="size-16 rounded-2xl bg-gradient-to-br from-error/30 to-orange-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.3)] group-hover:scale-105 transition-transform">
+                    <ZapIcon className="size-8 text-error animate-pulse" fill="currentColor" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-error flex items-center gap-1"><div className="size-2 rounded-full bg-error animate-ping" /> Ranked Arena Node</span>
+                    <h3 className="text-2xl font-black bg-gradient-to-r from-error via-orange-500 to-warning bg-clip-text text-transparent">SPEEDRUN ARENA</h3>
+                    <p className="text-sm text-base-content/60 font-medium">Global live algorithm match-ups. Elite engineering combat.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="bg-[#111317] px-4 py-2 rounded-xl border border-white/5 font-mono text-xs flex items-center gap-2">
+                    <span className="text-base-content/40 font-bold">CURRENT ELO:</span>
+                    <span className="text-warning font-black">{speedrun.elo}</span>
+                  </div>
+                  <div className="btn bg-gradient-to-r from-error to-orange-500 text-white font-black px-6 shadow-[0_10px_30px_rgba(239,68,68,0.3)] border-none group-hover:scale-105 transition-transform flex items-center gap-2">
+                    Enter Grid <TrophyIcon className="size-4" />
+                  </div>
+                </div>
+              </div>
+            </TiltCard>
+          </motion.div>
+
 
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Feature #3: REAL HEATMAP + Feature #4: SPARKLINES */}
             <motion.div variants={itemVariants} className="col-span-1 lg:col-span-2 group">
-              <SpotlightCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-primary/30 transition-all duration-500 relative p-8 rounded-3xl">
+              <TiltCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-primary/30 transition-all duration-500 relative p-8 rounded-3xl">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none transition-transform group-hover:scale-110"></div>
 
                 <h3 className="text-2xl font-bold mb-2 flex items-center justify-between z-10 relative">
@@ -310,12 +354,12 @@ function DashboardPage() {
                     <span>More</span>
                   </div>
                 </div>
-              </SpotlightCard>
+              </TiltCard>
             </motion.div>
 
             {/* AI Language Analytics */}
             <motion.div variants={itemVariants} className="col-span-1 group">
-              <SpotlightCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-secondary/30 transition-all duration-500 flex flex-col relative p-8 rounded-3xl">
+              <TiltCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-secondary/30 transition-all duration-500 flex flex-col relative p-8 rounded-3xl">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/5 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none transition-transform group-hover:scale-110"></div>
                 <h3 className="text-xl font-bold mb-6 flex items-center justify-between z-10 relative">
                   <span>AI Language Analytics</span>
@@ -355,7 +399,7 @@ function DashboardPage() {
                     <p className="text-sm font-semibold opacity-60">Solve problems to unlock AI Language Analytics!</p>
                   </div>
                 )}
-              </SpotlightCard>
+              </TiltCard>
             </motion.div>
           </motion.div>
 
@@ -367,9 +411,9 @@ function DashboardPage() {
                 <span className="badge badge-primary badge-sm">{badges.filter(b => b.earned).length}/{badges.length}</span>
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {badges.map((badge) => (
+                {badges.map((badge, i) => (
                   <div
-                    key={badge.id}
+                    key={badge.id || badge.name || i}
                     className={`relative p-4 rounded-2xl border-2 text-center transition-all duration-300 ${badge.earned
                       ? `${badge.bg} shadow-lg hover:scale-105 cursor-default`
                       : 'bg-base-200/30 border-base-300 opacity-40 grayscale'

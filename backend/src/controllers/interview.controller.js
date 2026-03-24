@@ -13,8 +13,8 @@ const getModel = () => {
     try {
         if (process.env.GEMINI_API_KEY) {
             genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            // Swapping to 1.5-flash to bypass daily quota caps flawless flawlessly.
-            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            // Swapping model supporting newer beta routes.
+            model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             return model;
         }
     } catch (error) {
@@ -26,19 +26,19 @@ const getModel = () => {
 export const askAIWithFallback = async (prompt, isJson = true) => {
     // 🚀 TRY LOCAL OLLAMA FIRST TO SAVE GEMINI QUOTAS
     try {
-         const payload = {
-             model: process.env.OLLAMA_MODEL || "qwen2",
-             prompt: prompt,
-             stream: false
-         };
-         
-         if (isJson) payload.format = "json";
+        const payload = {
+            model: process.env.OLLAMA_MODEL || "qwen2",
+            prompt: prompt,
+            stream: false
+        };
 
-         const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
-         const resp = await axios.post(ollamaUrl, payload);
-         return resp.data.response;
+        if (isJson) payload.format = "json";
+
+        const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
+        const resp = await axios.post(ollamaUrl, payload);
+        return resp.data.response;
     } catch (ollamaErr) {
-         console.warn("⚠️ Local Ollama Offline. Switching to Gemini...", ollamaErr.message);
+        console.warn("⚠️ Local Ollama Offline. Switching to Gemini...", ollamaErr.message);
     }
 
     try {
@@ -50,7 +50,7 @@ export const askAIWithFallback = async (prompt, isJson = true) => {
             throw new Error("Gemini API key is not configured.");
         }
     } catch (err) {
-         throw new Error(`Both attempts failed: ${err.message}`);
+        throw new Error(`Both attempts failed: ${err.message}`);
     }
 };
 
@@ -186,13 +186,13 @@ Your response MUST start with their exact bracketed name, e.g. "[DSA Engineer]: 
         res.status(200).json({ reply: text, response: text });
     } catch (error) {
         console.error("Chat Error:", error);
-        
+
         // Safety Fallback for Quota Limits to ensure Voice Interview never breaks
         if (error.status === 429 || error.message?.includes("Quota exceeded")) {
-             return res.status(200).json({ 
-                 reply: "[GEMINI QUOTA FALLBACK] Your logic makes sense to me. Could you talk more about how scaling would affect it?",
-                 response: "[GEMINI QUOTA FALLBACK] Your logic makes sense to me. Could you talk more about how scaling would affect it?"
-             });
+            return res.status(200).json({
+                reply: "[GEMINI QUOTA FALLBACK] Your logic makes sense to me. Could you talk more about how scaling would affect it?",
+                response: "[GEMINI QUOTA FALLBACK] Your logic makes sense to me. Could you talk more about how scaling would affect it?"
+            });
         }
 
         res.status(500).json({ error: "Failed to communicate with AI" });
@@ -299,10 +299,10 @@ import { ComplexityAnalyzer } from '../lib/complexityAnalyzer.js';
 export const getComplexity = async (req, res) => {
     try {
         const { code } = req.body;
-        
+
         // 🚀 PREFER LOCAL TRAINED HEURISTICS FOR CODE COMPLEXITY
         const localComplexity = ComplexityAnalyzer.analyze(code);
-        
+
         if (localComplexity) {
             return res.status(200).json({
                 time: localComplexity.time,
@@ -383,48 +383,48 @@ export const runCodeAI = async (req, res) => {
 
         const supported = ["javascript", "python", "python3", "cpp", "java", "c"];
         if (!supported.includes(language?.toLowerCase())) {
-             return res.status(400).json({ success: false, error: `${language} not supported yet in this local view flawlessly.` });
+            return res.status(400).json({ success: false, error: `${language} not supported yet in this local view flawlessly.` });
         }
 
         const extMap = { javascript: "js", python: "py", python3: "py", cpp: "cpp", java: "java", c: "c" };
         const ext = extMap[language.toLowerCase()] || "js";
         const tempFile = path.join("/tmp", `solution_${Date.now()}.${ext}`);
-        
+
         fs.writeFileSync(tempFile, code);
 
         let cmd = `node ${tempFile}`;
         if (language.includes("python")) cmd = `python3 ${tempFile}`;
         else if (language.toLowerCase() === "cpp" || language.toLowerCase() === "c") {
-             cmd = `g++ ${tempFile} -o ${tempFile}.out && ${tempFile}.out`;
+            cmd = `g++ ${tempFile} -o ${tempFile}.out && ${tempFile}.out`;
         } else if (language.toLowerCase() === "java") {
-             // Java needs class Main mapping Node flawless Node.
-             const javaFile = path.join("/tmp", "Main.java");
-             fs.writeFileSync(javaFile, code);
-             cmd = `javac ${javaFile} && java -cp /tmp Main`;
+            // Java needs class Main mapping Node flawless Node.
+            const javaFile = path.join("/tmp", "Main.java");
+            fs.writeFileSync(javaFile, code);
+            cmd = `javac ${javaFile} && java -cp /tmp Main`;
         }
 
         exec(cmd, { timeout: 5000 }, (error, stdout, stderr) => {
-             // Cleanup
-             try { fs.unlinkSync(tempFile); } catch (e) {}
-             if (language.toLowerCase() === "java") {
-                  try { fs.unlinkSync("/tmp/Main.java"); fs.unlinkSync("/tmp/Main.class"); } catch (e) {}
-             } else if (language.toLowerCase() === "cpp") {
-                  try { fs.unlinkSync(`${tempFile}.out`); } catch (e) {}
-             }
+            // Cleanup
+            try { fs.unlinkSync(tempFile); } catch (e) { }
+            if (language.toLowerCase() === "java") {
+                try { fs.unlinkSync("/tmp/Main.java"); fs.unlinkSync("/tmp/Main.class"); } catch (e) { }
+            } else if (language.toLowerCase() === "cpp") {
+                try { fs.unlinkSync(`${tempFile}.out`); } catch (e) { }
+            }
 
-             const output = stdout || "";
-             const errorLogs = stderr || "";
+            const output = stdout || "";
+            const errorLogs = stderr || "";
 
-             if (error && error.killed) {
-                  return res.status(200).json({ success: false, output, errorType: "Runtime Error", error: "Execution Timed Out (5s limit exceeded)" });
-             }
+            if (error && error.killed) {
+                return res.status(200).json({ success: false, output, errorType: "Runtime Error", error: "Execution Timed Out (5s limit exceeded)" });
+            }
 
-             res.status(200).json({
-                  success: error ? false : true,
-                  output: output,
-                  errorType: error ? "Runtime/Compile Error" : "",
-                  error: errorLogs.trim() || (error ? error.message : "")
-             });
+            res.status(200).json({
+                success: error ? false : true,
+                output: output,
+                errorType: error ? "Runtime/Compile Error" : "",
+                error: errorLogs.trim() || (error ? error.message : "")
+            });
         });
 
     } catch (e) {
@@ -459,12 +459,12 @@ Make it concise and speedy.`;
             console.error("AI Generation Error inside VisualizeFlow:", err);
             return res.status(200).json({ svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100"><rect width="100%" height="100%" fill="#111317"/><text x="20" y="50" fill="#ff5555" font-family="monospace">Generation failed on both Gemini and Ollama fallback: ${err.message || 'Unknown limit'}</text></svg>` });
         }
-        
+
         console.log("=== VISUALIZE FLOW AI OUTPUT ===");
         console.log(output);
 
         if (output.includes("\`\`\`")) {
-             output = output.replace(/\`\`\`(xml|svg)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
+            output = output.replace(/\`\`\`(xml|svg)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
         }
 
         // Match exact <svg> tag for safety
@@ -488,9 +488,9 @@ Output ONLY the raw code block. No explanations, no markdown wrap.`;
 
         const result = await aiModel.generateContent(prompt);
         let output = result.response.text();
-        
+
         if (output.includes("\`\`\`")) {
-             output = output.replace(/\`\`\`(javascript|cpp|python|java|c)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
+            output = output.replace(/\`\`\`(javascript|cpp|python|java|c)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
         }
         res.status(200).json({ code: output });
     } catch (e) {
@@ -502,7 +502,7 @@ export const oracleLint = async (req, res) => {
     try {
         const { code, language } = req.body;
         const aiModel = getModel();
-        if (!aiModel || !code ) return res.status(200).json({ issues: [] });
+        if (!aiModel || !code) return res.status(200).json({ issues: [] });
 
         const prompt = `Inspect this ${language} code for logic/syntax errors (infinite loops, index-out-of-bounds, unhandled pointers).
 Return ONLY a valid JSON object with a single top-level key "issues" holding an array of strings. 
@@ -510,9 +510,9 @@ Example Format: { "issues": ["Infinite loop risk at line 5", "Variable x never i
 
         const result = await aiModel.generateContent(prompt);
         let output = result.response.text();
-        
+
         if (output.includes("\`\`\`")) {
-             output = output.replace(/\`\`\`(json)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
+            output = output.replace(/\`\`\`(json)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
         }
         res.status(200).json(JSON.parse(output));
 
@@ -775,11 +775,11 @@ Respond ONLY in valid JSON matching this exact structure:
             return res.status(500).json({ error: "Generation failed on both Gemini and local Ollama interfaces." });
         }
         const jsonString = rawText.trim() || "{}";
-        
+
         try {
             const cleaned = jsonString.replace(/,\s*([\]}])/g, '$1');
             const parsed = JSON.parse(cleaned);
-            
+
             // Robust Mapping structure over AI JSON response keys
             const problem = {
                 title: parsed.title || parsed.ProblemTitle || parsed.name || parsed.problemTitle || "AI Problem",
@@ -797,12 +797,12 @@ Respond ONLY in valid JSON matching this exact structure:
                 },
                 expectedOutput: parsed.expectedOutput || { javascript: "", python: "", java: "" }
             };
-            
+
             res.status(200).json(problem);
         } catch (parseError) {
             console.error("Failed to parse AI JSON:", parseError, jsonString);
-            res.status(200).json({ 
-                title: "AI Response Parse Failed", 
+            res.status(200).json({
+                title: "AI Response Parse Failed",
                 description: `AI Response Error: ${parseError.message}.\n\nRaw Answer Was:\n${jsonString || rawText}`,
                 examples: [], constraints: [],
                 starterCode: { javascript: "", python: "", java: "" },
@@ -821,10 +821,10 @@ import { scoreLocalBehavioral, trainModel } from '../lib/behavioralClassifier.js
 export const evaluateBehavioral = async (req, res) => {
     try {
         const { question, answer } = req.body;
-        
+
         // 🚀 PREFER LOCAL TRAINED MODEL WEIGHTS FOR HR 
         const localScore = scoreLocalBehavioral(answer);
-        
+
         // Let's provide an absolute fallback to offline classifier immediately!
         // This cuts down Gemini pricing to 0 for behaviorals while remaining highly accurate.
         if (localScore) {
@@ -882,7 +882,7 @@ export const startGauntlet = async (req, res) => {
         const resumeText = pdfData.text.trim();
 
         // 🚀 PREFER LOCAL OLLAMA FIRST (No early model exit here)
-        
+
         const prompt = `You are an AI Interview Orchestrator.
 Your job is to generate a FULL personalized interview blueprint based on the candidate's core parameters.
 
@@ -973,36 +973,36 @@ OUTPUT STRICT JSON ONLY.`;
             const jsonString = jsonMatch ? jsonMatch[0] : "{}";
             generatedConfig = JSON.parse(jsonString);
         } catch (parseError) {
-             console.error("Gauntlet Prompt Prompt Parse/Gen Failure:", parseError);
-             generatedConfig = {
+            console.error("Gauntlet Prompt Prompt Parse/Gen Failure:", parseError);
+            generatedConfig = {
                 "aptitude": [
-                  { 
-                    "question": "A system handles 10,000 requests per second. If average latency is 200ms, what is the concurrent request count according to Little's Law?", 
-                    "options": ["1,000 requests", "2,000 requests", "5,000 requests", "10,000 requests"], 
-                    "answer": "2,000 requests" 
-                  }
+                    {
+                        "question": "A system handles 10,000 requests per second. If average latency is 200ms, what is the concurrent request count according to Little's Law?",
+                        "options": ["1,000 requests", "2,000 requests", "5,000 requests", "10,000 requests"],
+                        "answer": "2,000 requests"
+                    }
                 ],
                 "coding": {
-                  "title": "Design a Rate Limiter",
-                  "description": "Design an API Rate Limiter mapping time and counts.",
-                  "difficulty": "Medium",
-                  "starter_code": "class RateLimiter {\n  allowRequest(userId) {\n    // code\n  }\n}"
+                    "title": "Design a Rate Limiter",
+                    "description": "Design an API Rate Limiter mapping time and counts.",
+                    "difficulty": "Medium",
+                    "starter_code": "class RateLimiter {\n  allowRequest(userId) {\n    // code\n  }\n}"
                 },
                 "ml_concepts_start": "Explain when to optimize for Precision over Recall using a medical diagnostics use case.",
                 "case_study": {
-                  "problem": "Spam Detection Pipeline",
-                  "context": "Build an end-to-end ML architecture for 1B active daily users."
+                    "problem": "Spam Detection Pipeline",
+                    "context": "Build an end-to-end ML architecture for 1B active daily users."
                 },
                 "system_design": {
-                  "problem": "Design a Distributed Message Broker",
-                  "constraints": "Strict scaling limits guidelines (e.g. 1M QPS)"
+                    "problem": "Design a Distributed Message Broker",
+                    "constraints": "Strict scaling limits guidelines (e.g. 1M QPS)"
                 },
                 "resumeSummary": "The AI analyzer is calibrating off baseline rates. Let's start on optimized engineering critique layers.",
                 "pair_programming": {
-                  "problem": "Live coding LRU Cache context",
-                  "starter_code": "class LRUCache {}"
+                    "problem": "Live coding LRU Cache context",
+                    "starter_code": "class LRUCache {}"
                 }
-             };
+            };
         }
 
         res.status(200).json({
@@ -1020,25 +1020,25 @@ import { GauntletSession } from "../models/gauntlet.model.js";
 import { requireAuth } from "@clerk/express"; // Depending on how you auth, mock it if needed
 
 export const saveGauntletSession = async (req, res) => {
-   try {
-       const sessionData = req.body;
-       const userId = req.auth?.userId || "anonymous_user"; // Optional fallback based on auth
+    try {
+        const sessionData = req.body;
+        const userId = req.auth?.userId || "anonymous_user"; // Optional fallback based on auth
 
-       const newSession = new GauntletSession({
-           userId,
-           targetRole: sessionData.targetRole,
-           difficulty: sessionData.difficulty,
-           finalScore: sessionData.finalScore,
-           roundScores: sessionData.roundScores,
-           aiFeedback: sessionData.aiFeedback
-       });
+        const newSession = new GauntletSession({
+            userId,
+            targetRole: sessionData.targetRole,
+            difficulty: sessionData.difficulty,
+            finalScore: sessionData.finalScore,
+            roundScores: sessionData.roundScores,
+            aiFeedback: sessionData.aiFeedback
+        });
 
-       await newSession.save();
-       res.status(201).json({ message: "Session saved to database.", sessionId: newSession._id });
-   } catch (error) {
-       console.error("Save Session Error:", error);
-       res.status(500).json({ error: "Failed to save Gauntlet Session." });
-   }
+        await newSession.save();
+        res.status(201).json({ message: "Session saved to database.", sessionId: newSession._id });
+    } catch (error) {
+        console.error("Save Session Error:", error);
+        res.status(500).json({ error: "Failed to save Gauntlet Session." });
+    }
 }
 
 export const getGauntletLeaderboard = async (req, res) => {
@@ -1047,7 +1047,7 @@ export const getGauntletLeaderboard = async (req, res) => {
             .sort({ finalScore: -1 })
             .limit(10)
             .select("userId targetRole difficulty finalScore completedAt");
-        
+
         // Mock name aggregation since we don't hold names in GauntletSession 
         // In real prod, we fetch User objects from Clerk via webhook
         const leaderboard = topSessions.map((session, index) => ({

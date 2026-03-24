@@ -115,8 +115,8 @@ export function getUserBadgeData() {
     };
 }
 
-export function getEarnedBadges() {
-    const data = getUserBadgeData();
+export function getEarnedBadges(liveData = null) {
+    const data = liveData || getUserBadgeData();
     return BADGE_DEFINITIONS.map(badge => ({
         ...badge,
         earned: badge.check(data),

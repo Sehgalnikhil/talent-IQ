@@ -17,11 +17,11 @@ function StudyTracksPage() {
     // Load saved custom tracks
     useEffect(() => {
         axiosInstance.get("/users/stats")
-           .then(res => {
-               setCustomTracks(res.data.aiCustomTracks || []);
-               setSolvedProblems(res.data.problemsSolved || []);
-           })
-           .catch(err => console.error("Failed to fetch custom tracks", err));
+            .then(res => {
+                setCustomTracks(res.data.aiCustomTracks || []);
+                setSolvedProblems(res.data.problemsSolved || []);
+            })
+            .catch(err => console.error("Failed to fetch custom tracks", err));
     }, []);
 
     const handleGenerateTrack = async () => {
@@ -172,7 +172,7 @@ function StudyTracksPage() {
                     </div>
                 </div>
 
-                <motion.div 
+                <motion.div
                     variants={{
                         hidden: { opacity: 0 },
                         show: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -190,7 +190,7 @@ function StudyTracksPage() {
                         } else {
                             trackProblems = allProblems.filter(track.filterFunc);
                         }
-                        
+
                         const solvedCount = trackProblems.filter((p) => solvedProblems.includes(p.id)).length;
                         const total = trackProblems.length;
                         const progress = total > 0 ? Math.round((solvedCount / total) * 100) : 0;
