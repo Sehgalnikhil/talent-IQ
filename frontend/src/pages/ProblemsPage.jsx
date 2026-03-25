@@ -127,12 +127,12 @@ function ProblemsPage() {
     try {
       const activeTopic = categoryFilter !== "All" ? categoryFilter : "Algorithms";
       const activeDiff = difficultyFilter !== "All" ? difficultyFilter : "Medium";
-      
-      const res = await axiosInstance.post("/interview/generate-problem", { 
-        topic: activeTopic, 
-        difficulty: activeDiff 
+
+      const res = await axiosInstance.post("/interview/generate-problem", {
+        topic: activeTopic,
+        difficulty: activeDiff
       });
-      
+
       if (res.data && res.data.title) {
         setGeneratedProblem(res.data);
         setShowModal(true);
@@ -157,7 +157,7 @@ function ProblemsPage() {
       <Navbar />
 
       <div className="max-w-6xl mx-auto px-6 pt-64 pb-12 relative z-10">
-        
+
         {/* HEADER PROGRESS RINGS */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -173,7 +173,7 @@ function ProblemsPage() {
               </div>
               <h1 className="text-4xl font-black bg-gradient-to-r from-white to-base-content/70 bg-clip-text text-transparent">Practice Arena</h1>
               <p className="text-base-content/50 text-sm mt-1 font-medium">
-                {solvedProblems.length} of {problems.length} solved • {Math.round((solvedProblems.length/problems.length)*100)}% complete
+                {solvedProblems.length} of {problems.length} solved • {Math.round((solvedProblems.length / problems.length) * 100)}% complete
               </p>
             </div>
             <div className="flex items-center gap-8 bg-base-300/30 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
@@ -185,7 +185,7 @@ function ProblemsPage() {
         </motion.div>
 
         {/* FILTERS PANEL */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -223,7 +223,7 @@ function ProblemsPage() {
               </select>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
             <button
               onClick={() => setShowSolvedOnly(!showSolvedOnly)}
@@ -267,8 +267,8 @@ function ProblemsPage() {
                 </p>
               </div>
             </div>
-            <button 
-              onClick={handleGenerateAI} 
+            <button
+              onClick={handleGenerateAI}
               disabled={isGenerating}
               className="btn btn-primary btn-md rounded-xl font-bold gap-2 shadow-lg shadow-primary/20 w-full md:w-auto"
             >
@@ -281,13 +281,13 @@ function ProblemsPage() {
         {/* AI GENERATED MODAL */}
         <AnimatePresence>
           {showModal && generatedProblem && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             >
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.95, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
@@ -303,8 +303,8 @@ function ProblemsPage() {
                   <SparklesIcon className="size-5 text-primary animate-pulse" />
                   <span className="text-xs font-black uppercase tracking-widest text-primary">AI Concept Board</span>
                 </div>
-                
-                <h2 className="text-3xl font-black mb-1 text-white">{generatedProblem.title}</h2>
+
+                <h2 className="text-3xl font-black mb-1 text-base-content">{generatedProblem.title}</h2>
                 <div className="flex gap-2 mb-4">
                   <span className="badge badge-sm badge-secondary font-bold">{generatedProblem.timeComplexity || "O(n)"}</span>
                   {(generatedProblem.tags || []).map(t => <span key={t} className="badge badge-sm badge-ghost">{t}</span>)}
@@ -343,7 +343,7 @@ function ProblemsPage() {
 
                 <div className="mt-6 flex gap-3">
                   <button onClick={() => setShowModal(false)} className="btn btn-outline btn-md flex-1 rounded-xl font-bold">Dismiss</button>
-                  <Link 
+                  <Link
                     to="/problem/ai-problem"
                     onClick={() => {
                       const payload = {
@@ -357,7 +357,7 @@ function ProblemsPage() {
                     }}
                     className="btn btn-primary btn-md flex-1 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20 flex items-center justify-center"
                   >
-                     Open in AI Compiler <ArrowRightIcon className="size-4" />
+                    Open in AI Compiler <ArrowRightIcon className="size-4" />
                   </Link>
                 </div>
               </motion.div>
@@ -368,7 +368,7 @@ function ProblemsPage() {
         {/* PROBLEM OF THE DAY */}
         <AnimatePresence>
           {!searchQuery && difficultyFilter === "All" && categoryFilter === "All" && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
@@ -399,7 +399,7 @@ function ProblemsPage() {
         </AnimatePresence>
 
         {/* PROBLEMS LIST */}
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="show"
@@ -413,21 +413,21 @@ function ProblemsPage() {
               const pb = personalBests[problem.id];
               const companies = COMPANY_TAGS[problem.id] || [];
               const diffColor = problem.difficulty === "Easy" ? "text-success" : problem.difficulty === "Medium" ? "text-warning" : "text-error";
-              
+
               return (
                 <motion.div key={problem.id} variants={itemVariants}>
                   <Link to={`/problem/${problem.id}`} className="card bg-base-100/10 hover:bg-base-100/20 backdrop-blur-md border border-white/5 p-5 group flex-row items-center justify-between relative overflow-hidden cursor-pointer">
                     {/* Active Gradient on hover */}
                     <div className={`absolute left-0 top-0 bottom-0 w-[4px] opacity-70 transition-all duration-300 ${isSolved ? 'bg-success' : 'bg-transparent group-hover:bg-primary'}`} />
-                    
+
                     <div className="flex items-center gap-4 flex-1">
                       <div className={`size-11 rounded-xl flex items-center justify-center transition-colors shadow-inner ${isSolved ? "bg-success/10" : "bg-base-200/80 border border-white/5 group-hover:bg-primary/10"}`}>
                         {isSolved ? <CheckCircle2Icon className="size-6 text-success" /> : <Code2Icon className="size-5 text-base-content/60 group-hover:text-primary transition-colors" />}
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <h2 className={`font-black text-base group-hover:text-primary transition-colors ${isSolved ? "text-success" : "text-white/90"}`}>{problem.title}</h2>
+                          <h2 className={`font-black text-base group-hover:text-primary transition-colors ${isSolved ? "text-success" : "text-base-content/90"}`}>{problem.title}</h2>
                           <span className={`text-[11px] font-black uppercase tracking-wider ${diffColor}`}>{problem.difficulty}</span>
                           {pb && (
                             <span className="badge badge-warning badge-xs font-black gap-1 text-[9px] h-4 bg-warning/20 border-warning/10 text-warning">

@@ -157,7 +157,7 @@ export default function VoiceInterviewPage() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-secondary/5 rounded-full blur-[180px] animate-pulse" />
             </div>
 
-            <main className="relative z-10 max-w-6xl mx-auto px-6 pt-64 pb-32 space-y-12 h-screen flex flex-col">
+            <main className="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-12 space-y-8 h-screen flex flex-col">
                 
                 {/* 1. HEADER HUD */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-4">
@@ -187,7 +187,7 @@ export default function VoiceInterviewPage() {
                 <div className={`flex-1 rounded-[48px] border overflow-hidden flex flex-col relative shadow-3xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-base-100/60 border-black/5'} backdrop-blur-3xl`}>
                     
                     {/* VISUALIZER CONSOLE */}
-                    <div className={`h-72 border-b flex flex-col items-center justify-center relative overflow-hidden ${isDark ? 'bg-black/40 border-white/5' : 'bg-white/40 border-black/5'}`}>
+                    <div className={`h-56 border-b flex flex-col items-center justify-center relative overflow-hidden ${isDark ? 'bg-black/40 border-white/5' : 'bg-white/40 border-black/5'}`}>
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-50" />
                         
                         {!isInterviewActive ? (
@@ -241,7 +241,7 @@ export default function VoiceInterviewPage() {
                     {/* INTERFACE CONTROLS */}
                     <AnimatePresence>
                         {isInterviewActive && (
-                            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="p-8 bg-base-300/30 backdrop-blur-3xl border-t border-white/5 flex justify-center items-center gap-8 relative overflow-hidden">
+                            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="p-6 bg-base-300/30 backdrop-blur-3xl border-t border-white/5 flex justify-center items-center gap-8 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-error/5 opacity-50" />
                                 
                                 <button 

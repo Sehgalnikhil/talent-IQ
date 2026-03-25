@@ -27,6 +27,7 @@ import FullMockInterviewPage from "./pages/FullMockInterviewPage";
 import CommandPalette from "./components/CommandPalette";
 import ClerkAxiosInterceptor from "./components/ClerkAxiosInterceptor";
 import PageTransition from "./components/PageTransition";
+import UserSync from "./components/UserSync";
 
 function App() {
   const { isSignedIn, isLoaded } = useUser();
@@ -49,6 +50,7 @@ function App() {
   return (
     <>
       <ClerkAxiosInterceptor>
+        <UserSync />
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={!isSignedIn ? <PageTransition><HomePage /></PageTransition> : <Navigate to={"/dashboard"} />} />

@@ -141,6 +141,13 @@ export function initSocket(server, clientUrl) {
             if (room) {
                 room.status = "finished";
                 const winnerInfo = room.players[socket.id];
+                
+                // Global Pulse update
+                io.emit("global_notification", {
+                    message: `Arena Update: ${winnerInfo.name || "A_CODER"} has emerged VICTORIOUS in the Combat Protocol!`,
+                    type: "achievement"
+                });
+
                 io.to(roomId).emit("match_over", {
                     winner: winnerInfo,
                     reason: "solved"

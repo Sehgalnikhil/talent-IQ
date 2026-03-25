@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: dark, light, dracula, nord, cyberpunk, synthwave, night, sunset;
+  themes: dark, light, dracula, nord, cyberpunk, synthwave, night, sunset, luxury, corporate;
 }
 
 @theme {

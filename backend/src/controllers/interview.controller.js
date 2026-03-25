@@ -4,6 +4,12 @@ const pdfParse = require('pdf-parse');
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import axios from "axios";
+import { broadcastNotification } from "../lib/notifier.js";
+import User from "../models/User.js";
+import { createClerkClient } from "@clerk/express";
+import { GauntletSession } from "../models/gauntlet.model.js";
+
+const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 let genAI = null;
 let model = null;
@@ -24,7 +30,18 @@ const getModel = () => {
 };
 
 export const askAIWithFallback = async (prompt, isJson = true) => {
-    // 🚀 TRY LOCAL OLLAMA FIRST TO SAVE GEMINI QUOTAS
+    // 1️⃣ TRY GEMINI FIRST (Primary high-intelligence model)
+    try {
+        const aiModel = getModel();
+        if (aiModel) {
+            const result = await aiModel.generateContent(prompt);
+            return result.response.text();
+        }
+    } catch (geminiErr) {
+        console.warn("⚠️ Gemini AI Failed (Quota or Error). Attempting Local Ollama Fallback...", geminiErr.message);
+    }
+
+    // 2️⃣ FALLBACK TO LOCAL OLLAMA (Production safety net)
     try {
         const payload = {
             model: process.env.OLLAMA_MODEL || "qwen2",
@@ -35,49 +52,43 @@ export const askAIWithFallback = async (prompt, isJson = true) => {
         if (isJson) payload.format = "json";
 
         const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
-        const resp = await axios.post(ollamaUrl, payload);
-        return resp.data.response;
-    } catch (ollamaErr) {
-        console.warn("⚠️ Local Ollama Offline. Switching to Gemini...", ollamaErr.message);
-    }
-
-    try {
-        const aiModel = getModel();
-        if (aiModel) {
-            const result = await aiModel.generateContent(prompt);
-            return result.response.text();
-        } else {
-            throw new Error("Gemini API key is not configured.");
+        const resp = await axios.post(ollamaUrl, payload, { timeout: 25000 }); // Increased timeout for heavier local models
+        
+        let response = resp.data.response;
+        // Tag local responses so the user knows it's the fallback
+        if (!isJson) {
+            response = `[LOCAL OLLAMA FALLBACK] ${response}`;
         }
-    } catch (err) {
-        throw new Error(`Both attempts failed: ${err.message}`);
+        return response;
+    } catch (ollamaErr) {
+        console.error("❌ Both Gemini and local Ollama failed:", ollamaErr.message);
+        
+        // 3️⃣ FINAL EMERGENCY FALLBACK (Ensures session never crashes)
+        if (isJson) {
+            return JSON.stringify({
+                explanation: "The AI node is recalibrating. Based on your current progress, consider looking into potential edge cases or performance optimizations.",
+                feedback: "System Offline: Emergency heuristics active.",
+                score: 70, strengths: ["Analytical Persistence"], weaknesses: ["External Dependency dependency"]
+            });
+        }
+        
+        return "[HEURISTIC_BACKUP] Your logic makes sense. Could you expand on how you'd handle edge cases or scale the system design?";
     }
 };
 
 export const analyzeResume = async (req, res) => {
     try {
         const { resumeText } = req.body;
-
-        const aiModel = getModel();
-        if (!aiModel) {
-            // Fallback for demo if no key
-            return res.status(200).json({
-                skills: ["React", "JavaScript", "Algorithms"],
-                experience: "3 YOE",
-                suggestedProblem: "Find duplicates in an array in O(n) time and O(1) space."
-            });
-        }
-
         const prompt = `Extract the top 3 core technical skills and Years of Experience from this resume text: "${resumeText}". Then suggest ONE short coding interview problem based on those skills. Respond ONLY in JSON format: {"skills": ["skill1", "skill2"], "experience": "X YOE", "suggestedProblem": "problem description"}`;
-        const result = await aiModel.generateContent(prompt);
-        const response = await result.response;
-        const jsonString = response.text().replace(/```json\n?|```/g, "").trim();
+        
+        const rawJson = await askAIWithFallback(prompt, true);
+        const jsonMatch = rawJson ? rawJson.match(/\{[\s\S]*\}/) : null;
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
 
-        const parsed = JSON.parse(jsonString);
-        res.status(200).json(parsed);
+        res.status(200).json(JSON.parse(jsonString));
     } catch (error) {
         console.error("Analysis Error:", error);
-        res.status(500).json({ error: "Failed to analyze resume" });
+        res.status(500).json({ error: "Failed to analyze resume via fallback engine" });
     }
 };
 
@@ -192,43 +203,22 @@ Your response MUST start with their exact bracketed name, e.g. "[DSA Engineer]: 
     } catch (error) {
         console.error("Chat Error:", error);
 
-        // Safety Fallback for Quota Limits to ensure Voice Interview never breaks
-        if (error.status === 429 || error.message?.includes("Quota exceeded")) {
-            return res.status(200).json({
-                reply: "[GEMINI QUOTA FALLBACK] Your logic makes sense to me. Could you talk more about how scaling would affect it?",
-                response: "[GEMINI QUOTA FALLBACK] Your logic makes sense to me. Could you talk more about how scaling would affect it?"
-            });
-        }
-
-        res.status(500).json({ error: "Failed to communicate with AI" });
+        // If both Gemini and Ollama fail, or a critical network error occurs
+        return res.status(200).json({
+            reply: "[NEURAL_ALERT] The AI Network is currently saturated. I reviewed your input systems; please ensure your local AI instance (Ollama) is initialized for offline mode.",
+            response: "[PROTOCOL_OFFLINE]"
+        });
     }
 };
 
 export const evaluateCode = async (req, res) => {
     try {
         const { code, problemContext } = req.body;
-
-        const aiModel = getModel();
-        if (!aiModel) {
-            return res.status(200).json({
-                strengths: ["Code is functional", "Variable naming is okay"],
-                weaknesses: ["No AI key found, this is a mock analysis"],
-                score: 75,
-                feedback: "Please add GEMINI_API_KEY to your .env to see real AI analysis.",
-                plagiarismScore: 100,
-                keyboardEfficiency: 80,
-                timeToInsight: "N/A",
-                personalityScore: "Calm & Clear",
-                evolutionTimeline: ["Started", "Finished"],
-                bottlenecks: [{ "line": "System Not Configured", "timeSpent": "N/A" }]
-            });
-        }
-
         const prompt = `Act as an expert technical recruiter and AI telemetry system analyzing a candidate's code submission.
     Problem Context: ${problemContext}
     Code:
     ${code}
-
+ 
     Evaluate this code strictly and simulate behavior metrics based on the code's maturity. Return ONLY a valid JSON object matching this exact schema:
     {
       "strengths": ["string"],
@@ -246,31 +236,22 @@ export const evaluateCode = async (req, res) => {
         {"line": "Name of bottleneck (e.g. nested loop)", "timeSpent": "estimate string"}
       ]
     }`;
-
-        const result = await aiModel.generateContent(prompt);
-        let rawText = result.response.text();
-
-        // Robust JSON extraction using regex to capture the exact { ... } object
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        let jsonString = jsonMatch ? jsonMatch[0] : "{}";
-
+ 
+        const rawJson = await askAIWithFallback(prompt, true);
+        const jsonMatch = rawJson ? rawJson.match(/\{[\s\S]*\}/) : null;
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+ 
         const parsed = JSON.parse(jsonString);
         res.status(200).json(parsed);
-
+ 
     } catch (error) {
         console.error("Evaluation Error:", error);
-        // Instead of 500ing, return a 200 with the exact LLM stack trace so it renders in the UI
         res.status(200).json({
-            strengths: ["Network Connected"],
-            weaknesses: ["AI Execution Failed"],
+            strengths: ["Internal Fallback Active"],
+            weaknesses: ["AI Quota Restricted"],
             score: 0,
-            feedback: `Server caught an error while contacting Gemini AI: ${error.message || "Unknown GenAI Error"}`,
-            plagiarismScore: 100,
-            keyboardEfficiency: 0,
-            timeToInsight: "Error",
-            personalityScore: "Offline",
-            evolutionTimeline: ["Crash"],
-            bottlenecks: [{ "line": "System Not Configured", "timeSpent": "N/A" }]
+            feedback: `System Fallback: Evaluation failed due to ${error.message}`,
+            personalityScore: "Offline"
         });
     }
 };
@@ -278,24 +259,18 @@ export const evaluateCode = async (req, res) => {
 export const refactorCode = async (req, res) => {
     try {
         const { code } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({ refactored: code + "\n// Mock refactored version (Add GEMINI_API_KEY for real AI refactoring)" });
-
         const prompt = `Refactor this code to be cleaner, more efficient, and use better design patterns. Return ONLY the pure code in raw text, no markdown formatting.\n\n${code}`;
-        const result = await aiModel.generateContent(prompt);
-        res.status(200).json({ refactored: result.response.text().replace(/```(javascript|js)?\n?|```/gi, "").trim() });
+        const output = await askAIWithFallback(prompt, false);
+        res.status(200).json({ refactored: output.replace(/```(javascript|js)?\n?|```/gi, "").trim() });
     } catch (e) { res.status(500).json({ error: "Failed refactor" }); }
 };
 
 export const debugCode = async (req, res) => {
     try {
         const { code } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({ feedback: "Mock Debugger: Check if you are handling null edge cases or off-by-one errors." });
-
         const prompt = `Act as an AI Debugger. Identify bugs, explain what went wrong and why logic fails in this code. Keep it brief and constructive.\n\n${code}`;
-        const result = await aiModel.generateContent(prompt);
-        res.status(200).json({ feedback: result.response.text() });
+        const feedback = await askAIWithFallback(prompt, false);
+        res.status(200).json({ feedback });
     } catch (e) { res.status(500).json({ error: "Failed debugger" }); }
 };
 
@@ -326,14 +301,9 @@ export const getComplexity = async (req, res) => {
 export const getCoachHint = async (req, res) => {
     try {
         const { code, problemContext } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) {
-            return res.status(200).json({ hint: "Mock Coach: Try using a hashmap for O(1) lookups." });
-        }
-
         const prompt = `You are a pair programming AI coach. The user is solving: ${problemContext}. Their code is: \n${code}\nGive them a single, short, subtle 1-sentence hint without giving away the exact code.`;
-        const result = await aiModel.generateContent(prompt);
-        res.status(200).json({ hint: result.response.text() });
+        const hint = await askAIWithFallback(prompt, false);
+        res.status(200).json({ hint });
     } catch (e) {
         res.status(500).json({ error: "Failed coach" });
     }
@@ -342,22 +312,15 @@ export const getCoachHint = async (req, res) => {
 export const generateSkillReport = async (req, res) => {
     try {
         const { solvedProblems } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) {
-            return res.status(200).json({
-                languages: { JavaScript: 80, Python: 15, Java: 5 },
-                weaknesses: ["Dynamic Programming", "Graphs"],
-                strengths: ["Arrays", "HashMaps"],
-                recommendation: "Focus on 2D DP problems."
-            });
-        }
-
-        const prompt = `Based on a candidate having solved these problems: ${JSON.stringify(solvedProblems || ['two sum', 'reverse string'])}. Generate a dynamic skill report. Return ONLY JSON: {"languages": {"JavaScript": 80, "Python": 15, "Java": 5}, "weaknesses": ["str1", "str2"], "strengths": ["str1", "str2"], "recommendation": "Short str"}`;
-        const result = await aiModel.generateContent(prompt);
-        const jsonString = result.response.text().replace(/```json\n?|```/gi, "").trim();
+        const prompt = `Based on a candidate having solved these problems: ${JSON.stringify(solvedProblems || ['two sum', 'reverse string'])}. Generate a dynamic skill report. Respond ONLY in valid JSON format: {"languages": {"JavaScript": 80, "Python": 15, "Java": 5}, "weaknesses": ["str1", "str2"], "strengths": ["str1", "str2"], "recommendation": "Short str"}`;
+        
+        const rawJson = await askAIWithFallback(prompt, true);
+        const jsonMatch = rawJson ? rawJson.match(/\{[\s\S]*\}/) : null;
+        const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+        
         res.status(200).json(JSON.parse(jsonString));
     } catch (e) {
-        res.status(500).json({ error: "Failed to generate report" });
+        res.status(500).json({ error: "Failed to generate report via fallback" });
     }
 };
 
@@ -491,8 +454,7 @@ export const translateCode = async (req, res) => {
         const prompt = `You are an elite developer. Translate this ${fromLanguage} code into idiomatic, identical ${toLanguage}. 
 Output ONLY the raw code block. No explanations, no markdown wrap.`;
 
-        const result = await aiModel.generateContent(prompt);
-        let output = result.response.text();
+        let output = await askAIWithFallback(prompt, false);
 
         if (output.includes("\`\`\`")) {
             output = output.replace(/\`\`\`(javascript|cpp|python|java|c)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
@@ -506,21 +468,17 @@ Output ONLY the raw code block. No explanations, no markdown wrap.`;
 export const oracleLint = async (req, res) => {
     try {
         const { code, language } = req.body;
-        const aiModel = getModel();
-        if (!aiModel || !code) return res.status(200).json({ issues: [] });
-
         const prompt = `Inspect this ${language} code for logic/syntax errors (infinite loops, index-out-of-bounds, unhandled pointers).
 Return ONLY a valid JSON object with a single top-level key "issues" holding an array of strings. 
 Example Format: { "issues": ["Infinite loop risk at line 5", "Variable x never incremented"] }`;
-
-        const result = await aiModel.generateContent(prompt);
-        let output = result.response.text();
-
+ 
+        let output = await askAIWithFallback(prompt, true);
+ 
         if (output.includes("\`\`\`")) {
             output = output.replace(/\`\`\`(json)?\n?/gi, "").replace(/\`\`\`/g, "").trim();
         }
         res.status(200).json(JSON.parse(output));
-
+ 
     } catch (e) {
         res.status(200).json({ issues: [] }); // Fail gracefully for silence
     }
@@ -571,8 +529,7 @@ export const generateExecutionTrace = async (req, res) => {
         ${code}
         Respond ONLY with a JSON array.`;
 
-        const result = await aiModel.generateContent(prompt);
-        let rawText = result.response.text().trim();
+        let rawText = await askAIWithFallback(prompt, true);
         rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         const steps = JSON.parse(rawText || "[]");
@@ -595,8 +552,7 @@ export const generateAutoDrawDiagram = async (req, res) => {
         
         Respond ONLY with the raw mermaid diagram payload (e.g. starting with 'graph TD' or 'sequenceDiagram'). Do not use markdown wrappers.`;
 
-        const result = await aiModel.generateContent(prompt);
-        let mermaid = result.response.text().trim();
+        let mermaid = await askAIWithFallback(prompt, false);
         mermaid = mermaid.replace(/```mermaid/g, "").replace(/```/g, "").trim();
 
         res.status(200).json({ mermaid });
@@ -642,8 +598,8 @@ export const startGithubMock = async (req, res) => {
         You are the Staff Engineer of this repository. Generate a synthetic "Architectural Feature Request" or "Bug Report" based on what you guess this repo does.
         Respond ONLY in JSON format: {"problemContext": "Detailed description of the pull request issue they need to solve", "firstMessage": "Your first chat message to them welcoming them to the PR."}`;
 
-        const result = await aiModel.generateContent(prompt);
-        let rawText = result.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
+        let rawText = await askAIWithFallback(prompt, true);
+        rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         res.status(200).json(JSON.parse(rawText));
     } catch (e) {
@@ -702,15 +658,12 @@ Analyze it and respond ONLY in valid JSON:
 export const explainProblemELI5 = async (req, res) => {
     try {
         const { problemTitle, problemDescription } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({ explanation: "Imagine you have a bag of numbers. You need to find two numbers in the bag that add up to a target number. Simple!" });
-
         const prompt = `Explain this coding problem in the simplest terms possible, like explaining to a 10-year-old using a fun real-world analogy. No jargon. Max 3 short paragraphs.
 Problem: "${problemTitle}"
 Description: "${problemDescription?.substring(0, 500)}"
 Respond in JSON: {"explanation": "plain english explanation with analogy", "analogy": "1-line fun comparison", "keyInsight": "the core trick to solve it"}`;
-        const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text();
+ 
+        let rawText = await askAIWithFallback(prompt, true);
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         const jsonString = jsonMatch ? jsonMatch[0] : "{}";
         res.status(200).json(JSON.parse(jsonString));
@@ -724,15 +677,12 @@ Respond in JSON: {"explanation": "plain english explanation with analogy", "anal
 export const generateStudyPlan = async (req, res) => {
     try {
         const { skillScores, solvedCount, weakCategories, duration } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({ plan: [{ day: 1, tasks: ["Solve 2 Easy Array problems", "Review Big O notation"] }] });
-
         const prompt = `Create a personalized ${duration || 7}-day coding interview study plan.
 User stats: Solved ${solvedCount} problems. Weak areas: ${weakCategories?.join(", ") || "Graphs, DP"}.
 Skill scores: ${JSON.stringify(skillScores || {})}.
 Respond ONLY in JSON: {"plan": [{"day": 1, "theme": "Arrays & Hashing", "tasks": ["Solve 2 Easy arrays", "1 Medium sliding window"], "tip": "motivational tip"}, ...], "weeklyGoal": "summary"}`;
-        const result = await aiModel.generateContent(prompt);
-        const rawText = result.response.text();
+        
+        let rawText = await askAIWithFallback(prompt, true);
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         const jsonString = jsonMatch ? jsonMatch[0] : "{}";
         res.status(200).json(JSON.parse(jsonString));
@@ -784,6 +734,9 @@ Respond ONLY in valid JSON matching this exact structure:
         try {
             const cleaned = jsonString.replace(/,\s*([\]}])/g, '$1');
             const parsed = JSON.parse(cleaned);
+            
+            // Notify all users in Real-Time
+            broadcastNotification(`Neural Alert: New AI Challenge synthesized for "${topic}" Protocol.`, "problem");
 
             // Robust Mapping structure over AI JSON response keys
             const problem = {
@@ -848,17 +801,15 @@ export const evaluateBehavioral = async (req, res) => {
 export const generateFlashcards = async (req, res) => {
     try {
         const { problemTitle, code, notes, concept } = req.body;
-        const aiModel = getModel();
         const prompt = `Create 3 spaced-repetition flashcards from this coding problem session.
 Problem: "${problemTitle}", Key concept: "${concept || 'algorithm'}"
 User's code: \`\`\`\n${code?.substring(0, 500) || ""}\n\`\`\`
 Notes: "${notes || ""}"
 Respond ONLY in JSON: {"cards": [{"question": "Q?", "answer": "A.", "category": "Algorithm|Complexity|Pattern|Gotcha"}]}`;
-
+ 
         let cards = [{ question: "What is the key insight inside algorithm?", answer: "Always check edge cases and scale complexity limits.", category: "Algorithm" }];
         try {
-            const result = await aiModel.generateContent(prompt);
-            const rawText = result.response.text();
+            const rawText = await askAIWithFallback(prompt, true);
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             const jsonString = jsonMatch ? jsonMatch[0] : "{}";
             cards = JSON.parse(jsonString).cards || cards;
@@ -1021,8 +972,6 @@ OUTPUT STRICT JSON ONLY.`;
     }
 }
 
-import { GauntletSession } from "../models/gauntlet.model.js";
-import { requireAuth } from "@clerk/express"; // Depending on how you auth, mock it if needed
 
 export const saveGauntletSession = async (req, res) => {
     try {
@@ -1046,24 +995,31 @@ export const saveGauntletSession = async (req, res) => {
     }
 }
 
+
 export const getGauntletLeaderboard = async (req, res) => {
     try {
-        const topSessions = await GauntletSession.find()
-            .sort({ finalScore: -1 })
-            .limit(10)
-            .select("userId targetRole difficulty finalScore completedAt");
+        // Fetch all users from Clerk to ensure current accuracy
+        const clerkUsers = await clerkClient.users.getUserList({ limit: 100 });
+        
+        // Fetch all sessions to merge scores
+        const sessions = await GauntletSession.find().sort({ finalScore: -1 });
 
-        // Mock name aggregation since we don't hold names in GauntletSession 
-        // In real prod, we fetch User objects from Clerk via webhook
-        const leaderboard = topSessions.map((session, index) => ({
-            rank: index + 1,
-            id: session._id,
-            userId: session.userId,
-            score: session.finalScore,
-            role: session.targetRole,
-            date: session.completedAt,
-            name: "Candidate_" + session.userId.substring(session.userId.length - 4)
-        }));
+        const leaderboard = clerkUsers.data.map((user) => {
+            const userSessions = sessions.filter(s => s.userId === user.id);
+            const bestSession = userSessions[0]; // Already sorted by finalScore -1
+
+            return {
+                userId: user.id,
+                name: user.fullName || user.username || `Candidate_${user.id.substring(user.id.length - 4)}`,
+                profileImage: user.imageUrl,
+                score: bestSession ? bestSession.finalScore : 0,
+                role: bestSession ? bestSession.targetRole : "Candidate",
+                date: bestSession ? bestSession.completedAt : user.createdAt
+            };
+        });
+
+        // Final sort by score
+        leaderboard.sort((a, b) => b.score - a.score);
 
         res.status(200).json(leaderboard);
     } catch (error) {

@@ -1,19 +1,19 @@
 import { Link, useLocation } from "react-router";
-import { 
-  BookOpenIcon, 
-  LayoutDashboardIcon, 
-  SparklesIcon, 
-  TrophyIcon, 
-  SwordsIcon, 
-  PaletteIcon, 
-  SearchIcon, 
-  ChevronDownIcon, 
-  Code2Icon, 
-  CpuIcon, 
-  Mic2Icon, 
-  BookMarkedIcon, 
-  HistoryIcon, 
-  UserCircle2Icon 
+import {
+   BookOpenIcon,
+   LayoutDashboardIcon,
+   SparklesIcon,
+   TrophyIcon,
+   SwordsIcon,
+   PaletteIcon,
+   SearchIcon,
+   ChevronDownIcon,
+   Code2Icon,
+   CpuIcon,
+   Mic2Icon,
+   BookMarkedIcon,
+   HistoryIcon,
+   UserCircle2Icon
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import NotificationCenter from "./NotificationCenter";
@@ -23,153 +23,156 @@ import { AnimatePresence, motion } from "framer-motion";
 const THEMES = ["dark", "light", "dracula", "nord", "synthwave", "night", "sunset", "luxury", "corporate"];
 
 function Navbar() {
-  const [isExploreHovered, setIsExploreHovered] = useState(false);
-  const location = useLocation();
-  const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
-  const [scrolled, setScrolled] = useState(false);
+   const [isExploreHovered, setIsExploreHovered] = useState(false);
+   const location = useLocation();
+   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
+   const [scrolled, setScrolled] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", currentTheme);
-    localStorage.setItem("talentiq-theme", currentTheme);
-  }, [currentTheme]);
+   useEffect(() => {
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      localStorage.setItem("talentiq-theme", currentTheme);
+   }, [currentTheme]);
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+   useEffect(() => {
+      const handleScroll = () => setScrolled(window.scrollY > 20);
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+   }, []);
 
-  const isActive = (path) => location.pathname === path;
+   const isActive = (path) => location.pathname === path;
 
-  return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 pointer-events-none ${scrolled ? 'mt-0' : 'mt-2'}`}>
-      <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
-        
-        <div className="px-8 py-2.5 flex items-center justify-between relative z-10">
-          
-          {/* LOGO & PRIMARY CLUSTER */}
-          <div className="flex items-center gap-14">
-            <Link to="/" className="group flex items-center gap-3 transition-transform duration-300 hover:scale-105 shrink-0">
-               <div className="size-11 rounded-full bg-gradient-to-r from-primary via-secondary to-accent flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary),0.5)] ">
-                  <SparklesIcon className="size-6 text-white" />
-               </div>
-               <div className="flex flex-col">
-                  <span className="font-black text-2xl tracking-tighter leading-none bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent italic">Talent IQ</span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] opacity-30">Neural Consensus</span>
-               </div>
-            </Link>
+   return (
+      <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 pointer-events-none ${scrolled ? 'mt-0' : 'mt-2'}`}>
+         <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
 
-            <div className="hidden xl:flex items-center gap-2">
-              {[
-                { label: "Problems", path: "/problems", icon: BookOpenIcon },
-                { label: "Dashboard", path: "/dashboard", icon: LayoutDashboardIcon },
-                { label: "Arena", path: "/speedrun", icon: SwordsIcon, color: "text-error" },
-                { label: "Leaderboard", path: "/leaderboard", icon: TrophyIcon },
-              ].map((node) => (
-                <Link
-                  key={node.path}
-                  to={node.path}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest border border-transparent ${
-                    isActive(node.path)
-                      ? "bg-primary text-primary-content shadow-[0_0_25px_rgba(var(--color-primary),0.3)] scale-105"
-                      : `text-base-content/50 hover:bg-base-content/5 hover:text-base-content ${node.color || ""}`
-                  }`}
-                >
-                  <node.icon className="size-4" />
-                  <span>{node.label}</span>
-                </Link>
-              ))}
+            <div className="px-8 py-2.5 flex items-center justify-between relative z-10">
 
-              {/* EXPLORE MEGA MENU NODE */}
-              <div className="relative ml-6">
-                 <div 
-                   onMouseEnter={() => setIsExploreHovered(true)}
-                   onMouseLeave={() => setIsExploreHovered(false)}
-                   className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent cursor-pointer"
-                 >
-                    <SparklesIcon className="size-4 group-hover:animate-pulse" />
-                    <span>Explore Space</span>
-                    <ChevronDownIcon className="size-3 opacity-30" />
-                 </div>
-                 
+               {/* LOGO & PRIMARY CLUSTER */}
+               <div className="flex items-center gap-14">
+                  <Link to="/" className="group flex items-center gap-3 transition-transform duration-300 hover:scale-105 shrink-0">
+                     <div className="size-11 rounded-full bg-gradient-to-r from-primary via-secondary to-accent flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary),0.5)] ">
+                        <SparklesIcon className="size-6 text-white" />
+                     </div>
+                     <div className="flex flex-col">
+                        <span className="font-black text-2xl tracking-tighter leading-none bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent italic">Talent IQ</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.4em] opacity-30">Neural Consensus</span>
+                     </div>
+                  </Link>
+
+                  <div className="hidden xl:flex items-center gap-2">
+                     {[
+                        { label: "Problems", path: "/problems", icon: BookOpenIcon },
+                        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboardIcon },
+                        { label: "Arena", path: "/speedrun", icon: SwordsIcon, color: "text-error" },
+                        { label: "Leaderboard", path: "/leaderboard", icon: TrophyIcon },
+                     ].map((node) => (
+                        <Link
+                           key={node.path}
+                           to={node.path}
+                           className={`flex items-center gap-2 px-5 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest border border-transparent ${isActive(node.path)
+                                 ? "bg-primary text-primary-content shadow-[0_0_25px_rgba(var(--color-primary),0.3)] scale-105"
+                                 : `text-base-content/50 hover:bg-base-content/5 hover:text-base-content ${node.color || ""}`
+                              }`}
+                        >
+                           <node.icon className="size-4" />
+                           <span>{node.label}</span>
+                        </Link>
+                     ))}
+
+                     {/* EXPLORE MEGA MENU NODE */}
+                     <div 
+                        className="relative ml-6"
+                        onMouseEnter={() => setIsExploreHovered(true)}
+                        onMouseLeave={() => setIsExploreHovered(false)}
+                     >
+                        <div
+                           className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent cursor-pointer"
+                        >
+                           <SparklesIcon className="size-4 group-hover:animate-pulse" />
+                           <span>Explore Space</span>
+                           <ChevronDownIcon className="size-3 opacity-30" />
+                        </div>
+
                  <AnimatePresence>
                    {isExploreHovered && (
                      <motion.div
-                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                       initial={{ opacity: 0, y: 15, scale: 0.98 }}
                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                       exit={{ opacity: 0, scale: 0.95 }}
-                       transition={{ duration: 0.2 }}
-                       onMouseEnter={() => setIsExploreHovered(true)}
-                       onMouseLeave={() => setIsExploreHovered(false)}
-                       className="absolute top-full left-1/2 -translate-x-1/2 mt-4 z-[200] w-[800px] pointer-events-auto"
+                       exit={{ opacity: 0, scale: 0.98 }}
+                       transition={{ duration: 0.25, ease: "easeOut" }}
+                       className="absolute top-[80%] right-0 pt-6 z-[200] w-[750px] pointer-events-auto"
                      >
-                       <ul className="menu p-10 shadow-[0_0_100px_rgba(0,0,0,0.6)] bg-base-100/98 backdrop-blur-3xl border border-white/10 grid grid-cols-2 gap-x-12 gap-y-8 rounded-[40px] overflow-hidden">
+                       <div className="menu p-10 shadow-[0_30px_100px_rgba(0,0,0,0.7)] bg-base-100/98 backdrop-blur-3xl border border-white/10 rounded-[48px] overflow-hidden grid grid-cols-2 gap-10">
                           {/* Column 1: Learning & Practice */}
-                          <div className="space-y-4">
-                             <header className="px-4 py-2 border-b border-white/5 mb-4">
-                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary">Intelligence Tracks</span>
-                             </header>
-                             <li><Link to="/curated" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><BookMarkedIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Curated Pathways</span><span className="text-[9px] opacity-40 uppercase font-black">Sovereign Knowledge</span></div></div></Link></li>
-                             <li><Link to="/whiteboard" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><CpuIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">System Architecture</span><span className="text-[9px] opacity-40 uppercase font-black">Interactive Canvas</span></div></div></Link></li>
-                             <li><Link to="/playground" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><Code2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Neural Sandbox</span><span className="text-[9px] opacity-40 uppercase font-black">Real-time Compiler</span></div></div></Link></li>
-                             <li><Link to="/flashcards" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><HistoryIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Smart Memory</span><span className="text-[9px] opacity-40 uppercase font-black">AI Spaced Repetition</span></div></div></Link></li>
+                          <div className="flex flex-col gap-5">
+                             <div className="px-5 py-3 border-b border-base-content/10 mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80">Intelligence Tracks</p>
+                             </div>
+                             <div className="space-y-2">
+                                <li><Link to="/curated" className="rounded-3xl p-6 hover:bg-primary/10 group border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-primary/15 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><BookMarkedIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Curated Pathways</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Sovereign Knowledge</span></div></div></Link></li>
+                                <li><Link to="/whiteboard" className="rounded-3xl p-6 hover:bg-primary/10 group border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-primary/15 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><CpuIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">System Architecture</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Interactive Canvas</span></div></div></Link></li>
+                                <li><Link to="/playground" className="rounded-3xl p-6 hover:bg-primary/10 group border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-primary/15 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><Code2Icon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Neural Sandbox</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Real-time Compiler</span></div></div></Link></li>
+                                <li><Link to="/flashcards" className="rounded-3xl p-6 hover:bg-primary/10 group border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-primary/15 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><HistoryIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Smart Memory</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">AI Spaced Repetition</span></div></div></Link></li>
+                             </div>
                           </div>
       
                           {/* Column 2: Interview Simulation */}
-                          <div className="space-y-4">
-                             <header className="px-4 py-2 border-b border-error/10 mb-4">
-                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-error">Combat Protocol</span>
-                             </header>
-                             <li><Link to="/interview" className="rounded-2xl p-5 bg-error/5 hover:bg-error text-error hover:text-white transition-all group shadow-xl"><div className="flex items-center gap-4"><div className="p-2 bg-error/20 rounded-xl"><SparklesIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Neural Interview</span><span className="text-[9px] opacity-60 uppercase font-black">AI Consensus Board</span></div></div></Link></li>
-                             <li><Link to="/voice-interview" className="rounded-2xl p-5 hover:bg-error/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-error/10 rounded-xl group-hover:bg-error text-error group-hover:text-white transition-all"><Mic2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Acoustic Session</span><span className="text-[9px] opacity-40 uppercase font-black">Sync-Vocal Analysis</span></div></div></Link></li>
-                             <li><Link to="/u/Developer" className="rounded-2xl p-5 hover:bg-secondary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-secondary/10 rounded-xl group-hover:bg-secondary text-secondary group-hover:text-white transition-all"><UserCircle2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Sovereign Portfolio</span><span className="text-[9px] opacity-40 uppercase font-black">Master Node Status</span></div></div></Link></li>
-                             <li><Link to="/generate" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><SparklesIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">AI Problem Lab</span><span className="text-[9px] opacity-40 uppercase font-black">Infinite generation</span></div></div></Link></li>
+                          <div className="flex flex-col gap-5">
+                             <div className="px-5 py-3 border-b border-error/10 mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-error">Combat Protocol</p>
+                             </div>
+                             <div className="space-y-2">
+                                <li><Link to="/interview" className="rounded-3xl p-6 bg-error/5 hover:bg-error text-error hover:text-white transition-all group border border-error/5 shadow-2xl"><div className="flex items-center gap-5"><div className="size-12 bg-error/20 rounded-2xl flex items-center justify-center"><SparklesIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest">Neural Interview</span><span className="text-[9px] opacity-60 uppercase font-black tracking-widest">AI Consensus Board</span></div></div></Link></li>
+                                <li><Link to="/voice-interview" className="rounded-3xl p-6 hover:bg-error/10 group border border-transparent hover:border-error/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-error/15 rounded-2xl flex items-center justify-center text-error group-hover:bg-error group-hover:text-white transition-all"><Mic2Icon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Acoustic Session</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Sync-Vocal Analysis</span></div></div></Link></li>
+                                <li><Link to="/u/Developer" className="rounded-3xl p-6 hover:bg-secondary/10 group border border-transparent hover:border-secondary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-secondary/15 rounded-2xl flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all"><UserCircle2Icon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Sovereign Portfolio</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Master Node Status</span></div></div></Link></li>
+                                <li><Link to="/generate" className="rounded-3xl p-6 hover:bg-primary/10 group border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-primary/15 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><SparklesIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">AI Problem Lab</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Infinite generation</span></div></div></Link></li>
+                             </div>
                           </div>
-                       </ul>
+                       </div>
                      </motion.div>
                    )}
                  </AnimatePresence>
-              </div>
-            </div>
-          </div>
-
-          {/* R: STATUS & COMMAND CLUSTER */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-               <button onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))} className="btn btn-ghost btn-circle btn-sm">
-                  <SearchIcon className="size-4 opacity-30" />
-               </button>
-
-               <div className="dropdown dropdown-end">
-                  <div tabIndex={0} role="button" className="btn btn-ghost btn-circle btn-sm">
-                     <PaletteIcon className="size-4 opacity-30" />
-                  </div>
-                  <ul tabIndex={0} className="dropdown-content z-[200] menu p-5 shadow-3xl bg-base-100/98 backdrop-blur-3xl rounded-[32px] w-64 border border-white/5 mt-4 gap-2">
-                     <header className="text-center py-2 mb-2 border-b border-white/5">
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">INTERFACE_THEME</span>
-                     </header>
-                     <div className="grid grid-cols-1 gap-1">
-                        {THEMES.map((theme) => (
-                           <li key={theme}>
-                              <button onClick={() => setCurrentTheme(theme)} className={`capitalize font-black text-[10px] rounded-xl py-3 justify-center ${currentTheme === theme ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-primary/5"}`}>
-                                 {theme}
-                              </button>
-                           </li>
-                        ))}
                      </div>
-                  </ul>
+                  </div>
                </div>
 
-               <NotificationCenter />
-               
-               <div className="ml-4 pl-6 border-l border-white/10 scale-[1.1]">
-                  <UserButton appearance={{ elements: { userButtonAvatarBox: "size-10 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-primary/20" } }} />
+               {/* R: STATUS & COMMAND CLUSTER */}
+               <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                     <button onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))} className="btn btn-ghost btn-circle btn-sm">
+                        <SearchIcon className="size-4 opacity-30" />
+                     </button>
+
+                     <div className="dropdown dropdown-end">
+                        <div tabIndex={0} role="button" className="btn btn-ghost btn-circle btn-sm">
+                           <PaletteIcon className="size-4 opacity-30" />
+                        </div>
+                        <ul tabIndex={0} className="dropdown-content z-[200] menu p-5 shadow-3xl bg-base-100/98 backdrop-blur-3xl rounded-[32px] w-64 border border-white/5 mt-4 gap-2">
+                           <header className="text-center py-2 mb-2 border-b border-white/5">
+                              <span className="text-[10px] font-black uppercase tracking-widest opacity-40">INTERFACE_THEME</span>
+                           </header>
+                           <div className="grid grid-cols-1 gap-1">
+                              {THEMES.map((theme) => (
+                                 <li key={theme}>
+                                    <button onClick={() => setCurrentTheme(theme)} className={`capitalize font-black text-[10px] rounded-xl py-3 justify-center ${currentTheme === theme ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-primary/5"}`}>
+                                       {theme}
+                                    </button>
+                                 </li>
+                              ))}
+                           </div>
+                        </ul>
+                     </div>
+
+                     <NotificationCenter />
+
+                     <div className="ml-4 pl-6 border-l border-white/10 scale-[1.1]">
+                        <UserButton appearance={{ elements: { userButtonAvatarBox: "size-10 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-primary/20" } }} />
+                     </div>
+                  </div>
                </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
+         </div>
+      </nav>
+   );
 }
 export default Navbar;

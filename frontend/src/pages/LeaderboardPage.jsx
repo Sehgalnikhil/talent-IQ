@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import { TrophyIcon, FlameIcon, MedalIcon, CrownIcon, SparklesIcon, TrendingUpIcon, ShieldCheckIcon, HistoryIcon, ChevronRightIcon, SwordsIcon, ActivityIcon, BotIcon, LayoutDashboardIcon, UsersIcon } from "lucide-react";
 import axiosInstance from "../lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSocket } from "../context/SocketContext";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -18,6 +19,18 @@ function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDark, setIsDark] = useState(true);
+    const socket = useSocket();
+
+    const fetchLeaderboard = async () => {
+        try {
+            const res = await axiosInstance.get("/interview/leaderboard");
+            setLeaderboard(res.data);
+        } catch (error) {
+            console.error("Failed to fetch leaderboard", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         const checkTheme = () => {
@@ -31,21 +44,22 @@ function LeaderboardPage() {
     }, []);
 
     useEffect(() => {
-        const fetchLeaderboard = async () => {
-            try {
-                const res = await axiosInstance.get("/interview/leaderboard");
-                setLeaderboard(res.data);
-            } catch (error) {
-                console.error("Failed to fetch leaderboard", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         fetchLeaderboard();
-    }, []);
+        
+        if (socket) {
+            socket.on("leaderboard_refresh", fetchLeaderboard);
+            return () => socket.off("leaderboard_refresh", fetchLeaderboard);
+        }
+    }, [socket]);
 
     const topThree = leaderboard.slice(0, 3);
     const rest = leaderboard.slice(3);
+
+    const globalAverage = leaderboard.length > 0 
+        ? (leaderboard.reduce((acc, curr) => acc + curr.score, 0) / leaderboard.length)
+        : 78.4;
+    
+    const eliteCount = leaderboard.filter(u => u.score >= 90).length;
 
     return (
         <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-64 pb-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
@@ -89,9 +103,13 @@ function LeaderboardPage() {
                                 <motion.div whileHover={{ y: -10 }} className={`p-1 rounded-[40px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl text-center`}>
                                     <div className="p-10 space-y-6">
                                         <div className="size-16 mx-auto rounded-full bg-slate-500/20 flex items-center justify-center text-slate-400 font-black italic text-xl border border-slate-500/20">#2</div>
-                                        <div className="avatar placeholder">
+                                        <div className="avatar">
                                             <div className="size-20 rounded-2xl bg-slate-800 font-black text-slate-100 shadow-xl border border-white/5">
-                                                <span className="text-xl">{topThree[1].name.substring(0, 2).toUpperCase()}</span>
+                                                {topThree[1].profileImage ? (
+                                                    <img src={topThree[1].profileImage} alt={topThree[1].name} />
+                                                ) : (
+                                                    <span className="text-xl">{topThree[1].name.substring(0, 2).toUpperCase()}</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div>
@@ -113,10 +131,14 @@ function LeaderboardPage() {
                                     </div>
                                     <div className="p-16 space-y-8 relative z-10">
                                         <div className="size-24 mx-auto rounded-[32px] bg-warning/20 flex items-center justify-center text-warning font-black italic text-3xl border border-warning/40 shadow-2xl">#1</div>
-                                        <div className="avatar placeholder relative">
+                                        <div className="avatar relative">
                                             <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute inset-[-10px] rounded-full border border-dashed border-warning/40" />
                                             <div className="size-36 rounded-3xl bg-gradient-to-br from-warning to-amber-500 font-black text-warning-content shadow-3xl ring-4 ring-warning/30">
-                                                <span className="text-4xl">{topThree[0].name.substring(0, 2).toUpperCase()}</span>
+                                                {topThree[0].profileImage ? (
+                                                    <img src={topThree[0].profileImage} alt={topThree[0].name} className="object-cover" />
+                                                ) : (
+                                                    <span className="text-4xl">{topThree[0].name.substring(0, 2).toUpperCase()}</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div>
@@ -136,9 +158,13 @@ function LeaderboardPage() {
                                 <motion.div whileHover={{ y: -10 }} className={`p-1 rounded-[40px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl text-center`}>
                                     <div className="p-10 space-y-6">
                                         <div className="size-16 mx-auto rounded-full bg-amber-900/20 flex items-center justify-center text-amber-700 font-black italic text-xl border border-amber-900/20">#3</div>
-                                        <div className="avatar placeholder">
+                                        <div className="avatar">
                                             <div className="size-20 rounded-2xl bg-amber-900 font-black text-amber-100 shadow-xl border border-white/5">
-                                                <span className="text-xl">{topThree[2].name.substring(0, 2).toUpperCase()}</span>
+                                                {topThree[2].profileImage ? (
+                                                    <img src={topThree[2].profileImage} alt={topThree[2].name} />
+                                                ) : (
+                                                    <span className="text-xl">{topThree[2].name.substring(0, 2).toUpperCase()}</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div>
@@ -189,9 +215,13 @@ function LeaderboardPage() {
                                         </td>
                                         <td>
                                             <div className="flex items-center gap-4">
-                                                <div className="avatar placeholder">
+                                                <div className="avatar">
                                                     <div className={`size-12 rounded-2xl shadow-xl transition-all group-hover:scale-110 ${idx < 3 ? 'bg-gradient-to-r from-warning to-amber-500 text-white' : 'bg-white/5 text-white/80'}`}>
-                                                        <span className="text-xs font-black">{user.name.substring(0, 2).toUpperCase()}</span>
+                                                        {user.profileImage ? (
+                                                            <img src={user.profileImage} alt={user.name} />
+                                                        ) : (
+                                                            <span className="text-xs font-black">{user.name.substring(0, 2).toUpperCase()}</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div>
@@ -223,8 +253,8 @@ function LeaderboardPage() {
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
                         { label: "Active_Coders", value: leaderboard.length, icon: <UsersIcon/> },
-                        { label: "Global_Average", value: "78.4%", icon: <ActivityIcon/> },
-                        { label: "Elite_Engineers", value: leaderboard.filter(u => u.score > 90).length, icon: <BotIcon/> }
+                        { label: "Global_Average", value: globalAverage.toFixed(1) + "%", icon: <ActivityIcon/> },
+                        { label: "Elite_Engineers", value: eliteCount, icon: <BotIcon/> }
                     ].map(stat => (
                         <div key={stat.label} className="p-8 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-between group overflow-hidden relative">
                             <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />

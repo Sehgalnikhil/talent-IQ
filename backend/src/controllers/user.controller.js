@@ -1,5 +1,7 @@
 import { exec } from "child_process";
 import User from "../models/User.js";
+import { broadcastNotification } from "../lib/notifier.js";
+import { io } from "../socket.js";
 
 // Fetch global leaderboard
 export const getLeaderboard = async (req, res) => {
@@ -175,5 +177,36 @@ export const predictHireability = async (req, res) => {
     } catch (error) {
         console.error("Predict Hireability Error:", error);
         res.status(500).json({ error: "Internal server error" });
+    }
+};
+export const syncUser = async (req, res) => {
+    try {
+        const clerkId = req.auth.userId;
+        const { name, email, profileImage } = req.body;
+
+        if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
+
+        let user = await User.findOneAndUpdate(
+            { clerkId },
+            { 
+               name: name || "Anonymous_Candidate",
+               email: email || (clerkId + "@placeholder.com"),
+               profileImage: profileImage || ""
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // Real-time synchronization pulse
+        if (io) {
+            io.emit("leaderboard_refresh");
+        }
+
+        // Only broadcast system-wide if it's a first-time indexing (points == 0) or just a welcome back
+        broadcastNotification(`Protocol Link: ${user.name} has been indexed in the Global Consensus Node.`, "achievement");
+
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        console.error("Sync User Error:", error);
+        res.status(500).json({ error: "Failed to sync user data." });
     }
 };
