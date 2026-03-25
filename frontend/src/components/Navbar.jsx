@@ -40,8 +40,8 @@ function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 ${scrolled ? 'mt-0' : 'mt-2'}`}>
-      <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl ${scrolled ? 'bg-base-100/70 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 pointer-events-none ${scrolled ? 'mt-0' : 'mt-2'}`}>
+      <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100/70 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
         
         <div className="px-8 py-2.5 flex items-center justify-between relative z-10">
           
@@ -79,7 +79,7 @@ function Navbar() {
               ))}
 
               {/* EXPLORE MEGA MENU NODE */}
-              <div className="dropdown dropdown-hover ml-6">
+              <div className="dropdown dropdown-bottom ml-6">
                  <div tabIndex={0} role="button" className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent">
                     <SparklesIcon className="size-4 group-hover:animate-pulse" />
                     <span>Explore Space</span>

@@ -87,7 +87,8 @@ function ProblemsPage() {
   const personalBests = JSON.parse(localStorage.getItem("personalBests") || "{}");
 
   const filteredProblems = problems.filter((p) => {
-    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const normalizedQuery = searchQuery.toLowerCase().trim();
+    const matchesSearch = p.title.toLowerCase().includes(normalizedQuery) || p.category.toLowerCase().includes(normalizedQuery);
     const matchesDifficulty = difficultyFilter === "All" || p.difficulty === difficultyFilter;
     const matchesCategory = categoryFilter === "All" || p.category.includes(categoryFilter);
     const matchesCompany = companyFilter === "All" || (COMPANY_TAGS[p.id] && COMPANY_TAGS[p.id].includes(companyFilter));
@@ -190,7 +191,7 @@ function ProblemsPage() {
         >
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 size-5" />
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 size-5 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search algorithms by title..."
