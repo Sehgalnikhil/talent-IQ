@@ -214,8 +214,8 @@ function DashboardPage() {
         </Canvas>
       </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 space-y-12">
-        <header className="pt-32 pb-6 flex flex-col md:flex-row items-end justify-between gap-8 dashboard-item">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-24 space-y-12">
+        <header className="pt-8 pb-6 flex flex-col md:flex-row items-end justify-between gap-8 dashboard-item">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
                <div className={`size-8 rounded-lg flex items-center justify-center border ${isDark ? 'bg-primary/20 border-primary/40' : 'bg-primary/10 border-primary/20'}`}>
