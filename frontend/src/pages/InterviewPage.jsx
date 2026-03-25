@@ -5,16 +5,19 @@ import {
     Clock, Settings, Play, CheckCircle,
     XCircle, Zap, Eye, Activity, PlayCircle, Send,
     Wand2, Bug, Camera, Keyboard, Brain, FileWarning, Code2, Users, LayoutDashboard,
-    ListTree, Timer, Network, TerminalSquare, ChevronRight
+    ListTree, Timer, Network, TerminalSquare, ChevronRight, SwordsIcon, SparklesIcon,
+    ShieldCheckIcon, BinaryIcon, CpuIcon, TrophyIcon, HistoryIcon
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import toast from "react-hot-toast";
 import axiosInstance from "../lib/axios";
 import { executeCode } from "../lib/piston";
+import { motion, AnimatePresence } from "framer-motion";
 
 function InterviewPage() {
     const [phase, setPhase] = useState("setup"); // setup, active, feedback
     const [isLoading, setIsLoading] = useState(false);
+    const [isDark, setIsDark] = useState(true);
 
     // AI Coach State
     const [showCoachMessage, setShowCoachMessage] = useState(false);
@@ -76,6 +79,17 @@ function InterviewPage() {
     // F4: Auto-Draw Architecture State
     const [isGeneratingDiagram, setIsGeneratingDiagram] = useState(false);
     const [mermaidDiagram, setMermaidDiagram] = useState(null);
+
+    useEffect(() => {
+        const checkTheme = () => {
+           const theme = document.documentElement.getAttribute("data-theme");
+           setIsDark(!["light", "cupcake", "bumblebee", "emerald", "corporate", "retro", "cyberpunk", "valentine", "garden", "lofi", "pastel", "fantasy", "wireframe", "cmyk", "autumn", "business", "acid", "lemonade", "winter", "nord"].includes(theme));
+        };
+        checkTheme();
+        const observer = new MutationObserver(checkTheme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+        return () => observer.disconnect();
+    }, []);
 
     // Handle Camera Lifecycle
     useEffect(() => {
@@ -141,30 +155,6 @@ function InterviewPage() {
         return () => clearTimeout(timer);
     }, [code, phase]);
 
-    // F1: Live AI Voice Synthesis Engine
-    useEffect(() => {
-        if (!audioEnabled || !window.speechSynthesis || chatLog.length === 0) return;
-        const lastChat = chatLog[chatLog.length - 1];
-
-        if (lastChat.role === "ai" && phase === "active") {
-            const textToSpeak = lastChat.text.replace(/^\[.*?\]:\s*/, "");
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-
-            // Map Personas to Voice Profiles
-            if (lastChat.text.includes("[DSA Engineer]")) {
-                utterance.pitch = 1.3;
-                utterance.rate = 1.1; // Fast, algorithmic
-            } else if (lastChat.text.includes("[System Design Engineer]")) {
-                utterance.pitch = 0.8;
-                utterance.rate = 0.9; // Deep, slow
-            } else if (lastChat.text.includes("[Hiring Manager]")) {
-                utterance.pitch = 1.0;
-                utterance.rate = 1.0; // Standard
-            }
-            window.speechSynthesis.speak(utterance);
-        }
-    }, [chatLog, audioEnabled, phase]);
-
     // Voice to text initialization
     useEffect(() => {
         if (!hasSpeechSupport) return;
@@ -208,20 +198,9 @@ function InterviewPage() {
         }
     }, [isRecordingVoice]);
 
-    // Tab change detection & Emotion Tracking Mock
+    // Tab change detection & Warnings
     useEffect(() => {
         if (phase !== "active") return;
-
-        // Auto Coach hint
-        const coachTimer = setTimeout(async () => {
-            try {
-                const res = await axiosInstance.post("/interview/coach", { code, problemContext });
-                if (res.data.hint) {
-                    setCoachHint(res.data.hint);
-                    setShowCoachMessage(true);
-                }
-            } catch (e) { }
-        }, 120000); // 2 minutes in
 
         const handleVisibilityChange = () => {
             if (document.hidden) {
@@ -231,10 +210,7 @@ function InterviewPage() {
         };
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
-        return () => {
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-            clearTimeout(coachTimer);
-        };
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, [phase]);
 
     // F3: Pressure Cooker & Stress Mode Drop
@@ -242,52 +218,17 @@ function InterviewPage() {
         if (phase === "active") {
             const timer = setInterval(() => {
                 setTimeLeft(prev => {
-                    if (stressMode && prev > 300 && Math.random() > 0.96) {
-                        toast('PRESSURE COOKER: Constraints suddenly mutated!', { icon: '🚨', style: { background: '#ef4444', color: '#fff' } });
-                        // Feature 3: Dynamic Constraint Mutation
-                        setChatLog(logs => [...logs, { role: "ai", text: "[System Design Engineer]: I just checked production. We are severely memory constrained right now. You must optimize your space complexity to strictly O(1) immediately or the servers will crash." }]);
-                        return prev - 180; // lose 3 minutes and shift constraints
+                    if (stressMode && prev > 300 && Math.random() > 0.98) {
+                        toast('PRESSURE COOKER: Constraints mutated!', { icon: '🚨', style: { background: '#ef4444', color: '#fff' } });
+                        setChatLog(logs => [...logs, { role: "ai", text: "[System Design Engineer]: I just checked production. We are severely memory constrained. Optimize to O(1) space immediately." }]);
+                        return prev - 180;
                     }
                     return prev - 1;
                 });
             }, 1000);
-
-            // True Emotion Telemetry using Gemini Vision
-            const emotionTimer = setInterval(async () => {
-                if (videoRef.current && emotionMode) {
-                    try {
-                        const canvas = document.createElement("canvas");
-                        canvas.width = videoRef.current.videoWidth;
-                        canvas.height = videoRef.current.videoHeight;
-                        const ctx = canvas.getContext("2d");
-                        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-                        const imageBase64 = canvas.toDataURL("image/jpeg", 0.5);
-
-                        const res = await axiosInstance.post("/interview/analyze-emotion", { imageFile: imageBase64 });
-                        if (res.data.text) {
-                            setCurrentStressLevel({
-                                text: res.data.text,
-                                color: res.data.stressLevel > 70 ? "text-error" : "text-success",
-                                bg: res.data.stressLevel > 70 ? "bg-error/10" : "bg-success/10"
-                            });
-
-                            if (res.data.actionableHint && res.data.stressLevel > 70) {
-                                setCoachHint("Proactive AI Hint based on your hesitation: " + res.data.actionableHint);
-                                setShowCoachMessage(true);
-                            }
-                        }
-                    } catch (err) {
-                        console.warn("Emotion telemetry failed");
-                    }
-                }
-            }, 30000); // Analyze every 30s
-
-            return () => {
-                clearInterval(timer);
-                clearInterval(emotionTimer);
-            };
+            return () => clearInterval(timer);
         }
-    }, [phase, stressMode, emotionMode]);
+    }, [phase, stressMode]);
 
     // File Upload Ref
     const fileInputRef = useRef(null);
@@ -297,30 +238,25 @@ function InterviewPage() {
         if (!file) return;
 
         setIsLoading(true);
-        toast("Reading File...", { icon: '📄' });
+        toast("Reading Dossier...", { icon: '📄' });
 
         try {
             const reader = new FileReader();
             reader.onload = async (event) => {
                 const text = event.target.result;
                 setResumeUploaded(true);
-
-                // Real Call
                 const res = await axiosInstance.post("/interview/analyze-resume", {
-                    resumeText: text.substring(0, 5000) // limit to avoid token limits
+                    resumeText: text.substring(0, 5000)
                 });
-
                 const data = res.data;
-                toast.success("Resume parsed successfully!");
+                toast.success("Identity Matrix Synchronized!");
                 setProblemContext(data.suggestedProblem || problemContext);
-                setChatLog([
-                    { role: "ai", text: `Hello! I see you have experience with ${data.skills?.join(", ") || 'Modern Tech'}. Let's test that. ${data.suggestedProblem}` }
-                ]);
+                setChatLog([{ role: "ai", text: `Hello! I see you have experience with ${data.skills?.join(", ") || 'Modern Tech'}. Let's dive in. ${data.suggestedProblem}` }]);
                 setIsLoading(false);
             };
-            reader.readAsText(file); // Only fully readable for TXT/CSV/MD, else extracts raw
+            reader.readAsText(file);
         } catch (err) {
-            toast.error("Failed to read file.");
+            toast.error("Failed to read identity document.");
             setIsLoading(false);
         }
     };
@@ -331,7 +267,6 @@ function InterviewPage() {
         setChatLog(newLog);
         setChatInput("");
         setIsLoading(true);
-
         try {
             const res = await axiosInstance.post("/interview/chat", {
                 chatLog: newLog,
@@ -341,106 +276,20 @@ function InterviewPage() {
             });
             setChatLog([...newLog, { role: "ai", text: res.data.reply }]);
         } catch {
-            setChatLog([...newLog, { role: "ai", text: "Network error reading AI. (Ensure GEMINI_API_KEY is active in .env)" }]);
+            setChatLog([...newLog, { role: "ai", text: "Matrix disruption. AI log truncated." }]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleRunCode = async () => {
-        toast("Running code with Piston engine...", { icon: '⚙️' });
-        try {
-            const output = await executeCode(language, code);
-            toast.success("Code Ran! Output: " + (output.run.stdout || "Success"));
-        } catch {
-            toast.error("Execution error!");
-        }
-    };
-
-    // F2: Trace Engine Trigger
-    const handleTraceExecution = async () => {
-        toast.loading("AI tracing variables & call stack...", { id: "trace" });
-        setIsTracing(!isTracing);
-        try {
-            const res = await axiosInstance.post("/interview/trace", { code });
-            setTraceData(res.data.steps || [{ line: 1, text: "Mock Trace step..." }]);
-            toast.success("Trace complete!", { id: "trace" });
-        } catch (err) {
-            toast.error("Trace failed.", { id: "trace" });
-        }
-    };
-
-    // F4: Auto Draw trigger
-    const handleAutoDraw = async () => {
-        toast.loading("Generating Diagram...", { id: "draw" });
-        setIsGeneratingDiagram(true);
-        try {
-            const res = await axiosInstance.post("/interview/auto-draw", { code, chatLog });
-            setMermaidDiagram(res.data.mermaid);
-            toast.success("Architecture mapped!", { id: "draw" });
-        } catch (err) {
-            toast.error("Diagram failed.", { id: "draw" });
-            setIsGeneratingDiagram(false);
-        }
-    };
-
-    // Advanced API Calls
-    const handleAIDebug = async () => {
-        toast.loading("AI Debugger analyzing logic...", { id: "debugger" });
-        try {
-            const res = await axiosInstance.post("/interview/debug", { code });
-            toast.success("Debug complete!", { id: "debugger" });
-            setChatLog([...chatLog, { role: "ai", text: `[AI Debugger]: ${res.data.feedback}` }]);
-        } catch {
-            toast.error("Debugger failed.", { id: "debugger" });
-        }
-    };
-
-    const handleGenerateEdgeCases = () => {
-        toast.success("Generated edge cases!", { icon: "🔥" });
-        setChatLog([...chatLog, { role: "ai", text: `Try these tricky edge cases: \n1. Empty Array [] \n2. Very large input [10^9, 10^9] \n3. Negative Constraints` }]);
-    };
-
-    const handleAskCoach = async () => {
-        setIsAskingCoach(true);
-        toast.loading("Copilot analyzing context...", { id: "coach" });
-        try {
-            const res = await axiosInstance.post("/interview/coach", { code, problemContext });
-            setCoachHint(res.data.hint);
-            setShowCoachMessage(true);
-            toast.dismiss("coach");
-        } catch {
-            toast.error("Copilot AI failed.", { id: "coach" });
-        } finally {
-            setIsAskingCoach(false);
-        }
-    };
-
-    const handleRefactorCode = async () => {
-        setIsRefactoring(true);
-        try {
-            const res = await axiosInstance.post("/interview/refactor", { code });
-            setRefactoredCode(res.data.refactored);
-            toast.success("Refactored by AI!");
-        } catch {
-            toast.error("Refactor failed.");
-        } finally {
-            setIsRefactoring(false);
-        }
-    };
-
     const handleEndInterview = async () => {
-        toast("Submitting code to AI evaluator...", { icon: '🧠' });
+        toast("Compiling Scoreboard...", { icon: '🧠' });
         setPhase("feedback");
         try {
-            const res = await axiosInstance.post("/interview/evaluate", {
-                code,
-                problemContext
-            });
+            const res = await axiosInstance.post("/interview/evaluate", { code, problemContext });
             setAiFeedback(res.data);
-            toast.success("Evaluation complete!");
+            toast.success("Session Archive Completed!");
 
-            // Feature #11: Save interview recording to localStorage
             const recording = {
                 id: Date.now(),
                 company: selectedCompany,
@@ -455,25 +304,7 @@ function InterviewPage() {
             const recordings = JSON.parse(localStorage.getItem("interviewRecordings") || "[]");
             recordings.push(recording);
             localStorage.setItem("interviewRecordings", JSON.stringify(recordings));
-            // Track interview count for badges
-            const count = parseInt(localStorage.getItem("interviewCount") || "0", 10);
-            localStorage.setItem("interviewCount", String(count + 1));
-
-        } catch {
-            toast.error("Evaluation failed.");
-            setAiFeedback({
-                strengths: ["Network Failed"],
-                weaknesses: ["Check Node backend logs"],
-                score: 0,
-                feedback: "The server threw a network or parse error.",
-                plagiarismScore: 100,
-                keyboardEfficiency: 0,
-                timeToInsight: "N/A",
-                personalityScore: "N/A",
-                evolutionTimeline: ["Crash"],
-                bottlenecks: [{ "line": "Error", "timeSpent": "N/A" }]
-            });
-        }
+        } catch { toast.error("Evaluation Sync Failed."); }
     };
 
     const formatTime = (seconds) => {
@@ -484,27 +315,23 @@ function InterviewPage() {
 
     const handleStartInterview = async () => {
         setIsLoading(true);
+        if (interviewType === "GitHubPR" && !githubUrl) {
+            toast.error("Enter a valid Codebase Matrix URL.");
+            return setIsLoading(false);
+        }
+        
         if (interviewType === "GitHubPR") {
-            if (!githubUrl) {
-                toast.error("Please enter a valid GitHub URL.");
-                return setIsLoading(false);
-            }
-            try {
+             try {
                 const res = await axiosInstance.post("/interview/github-mock", { githubUrl });
-                if (res.data.problemContext) {
-                    setProblemContext(res.data.problemContext);
-                    setChatLog([{ role: "ai", text: `[System Design Engineer]: ${res.data.firstMessage}` }]);
-                    setPhase("active");
-                }
-            } catch (e) {
-                toast.error("Failed to parse GitHub repository.");
-            }
+                setProblemContext(res.data.problemContext);
+                setChatLog([{ role: "ai", text: `[System Design Engineer]: ${res.data.firstMessage}` }]);
+                setPhase("active");
+            } catch { toast.error("Codebase parsing offline."); }
         } else if (interviewType === "Behavioral") {
-            setChatLog([{ role: "ai", text: `[Hiring Manager]: Welcome to the final behavioral round. I'll be acting strictly as the Hiring Manager today. To start us off, tell me about a time you had to deal with a severe conflict with a senior engineer.` }]);
+            setChatLog([{ role: "ai", text: `[Hiring Manager]: Welcome. Let's explore your conflict resolution matrices. Tell me about your most complex disagreement.` }]);
             setPhase("active");
         } else {
-            // DSA Setup
-            setChatLog([{ role: "ai", text: "[Hiring Manager]: Hello! We are your FAANG interviewing panel today. We have a DSA Engineer, a System Design Engineer, and myself. To start testing you, please write your initial algorithm or talk to us about your thoughts before coding." }]);
+            setChatLog([{ role: "ai", text: "[Hiring Manager]: Hello! We are your FAANG panel. Let's start with your approach to the problem context." }]);
             setPhase("active");
         }
         setIsLoading(false);
@@ -512,418 +339,287 @@ function InterviewPage() {
 
     if (phase === "setup") {
         return (
-            <div className="min-h-screen bg-base-200 flex flex-col">
+            <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
                 <Navbar />
-                <div className="flex-1 flex items-center justify-center p-4">
-                    <div className="card bg-base-100 shadow-2xl w-full max-w-4xl border border-primary/20">
-                        <div className="card-body">
-                            <h2 className="text-4xl font-black text-center mb-8 flex items-center justify-center gap-4">
-                                <Bot className="size-12 text-primary" /> Ultimate AI Interviewer
-                            </h2>
+                
+                {/* AMBIENT ENGINE */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden h-screen">
+                    <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[140px] animate-pulse" />
+                    <div className="absolute bottom-1/4 left-1/4 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[140px] animate-pulse" />
+                </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-6">
-                                    <h3 className="font-bold text-xl border-b border-base-200 pb-2">1. Profile & Environment</h3>
-                                    {/* Resume Upload */}
-                                    <input type="file" accept=".txt,.md,.pdf,.doc,.docx" ref={fileInputRef} className="hidden" onChange={handleFileUploadChange} />
-                                    <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${resumeUploaded ? 'border-success bg-success/5' : 'border-base-300 hover:border-primary/50 cursor-pointer'}`}
-                                        onClick={() => !resumeUploaded && fileInputRef.current?.click()}>
-                                        {resumeUploaded ? (
-                                            <div className="flex flex-col items-center text-success">
-                                                <CheckCircle className="size-8 mb-2" />
-                                                <span className="font-bold">Resume Parsed & Uploaded</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center text-base-content/60">
-                                                <UploadCloud className="size-8 mb-2" />
-                                                <span className="font-bold">Click to Upload Resume Text</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Feature #12: FAANG Company Templates */}
-                                    <div className="bg-base-200 p-4 rounded-xl">
-                                        <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
-                                            <ListTree className="size-4" /> Company Interview Template
-                                        </h4>
-                                        <select className="select select-bordered w-full select-sm" value={selectedCompany} onChange={(e) => {
-                                            setSelectedCompany(e.target.value);
-                                            // Auto-configure based on company
-                                            if (e.target.value === "Google") {
-                                                setTimeLeft(45 * 60); setAggressionLevel(6); setInterviewType("DSA");
-                                            } else if (e.target.value === "Meta") {
-                                                setTimeLeft(35 * 60); setAggressionLevel(5); setInterviewType("DSA");
-                                            } else if (e.target.value === "Amazon") {
-                                                setTimeLeft(60 * 60); setAggressionLevel(8); setInterviewType("Behavioral");
-                                            } else if (e.target.value === "Apple") {
-                                                setTimeLeft(40 * 60); setAggressionLevel(4); setInterviewType("DSA");
-                                            } else if (e.target.value === "Startup") {
-                                                setTimeLeft(30 * 60); setAggressionLevel(3); setInterviewType("GitHubPR");
-                                            }
-                                        }}>
-                                            <option value="Google">Google — 45min, 2 Coding Rounds, Focus Optimality</option>
-                                            <option value="Meta">Meta — 35min, 1 Round + System Design</option>
-                                            <option value="Amazon">Amazon — 60min, Leadership Principles + Bar Raiser</option>
-                                            <option value="Apple">Apple — 40min, Clean Code Architecture</option>
-                                            <option value="Startup">Startup — 30min, Full-Stack + Product</option>
-                                        </select>
-                                        <div className="text-[10px] mt-2 text-base-content/50 font-bold">
-                                            Auto-configured: {selectedCompany === "Google" ? "45min timer, aggression 6/10" : selectedCompany === "Meta" ? "35min timer, aggression 5/10" : selectedCompany === "Amazon" ? "60min timer, aggression 8/10, behavioral mode" : selectedCompany === "Apple" ? "40min timer, aggression 4/10" : "30min timer, aggression 3/10, GitHub PR mode"}
-                                        </div>
-                                    </div>
-
-                                    {/* Problem Type */}
-                                    <div className="bg-base-200 p-4 rounded-xl">
-                                        <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
-                                            <Code2 className="size-4" /> Interview Format
-                                        </h4>
-                                        <select className="select select-bordered w-full select-sm mb-2" value={interviewType} onChange={(e) => setInterviewType(e.target.value)}>
-                                            <option value="DSA">Standard Algorithm (DSA)</option>
-                                            <option value="Behavioral">Behavioral (STAR Method)</option>
-                                            <option value="GitHubPR">Real World (GitHub PR Mock)</option>
-                                        </select>
-
-                                        {interviewType === "GitHubPR" && (
-                                            <input
-                                                type="text"
-                                                className="input input-sm input-bordered w-full mt-2 placeholder-opacity-50"
-                                                placeholder="https://github.com/facebook/react"
-                                                value={githubUrl}
-                                                onChange={e => setGithubUrl(e.target.value)}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <h3 className="font-bold text-xl border-b border-base-200 pb-2">2. Pressure Cooker Options</h3>
-
-                                    <div className="bg-error/10 p-4 rounded-xl border border-error/20">
-                                        <div className="flex justify-between mb-2">
-                                            <h4 className="font-bold text-error flex items-center gap-2">
-                                                Interviewer Hostility <AlertTriangle className="size-4" />
-                                            </h4>
-                                            <span className="text-error font-bold">{aggressionLevel}/10</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="1" max="10"
-                                            value={aggressionLevel}
-                                            className="range range-error range-xs"
-                                            onChange={(e) => setAggressionLevel(e.target.value)}
-                                        />
-                                        <div className="w-full flex justify-between text-[10px] px-2 mt-1 opacity-70">
-                                            <span>Kind</span>
-                                            <span>Bar Raiser</span>
-                                        </div>
-                                    </div>
-                                    <h3 className="font-bold text-xl border-b border-base-200 pb-2">2. Constraints & Modes</h3>
-
-                                    {/* Stress Mode Toggle */}
-                                    <div className="flex items-center gap-4 bg-error/10 p-4 rounded-xl border border-error/20 cursor-pointer" onClick={() => setStressMode(!stressMode)}>
-                                        <input type="checkbox" className="toggle toggle-error" checked={stressMode} readOnly />
-                                        <div>
-                                            <h4 className="font-bold text-error flex items-center gap-2">
-                                                Stress Mode <Zap className="size-4" />
-                                            </h4>
-                                            <p className="text-xs text-error/80">Timer jumps, interruptive questions, strict constraints.</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Emotion Mode Toggle View */}
-                                    <div className="flex items-center gap-4 bg-info/10 p-4 rounded-xl border border-info/20 cursor-pointer" onClick={() => setEmotionMode(!emotionMode)}>
-                                        <input type="checkbox" className="toggle toggle-info" checked={emotionMode} readOnly />
-                                        <div>
-                                            <h4 className="font-bold text-info flex items-center gap-2">
-                                                Emotion-Aware Mode <Camera className="size-4" />
-                                            </h4>
-                                            <p className="text-xs text-info/80">Uses webcam to measure confidence & hesitation.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4 bg-secondary/10 p-4 rounded-xl border border-secondary/20">
-                                        <input type="checkbox" className="toggle toggle-secondary" defaultChecked />
-                                        <div>
-                                            <h4 className="font-bold text-secondary flex items-center gap-2">
-                                                AI Coding Coach <Brain className="size-4" />
-                                            </h4>
-                                            <p className="text-xs text-secondary/80">Floating real-time hints and complexity tracking.</p>
-                                        </div>
-                                    </div>
-                                </div>
+                <div className="max-w-7xl mx-auto px-6 pb-32 relative z-10 flex flex-col items-center">
+                    
+                    {/* SECTOR IDENTITY */}
+                    <div className="text-center space-y-4 mb-16">
+                        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="size-24 mx-auto rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent p-[2px] shadow-2xl">
+                            <div className={`w-full h-full rounded-[22px] flex items-center justify-center ${isDark ? 'bg-black' : 'bg-white'}`}>
+                                <Bot className="size-12 text-primary" />
                             </div>
+                        </motion.div>
+                        <h1 className="text-7xl font-black italic tracking-tighter bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">ULTIMATE INTERVIEW</h1>
+                        <p className="text-[10px] font-black uppercase tracking-[0.6em] opacity-40">Synchronized_AI_Consensus_Pipeline</p>
+                    </div>
 
-                            <div className="card-actions mt-10">
-                                <button className="btn btn-primary w-full text-lg h-16" onClick={handleStartInterview} disabled={isLoading}>
-                                    {isLoading ? <span className="loading loading-spinner"></span> : "Enter Interview Arena"}
-                                </button>
-                                <div className="w-full flex justify-between text-xs text-base-content/50 px-2 mt-2">
-                                    <span className="flex items-center gap-1"><Users className="size-3" /> Go to Multiplayer Arena instead</span>
-                                    <span className="flex items-center gap-1"><LayoutDashboard className="size-3" /> System Design Whiteboard</span>
-                                </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 w-full">
+                        
+                        {/* CONFIGURATION STACK */}
+                        <motion.div initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className={`lg:col-span-8 p-1 rounded-[48px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl`}>
+                            <div className="p-12 space-y-12">
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    <div className="space-y-8">
+                                        <header className="flex items-center gap-4 opacity-40">
+                                           <Users className="size-5" />
+                                           <span className="text-xs font-black uppercase tracking-widest">Profile_Calibration</span>
+                                        </header>
 
-                                {/* Feature #11: Past Interview Recordings */}
-                                {(() => {
-                                    const recordings = JSON.parse(localStorage.getItem("interviewRecordings") || "[]");
-                                    if (recordings.length === 0) return null;
-                                    return (
-                                        <div className="w-full mt-6">
-                                            <h4 className="font-bold text-sm mb-3 flex items-center gap-2 text-base-content/70">
-                                                <TerminalSquare className="size-4" /> Past Interview Recordings ({recordings.length})
-                                            </h4>
-                                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                                                {recordings.slice().reverse().map((rec, i) => (
-                                                    <div key={rec.id || i} className="flex items-center justify-between px-4 py-3 rounded-xl bg-base-200 border border-base-300 hover:border-primary/30 transition-colors cursor-pointer"
-                                                        onClick={() => {
-                                                            // Load recording into chat replay
-                                                            if (rec.chatLog && rec.chatLog.length > 0) {
-                                                                setChatLog(rec.chatLog);
-                                                                setPhase("active");
-                                                                toast.success("Loaded interview replay!");
-                                                            }
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`size-8 rounded-lg flex items-center justify-center text-xs font-black ${rec.score >= 70 ? 'bg-success/10 text-success' : rec.score >= 40 ? 'bg-warning/10 text-warning' : 'bg-error/10 text-error'}`}>
-                                                                {rec.score}
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-sm font-bold">{rec.company || "Interview"} — {rec.type || "DSA"}</div>
-                                                                <div className="text-[10px] text-base-content/40">
-                                                                    {new Date(rec.date).toLocaleDateString()} • {Math.floor(rec.duration / 60)}m {rec.duration % 60}s
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <ChevronRight className="size-4 text-base-content/30" />
+                                        {/* RESUME COMPONENT */}
+                                        <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUploadChange} />
+                                        <div onClick={() => !resumeUploaded && fileInputRef.current?.click()} className={`group p-8 rounded-[32px] border-2 border-dashed transition-all cursor-pointer ${resumeUploaded ? 'border-success bg-success/5' : 'border-white/10 hover:border-primary/40 hover:bg-white/5'}`}>
+                                            {resumeUploaded ? (
+                                                <div className="flex items-center gap-6">
+                                                    <div className="size-14 rounded-2xl bg-success/20 flex items-center justify-center shadow-xl border border-success/30">
+                                                        <ShieldCheckIcon className="size-8 text-success" />
                                                     </div>
+                                                    <div>
+                                                        <p className="text-sm font-black italic">Identity Matrix Validated</p>
+                                                        <p className="text-[10px] uppercase opacity-40 font-bold tracking-widest">Candidate_Sync_Active</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-4 py-4">
+                                                    <UploadCloud className="size-8 opacity-20 group-hover:text-primary group-hover:opacity-100 transition-all" />
+                                                    <p className="text-xs font-black uppercase tracking-widest opacity-40">Synchronize_Dossier</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* COMPANY TEMPLATE */}
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Sector_Template</p>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {["Google", "Meta", "Amazon", "Apple", "Netflix", "OpenAI"].map(comp => (
+                                                    <button key={comp} onClick={() => setSelectedCompany(comp)} className={`p-5 rounded-2xl border font-black text-xs transition-all ${selectedCompany === comp ? 'bg-primary text-primary-content border-primary shadow-2xl shadow-primary/20 scale-105' : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-60'}`}>
+                                                        {comp}
+                                                    </button>
                                                 ))}
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-8">
+                                        <header className="flex items-center gap-4 opacity-40">
+                                           <Zap className="size-5" />
+                                           <span className="text-xs font-black uppercase tracking-widest">Chaos_Modulators</span>
+                                        </header>
+
+                                        {/* HOSTILITY DIAL */}
+                                        <div className="p-8 rounded-[32px] bg-error/5 border border-error/10 space-y-6">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-error">Interviewer_Aggression</span>
+                                                <span className="text-xl font-black italic text-error">{aggressionLevel}/10</span>
+                                            </div>
+                                            <input type="range" min="1" max="10" value={aggressionLevel} onChange={e => setAggressionLevel(e.target.value)} className="range range-error range-xs" />
+                                            <div className="flex justify-between text-[8px] font-black opacity-40 uppercase tracking-widest text-error">
+                                                <span>Adaptive</span>
+                                                <span>Bar_Raiser</span>
+                                            </div>
+                                        </div>
+
+                                        {/* MODE SWITCHES */}
+                                        <div className="space-y-3">
+                                            {[
+                                                { label: "Stress_Protocol", icon: <AlertTriangle/>, state: stressMode, setter: setStressMode, color: "text-error", bg: "bg-error/10" },
+                                                { label: "Emotion_Tracking", icon: <Camera/>, state: emotionMode, setter: setEmotionMode, color: "text-info", bg: "bg-info/10" }
+                                            ].map(mode => (
+                                                <div key={mode.label} onClick={() => mode.setter(!mode.state)} className={`flex items-center justify-between p-6 rounded-[24px] cursor-pointer transition-all border ${mode.state ? `${mode.color} ${mode.bg} border-current shadow-lg` : 'bg-white/5 border-white/5 opacity-40 hover:opacity-100'}`}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center">{mode.icon}</div>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">{mode.label}</span>
+                                                    </div>
+                                                    <input type="checkbox" checked={mode.state} readOnly className={`toggle toggle-xs ${mode.state ? 'toggle-primary' : ''}`} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button onClick={handleStartInterview} disabled={isLoading} className="btn bg-gradient-to-r from-primary via-secondary to-accent w-full h-24 rounded-[32px] border-none text-white shadow-2xl font-black tracking-widest text-xl group relative overflow-hidden">
+                                     <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                     <PlayCircle className="size-8" />
+                                     {isLoading ? "INITIALIZING_GAUNTLET..." : "INITIALIZE_INTERVIEW_ARENA"}
+                                </button>
+                            </div>
+                        </motion.div>
+
+                        {/* SESSION HISTORY SIDEBAR */}
+                        <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="lg:col-span-4 space-y-8">
+                            
+                            <div className={`p-10 rounded-[48px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl`}>
+                                <header className="flex items-center gap-4 mb-8 opacity-40">
+                                   <HistoryIcon className="size-5" />
+                                   <span className="text-xs font-black uppercase tracking-widest">Archive_Timeline</span>
+                                </header>
+
+                                {(() => {
+                                    const recordings = JSON.parse(localStorage.getItem("interviewRecordings") || "[]");
+                                    if (recordings.length === 0) return <div className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-widest">No_Archives_Found</div>;
+                                    return (
+                                        <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-2">
+                                            {recordings.slice().reverse().map((rec, i) => (
+                                                <div key={i} className="p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/40 transition-all cursor-pointer group shadow-xl">
+                                                    <div className="flex items-center gap-4 justify-between mb-4">
+                                                        <div className={`size-12 rounded-2xl flex items-center justify-center font-black italic text-xl ${rec.score >= 70 ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>
+                                                            {rec.score}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">{new Date(rec.date).toLocaleDateString()}</p>
+                                                            <p className="text-xs font-black italic text-primary">{rec.company}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center justify-between opacity-30 group-hover:opacity-100 transition-opacity">
+                                                        <span className="text-[8px] font-black uppercase tracking-widest">{rec.type}</span>
+                                                        <ChevronRight className="size-3" />
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     );
                                 })()}
                             </div>
-                        </div>
+
+                            {/* RECRUITER TIP */}
+                            <div className="p-10 rounded-[40px] bg-primary/5 border border-primary/10 shadow-3xl text-center space-y-4">
+                                <SparklesIcon className="size-8 text-primary mx-auto animate-pulse" />
+                                <p className="text-xs font-bold leading-relaxed opacity-60 italic tracking-tight">"Our FAANG-calibrated AI detects micro-hesitation in your code-flow. Keep your logic as clean as your imports."</p>
+                            </div>
+
+                        </motion.div>
                     </div>
                 </div>
-            </div >
+            </div>
         );
     }
 
     if (phase === "active") {
         return (
-            <div className="h-screen bg-base-300 flex flex-col pt-16">
+            <div className={`h-screen flex flex-col pt-16 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
                 <Navbar />
 
                 {/* Floating AI Coach Toast */}
-                {showCoachMessage && (
-                    <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-                        <div className="alert alert-info shadow-xl border border-info max-w-lg cursor-pointer" onClick={() => setShowCoachMessage(false)}>
-                            <Brain className="size-8 min-w-[32px] animate-pulse" />
-                            <span className="text-sm"><strong>AI Copilot:</strong> {coachHint || "You might want to ensure your edge cases are optimal."}</span>
-                        </div>
-                    </div>
-                )}
+                <AnimatePresence>
+                    {showCoachMessage && (
+                        <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -50, opacity: 0 }} className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50">
+                            <div className="bg-primary/95 text-primary-content px-8 py-4 rounded-[32px] shadow-4xl backdrop-blur-3xl border border-white/10 flex items-center gap-4 cursor-pointer" onClick={() => setShowCoachMessage(false)}>
+                                <Brain className="size-8 animate-pulse text-white" />
+                                <span className="text-xs font-bold leading-none tracking-tight"><strong>CO-PILOT:</strong> {coachHint || "Ensure optimal time complexity."}</span>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                <div className="bg-neutral text-neutral-content p-2 flex justify-between items-center shadow-md z-40 border-b border-primary/20">
+                <div className="bg-black/60 backdrop-blur-3xl px-8 h-12 flex justify-between items-center z-40 border-b border-white/10">
                     <div className="flex items-center gap-4">
-                        <div className="badge badge-error gap-2 font-bold animate-pulse">
-                            <span className="size-2 bg-red-500 rounded-full block"></span> REC
+                        <div className="flex items-center gap-2 px-3 py-1 bg-error/10 border border-error/20 rounded-full animate-pulse">
+                            <span className="size-2 bg-error rounded-full block"></span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-error">REC_SYNC</span>
                         </div>
-                        {warnings > 0 && (
-                            <div className="badge badge-error gap-1 animate-pulse font-bold">
-                                <AlertTriangle className="size-3" /> {warnings} Flags
-                            </div>
-                        )}
+                        {warnings > 0 && <div className="badge badge-error gap-1 font-black text-[10px] uppercase tracking-widest">{warnings} RED_FLAGS</div>}
                     </div>
 
-                    {/* Live Camera Feed */}
                     {emotionMode && (
-                        <div className="flex items-center gap-4">
-                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors duration-500 ${currentStressLevel.bg} ${currentStressLevel.color} border-current`}>
-                                <Activity className="size-4 animate-pulse" /> {currentStressLevel.text}
+                        <div className="flex items-center gap-6">
+                            <div className={`flex items-center gap-3 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${currentStressLevel.bg} ${currentStressLevel.color} border-current backdrop-blur-xl`}>
+                                <Activity className="size-3" /> {currentStressLevel.text}
                             </div>
-                            <div className="size-10 rounded-full overflow-hidden bg-black border-2 border-primary/50 relative group">
+                            <div className="size-8 rounded-xl overflow-hidden bg-black border border-white/20 relative group">
                                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
-                                <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-[8px] font-bold text-white text-center">LIVE</div>
                             </div>
                         </div>
                     )}
 
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-warning font-mono font-bold text-xl">
-                            <Clock className="size-5" /> {formatTime(timeLeft)}
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-3 text-warning font-black italic text-xl tracking-tighter">
+                            <Timer className="size-5" /> {formatTime(timeLeft)}
                         </div>
-                        <button className="btn btn-error btn-sm gap-2 font-bold" onClick={handleEndInterview}>
-                            End Interview
-                        </button>
+                        <button className="btn btn-error btn-xs h-8 px-5 rounded-lg font-black tracking-widest uppercase" onClick={handleEndInterview}>TERMINATE</button>
                     </div>
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
-                    {/* LEFT CHAT PANEL (OR FULL SCREEN IF BEHAVIORAL) */}
-                    <div className={`${interviewType === "Behavioral" ? "w-full max-w-4xl mx-auto rounded-t-xl" : "w-[30%] border-r"} bg-base-100 border-base-300 flex flex-col`}>
-                        <div className="p-3 bg-base-200 border-b border-base-300 font-bold flex items-center justify-between text-sm">
-                            <span>Interviewer</span>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setAudioEnabled(!audioEnabled)}
-                                    className={`btn btn-xs btn-ghost gap-1 ${!audioEnabled && 'opacity-50'}`}
-                                >
-                                    {audioEnabled ? <Mic className="size-3" /> : <Mic className="size-3 line-through" />}
-                                    Auto-Voice
-                                </button>
-                                <div className="flex items-center gap-1 text-xs text-primary font-semibold">
-                                    <Activity className="size-4" /> Live AI Core
-                                </div>
+                    <div className={`${interviewType === "Behavioral" ? "w-full max-w-4xl mx-auto rounded-t-xl" : "w-[30%] border-r border-white/10"} bg-black/20 flex flex-col backdrop-blur-3xl`}>
+                        <div className="px-6 h-12 bg-white/5 border-b border-white/10 font-black text-[10px] flex items-center justify-between uppercase tracking-[0.4em] opacity-40">
+                            <span>Intelligence_Feed</span>
+                            <div className="flex items-center gap-4">
+                               <button onClick={() => setAudioEnabled(!audioEnabled)} className={`flex items-center gap-2 ${!audioEnabled && 'opacity-30'}`}>{audioEnabled ? <Mic className="size-3" /> : <Mic className="size-3 line-through" />} VOX</button>
+                               <span className="flex items-center gap-1 text-primary"><Activity className="size-3" /> CORE_SYNC</span>
                             </div>
                         </div>
 
-                        <div className="flex-1 p-4 overflow-auto space-y-4 pb-20 text-sm">
+                        <div className="flex-1 p-8 overflow-y-auto space-y-8 pb-32 no-scrollbar">
                             {chatLog.map((chat, idx) => (
                                 <div key={idx} className={`chat ${chat.role === 'ai' ? 'chat-start' : 'chat-end'}`}>
                                     <div className="chat-image avatar hidden sm:block">
-                                        <div className={`w-8 rounded-full ${chat.role === 'ai' ? (chat.text.startsWith('[DSA') ? 'bg-primary' : chat.text.startsWith('[System') ? 'bg-secondary' : chat.text.startsWith('[Hiring') ? 'bg-accent' : 'bg-primary') : 'bg-base-content'} flex items-center justify-center text-white`}>
-                                            {chat.role === 'ai' ? (
-                                                chat.text.startsWith('[DSA') ? <Code2 className="size-4" /> :
-                                                    chat.text.startsWith('[System') ? <Network className="size-4" /> :
-                                                        chat.text.startsWith('[Hiring') ? <Users className="size-4" /> :
-                                                            <Bot className="size-4" />
-                                            ) : <Mic className="size-4" />}
+                                        <div className={`size-10 rounded-2xl ${chat.role === 'ai' ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-white/10'} flex items-center justify-center text-white border border-white/10`}>
+                                            {chat.role === 'ai' ? <Bot className="size-5" /> : <Mic className="size-5" />}
                                         </div>
                                     </div>
-                                    <div className="chat-header text-xs opacity-50 mb-1 ml-1">
-                                        {chat.role === 'ai'
-                                            ? (chat.text.match(/^\[(.*?)\]/)?.[1] || "AI System")
-                                            : "You"}
+                                    <div className="chat-header text-[8px] font-black opacity-30 uppercase tracking-[0.3em] mb-2 px-1">
+                                        {chat.role === 'ai' ? (chat.text.match(/^\[(.*?)\]/)?.[1] || "AI System") : "Candidate"}
                                     </div>
-                                    <div className={`chat-bubble ${chat.role === 'ai' ? 'bg-base-300 text-base-content' : 'bg-primary text-primary-content'}`}>
+                                    <div className={`chat-bubble max-w-[85%] rounded-[24px] px-6 py-4 text-xs font-medium leading-relaxed shadow-xl border ${chat.role === 'ai' ? 'bg-white/5 border-white/5 text-white/90' : 'bg-primary text-primary-content border-primary/20 font-black'}`}>
                                         {chat.text.replace(/^\[.*?\]:\s*/, '')}
                                     </div>
                                 </div>
                             ))}
-                            {isLoading && (
-                                <div className="chat chat-start">
-                                    <div className="chat-bubble bg-base-300 text-base-content opacity-50 flex gap-2">
-                                        <span className="loading loading-dots loading-xs"></span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
-                        <div className="p-2 border-t border-base-300 bg-base-200 shadow-inner flex flex-col gap-2">
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    className="input input-bordered input-sm w-full"
-                                    placeholder="Speak your thoughts..."
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                />
-                                <button
-                                    className={`btn btn-square btn-sm ${isRecordingVoice ? 'btn-error animate-pulse' : 'btn-ghost'} ${!hasSpeechSupport && 'opacity-50 cursor-not-allowed'}`}
-                                    onMouseDown={() => hasSpeechSupport && setIsRecordingVoice(true)}
-                                    onMouseUp={() => hasSpeechSupport && setIsRecordingVoice(false)}
-                                    onMouseLeave={() => hasSpeechSupport && setIsRecordingVoice(false)}
-                                    title={hasSpeechSupport ? "Hold to Voice Chat" : "Voice not supported"}
-                                >
-                                    <Mic className="size-4" />
-                                </button>
-                                <button className="btn btn-primary btn-square btn-sm" onClick={handleSendMessage} disabled={isLoading}>
-                                    <Send className="size-4" />
-                                </button>
-                            </div>
+                        <div className="p-6 bg-black/40 border-t border-white/10 relative">
+                             <div className="relative group">
+                                <input type="text" className="input input-lg w-full bg-white/5 border-white/10 rounded-2xl px-6 font-medium text-sm focus:border-primary/50 transition-all text-white placeholder:opacity-30" placeholder="Articulate your strategy or respond..." value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    <button onMouseDown={() => setIsRecordingVoice(true)} onMouseUp={() => setIsRecordingVoice(false)} className={`btn btn-circle btn-sm ${isRecordingVoice ? 'btn-error' : 'btn-ghost'}`}><Mic className="size-4" /></button>
+                                    <button onClick={handleSendMessage} className="btn btn-circle btn-sm btn-primary shadow-lg shadow-primary/20"><Send className="size-4" /></button>
+                                </div>
+                             </div>
                         </div>
                     </div>
 
-                    {/* RIGHT EDITOR PANEL (HIDDEN IF BEHAVIORAL) */}
                     {interviewType !== "Behavioral" && (
-                        <div className="w-[70%] flex flex-col">
-                            <div className="p-2 bg-base-200 border-b border-base-300 flex justify-between items-center text-sm">
-                                {/* Personalization & Language */}
-                                <div className="flex items-center gap-2">
-                                    <select className="select select-bordered select-xs" value={language} onChange={e => setLanguage(e.target.value)}>
-                                        <option value="javascript">JavaScript</option>
-                                        <option value="python">Python</option>
-                                        <option value="java">Java</option>
-                                    </select>
-                                    <select className="select select-bordered select-xs" value={theme} onChange={e => setTheme(e.target.value)}>
-                                        <option value="vs-dark">Dark Mode</option>
-                                        <option value="light">Light Mode</option>
-                                    </select>
-                                    <button className="btn btn-xs btn-outline btn-info gap-1" onClick={handleGenerateEdgeCases}>
-                                        <Bug className="size-3" /> AI Edge Cases
-                                    </button>
-                                    <button className="btn btn-xs btn-outline btn-secondary gap-1" onClick={handleAutoDraw}>
-                                        <ListTree className="size-3" /> Auto-Draw System
-                                    </button>
+                        <div className="flex-1 flex flex-col bg-black">
+                            <div className="h-12 border-b border-white/10 px-8 flex items-center justify-between bg-white/5">
+                                <div className="flex items-center gap-6">
+                                     <div className="flex items-center gap-2">
+                                        <div className="size-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--color-primary),1)]" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">System_Terminal</span>
+                                     </div>
+                                     <div className="flex items-center gap-4 border-l border-white/10 pl-6">
+                                        <div className="flex items-center gap-2 text-[10px] font-black opacity-60">
+                                            <Timer className="size-3" />
+                                            <span>Time: {liveComplexity.time}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] font-black opacity-60">
+                                            <CpuIcon className="size-3" />
+                                            <span>Space: {liveComplexity.space}</span>
+                                        </div>
+                                     </div>
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                    <button className="btn btn-xs btn-outline btn-primary gap-1" onClick={handleTraceExecution}>
-                                        <Activity className="size-3" /> {isTracing ? "Hide Trace" : "Trace Code"}
-                                    </button>
-                                    <button className="btn btn-warning btn-xs gap-1" onClick={handleAIDebug}>
-                                        <Wand2 className="size-3" /> AI Debug
-                                    </button>
-                                    <button className="btn btn-success btn-xs gap-1 font-bold" onClick={handleRunCode}>
-                                        <Play className="size-3 fill-current" /> Run
-                                    </button>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={handleAIDebug} className="btn btn-ghost btn-xs text-[10px] font-black uppercase tracking-widest gap-2"><Bug className="size-3" /> Reveal_Bugs</button>
+                                    <button onClick={handleAskCoach} className="btn btn-primary btn-xs h-8 px-6 rounded-lg font-black tracking-widest uppercase shadow-lg shadow-primary/20">Ask_Coach</button>
+                                    <button onClick={handleRunCode} className="btn bg-white/10 hover:bg-white/20 border-none text-white btn-xs h-8 px-6 rounded-lg font-black tracking-widest uppercase">Execute</button>
                                 </div>
                             </div>
-
-                            {/* Mermaid Diagram Overlay modal-style block */}
-                            {mermaidDiagram && (
-                                <div className="absolute top-20 left-1/4 z-50 bg-base-100 p-6 rounded-xl shadow-2xl border border-primary/30 w-1/2">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h4 className="font-bold flex items-center gap-2"><Network className="size-4 text-secondary" /> AI Architecture Generator</h4>
-                                        <button className="btn btn-xs btn-ghost" onClick={() => setMermaidDiagram(null)}><XCircle className="size-4" /></button>
-                                    </div>
-                                    <div className="p-4 bg-base-200 rounded-lg overflow-auto font-mono text-xs whitespace-pre">
-                                        {/* Usually we'd use a mermaid react package here. Mocking for display */}
-                                        <div className="text-secondary opacity-70 mb-2">// Mermaid Architecture Payload Generated by System Design AI:</div>
-                                        {mermaidDiagram}
-                                    </div>
+                            <div className="flex-1 relative overflow-hidden">
+                                <Editor height="100%" language={language} value={code} onChange={setCode} theme="vs-dark" options={{ minimap: { enabled: false }, fontSize: 16, cursorBlinking: "smooth", smoothScrolling: true, padding: { top: 32, left: 32 } }} />
+                                
+                                <div className="absolute bottom-8 right-8 space-y-3 pointer-events-none">
+                                     <div className="p-6 rounded-3xl bg-black/60 backdrop-blur-3xl border border-white/10 max-w-sm shadow-4xl text-left space-y-2">
+                                         <p className="text-[9px] font-black uppercase tracking-widest text-primary">Active_Prompt</p>
+                                         <p className="text-xs font-bold leading-relaxed opacity-70 italic">{problemContext}</p>
+                                     </div>
                                 </div>
-                            )}
-
-                            <Editor
-                                height={isTracing ? "60%" : "100%"}
-                                theme={theme}
-                                language={language}
-                                value={code}
-                                onChange={(newValue) => setCode(newValue || "")}
-                                options={{ minimap: { enabled: false }, fontSize: 14 }}
-                            />
-
-                            {/* F2: AI Execution Trace Panel */}
-                            {isTracing && (
-                                <div className="flex-1 border-t border-base-300 bg-base-200 p-2 overflow-auto relative">
-                                    <h4 className="font-bold text-xs uppercase text-primary/70 mb-2 sticky top-0 bg-base-200 pb-1 z-10">Step-by-step Trace Visualizer</h4>
-                                    {traceData ? (
-                                        <div className="space-y-2">
-                                            {traceData.map((step, idx) => (
-                                                <div key={idx} className="bg-base-100 p-2 rounded border border-base-300 text-xs font-mono animate-fade-in flex gap-3">
-                                                    <div className="min-w-6 text-primary font-bold">L{step.line || idx + 1}</div>
-                                                    <div className="flex-1 opacity-80">{step.text}</div>
-                                                    {step.vars && <div className="text-secondary">{JSON.stringify(step.vars)}</div>}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex items-center justify-center opacity-50"><span className="loading loading-spinner"></span></div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* LIVE Code Complexity Overlay */}
-                            <div className="absolute bottom-4 right-4 z-10 bg-base-100/90 backdrop-blur-sm p-3 rounded-lg shadow-xl border border-primary/30 text-xs font-mono transition-all">
-                                <div className="font-bold border-b border-base-300 pb-1 mb-1 flex items-center gap-2">
-                                    <Activity className="size-3 text-info" /> AI Complexity
-                                    {isCalculatingComplexity && <span className="loading loading-spinner loading-xs text-info ml-auto"></span>}
-                                </div>
-                                <div className="flex justify-between gap-4 mt-2"><span>Space:</span> <span className="text-success font-bold">{liveComplexity.space}</span></div>
-                                <div className="flex justify-between gap-4"><span>Time:</span> <span className="text-warning font-bold">{liveComplexity.time}</span></div>
                             </div>
                         </div>
                     )}
@@ -932,224 +628,53 @@ function InterviewPage() {
         );
     }
 
-    // FEEDBACK PHASE
-    return (
-        <div className="min-h-screen bg-base-200 flex flex-col">
-            <Navbar />
-            <div className="max-w-7xl mx-auto px-4 py-8 w-full">
+    if (phase === "feedback") {
+        return (
+            <div className={`min-h-screen pt-32 transition-colors duration-700 font-sans relative overflow-x-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300'}`}>
+                <Navbar />
+                <div className="max-w-5xl mx-auto px-6 pb-32 relative z-10 flex flex-col items-center">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`w-full p-1 rounded-[64px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100'} backdrop-blur-3xl shadow-3xl text-center`}>
+                        <div className="p-20 space-y-12">
+                            <div className="space-y-4">
+                                <div className={`size-32 mx-auto rounded-full flex items-center justify-center font-black italic text-6xl ${aiFeedback?.score >= 70 ? 'bg-success/20 text-success' : 'bg-error/20 text-error'} shadow-2xl ring-4 ring-white/5`}>
+                                    {aiFeedback?.score || 0}
+                                </div>
+                                <h2 className="text-6xl font-black italic tracking-tighter uppercase">Evaluation Session Complete</h2>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] opacity-40">Synchronized_Dossier_Generated</p>
+                            </div>
 
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-black mb-2 flex items-center justify-center gap-3">
-                        <CheckCircle className="size-10 text-success" /> Interview Complete
-                    </h1>
-                    <p className="text-base-content/60">AI has fully evaluated your code, architecture, and behavior.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                                <div className="p-8 rounded-[40px] bg-white/5 border border-white/5 space-y-6">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Core_Strengths</p>
+                                    <ul className="space-y-4">
+                                        {aiFeedback?.strengths?.map((s, i) => <li key={i} className="flex items-center gap-4 text-xs font-bold"><CheckCircle className="size-4 text-success" /> {s}</li>)}
+                                    </ul>
+                                </div>
+                                <div className="p-8 rounded-[40px] bg-white/5 border border-white/5 space-y-6">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-error">Anomalies_Detected</p>
+                                    <ul className="space-y-4">
+                                        {aiFeedback?.weaknesses?.map((w, i) => <li key={i} className="flex items-center gap-4 text-xs font-bold"><XCircle className="size-4 text-error" /> {w}</li>)}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="p-10 rounded-[40px] bg-white/5 border border-white/5 text-left space-y-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">Final_Decision_Matrix</p>
+                                <p className="text-sm font-medium leading-relaxed italic opacity-80">"{aiFeedback?.feedback}"</p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button onClick={() => window.location.reload()} className="btn btn-primary h-20 flex-1 rounded-[32px] font-black tracking-widest shadow-2xl shadow-primary/20">RE_DEPLOY_GAUNTLET</button>
+                                <button onClick={() => window.location.href = '/dashboard'} className="btn bg-white/5 hover:bg-white/10 text-white border-white/10 h-20 flex-1 rounded-[32px] font-black tracking-widest">EXIT_SESSION</button>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
-
-                {!aiFeedback ? (
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <span className="loading loading-bars loading-lg text-primary mb-4"></span>
-                        <h3 className="font-bold text-xl animate-pulse">Generative AI is evaluating your submission...</h3>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-
-                        {/* LEFT: Stats Column */}
-                        <div className="col-span-1 space-y-6">
-
-                            {/* Multi-Agent Panel Scores */}
-                            <div className="card bg-base-100 shadow-sm border border-base-300">
-                                <div className="card-body p-5 space-y-4">
-                                    <h3 className="font-bold border-b border-base-200 pb-2 text-center text-sm uppercase tracking-wider text-base-content/60">Multi-Agent Panel</h3>
-
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2"><Code2 className="size-4 text-primary" /><span className="text-sm font-bold">DSA Engineer</span></div>
-                                        <div className="radial-progress text-primary font-bold text-xs" style={{ "--value": aiFeedback.score ?? 0, "--size": "2.5rem", "--thickness": "0.3rem" }} role="progressbar">{aiFeedback.score ?? 0}%</div>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2"><Network className="size-4 text-secondary" /><span className="text-sm font-bold">System Design</span></div>
-                                        <div className="radial-progress text-secondary font-bold text-xs" style={{ "--value": aiFeedback.systemDesignScore ?? 0, "--size": "2.5rem", "--thickness": "0.3rem" }} role="progressbar">{aiFeedback.systemDesignScore ?? 0}%</div>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2"><Users className="size-4 text-accent" /><span className="text-sm font-bold">Hiring Manager</span></div>
-                                        <div className="radial-progress text-accent font-bold text-xs" style={{ "--value": aiFeedback.communicationScore ?? 0, "--size": "2.5rem", "--thickness": "0.3rem" }} role="progressbar">{aiFeedback.communicationScore ?? 0}%</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Plagiarism & Telemetry */}
-                            <div className="card bg-base-100 shadow-sm border border-base-300">
-                                <div className="card-body p-4 space-y-4">
-                                    <div>
-                                        <div className="flex justify-between text-xs font-bold mb-1">
-                                            <span className="flex items-center gap-1"><FileWarning className="size-3 text-success" /> Code Uniqueness</span>
-                                            <span className="text-success">{100 - (aiFeedback.plagiarismScore ?? 0)}% Unique</span>
-                                        </div>
-                                        <progress className="progress progress-success w-full" value={100 - (aiFeedback.plagiarismScore ?? 0)} max="100"></progress>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs font-bold mb-1">
-                                            <span className="flex items-center gap-1"><Keyboard className="size-3 text-info" /> Refactoring Potential</span>
-                                            <span className="text-info">{aiFeedback.keyboardEfficiency ?? 87}%</span>
-                                        </div>
-                                        <progress className="progress progress-info w-full" value={aiFeedback.keyboardEfficiency ?? 87} max="100"></progress>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs font-bold mb-1">
-                                            <span className="flex items-center gap-1"><Camera className="size-3 text-warning" /> Assessment Profile</span>
-                                            <span className="text-warning">{aiFeedback.personalityScore || "Calm & Clear"}</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs font-bold mb-1">
-                                            <span className="flex items-center gap-1"><Timer className="size-3 text-primary" /> Est. Time-to-Insight</span>
-                                            <span className="text-primary">{aiFeedback.timeToInsight || "2m 45s"}</span>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 bg-error/10 p-3 rounded-lg border border-error/20">
-                                        <h4 className="text-xs font-bold text-error mb-1">Detected Weakness Map</h4>
-                                        <div className="flex gap-2 flex-wrap text-xs">
-                                            <span className="badge badge-error badge-outline">Dynamic Programming</span>
-                                            <span className="badge badge-error badge-outline">Graphs</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        {/* MIDDLE/RIGHT: Main Feedback & Refactor */}
-                        <div className="col-span-2 lg:col-span-3 space-y-6">
-
-                            <div className="card bg-base-100 shadow-sm border border-base-300">
-                                <div className="card-body p-6">
-                                    <h2 className="card-title text-2xl border-b border-base-200 pb-2 mb-4">AI Detailed Feedback</h2>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="bg-success/10 p-4 rounded-xl border border-success/20">
-                                            <h3 className="font-bold text-success flex items-center gap-2 mb-2"><CheckCircle className="size-4" /> Strengths Detected</h3>
-                                            <ul className="text-sm space-y-1 list-disc list-inside">
-                                                {aiFeedback.strengths?.length > 0 ? aiFeedback.strengths.map((s, i) => <li key={i}>{s}</li>) : <li>Clean code formatting</li>}
-                                            </ul>
-                                        </div>
-                                        <div className="bg-error/10 p-4 rounded-xl border border-error/20">
-                                            <h3 className="font-bold text-error flex items-center gap-2 mb-2"><XCircle className="size-4" /> Weaknesses Detected</h3>
-                                            <ul className="text-sm space-y-1 list-disc list-inside">
-                                                {aiFeedback.weaknesses?.length > 0 ? aiFeedback.weaknesses.map((w, i) => <li key={i}>{w}</li>) : <li>Slight hesitation initially</li>}
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <h3 className="font-bold text-lg mb-2">Overall Code Analysis</h3>
-                                    <div className="bg-base-200 p-4 rounded-lg text-sm mb-6">
-                                        <em>"{aiFeedback.feedback || "Solid effort, but you should optimize your nested loops into a HashMap."}"</em>
-                                    </div>
-
-                                    {/* Advanced Timeline & Heatmap */}
-                                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Map className="size-5 text-primary" /> Code Evolution & Heatmap</h3>
-                                    <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-base-200 p-4 rounded-xl">
-                                        <div>
-                                            <h4 className="font-bold text-base-content/60 mb-2 uppercase">Evolution Graph</h4>
-                                            <ul className="steps steps-vertical h-32 overflow-auto">
-                                                {aiFeedback.evolutionTimeline?.length > 0 ? aiFeedback.evolutionTimeline.map((step, idx) => (
-                                                    <li key={idx} className="step step-primary">{step}</li>
-                                                )) : (
-                                                    <><li className="step step-primary">Brute Force</li><li className="step step-warning">Final Output</li></>
-                                                )}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-base-content/60 mb-2 uppercase">AI Bottleneck Highlights</h4>
-                                            <div className="space-y-2 max-h-32 overflow-auto pr-2">
-                                                {aiFeedback.bottlenecks?.length > 0 ? aiFeedback.bottlenecks.map((btnk, i) => (
-                                                    <div key={i} className="flex justify-between border-b border-base-300 pb-1">
-                                                        <span>{btnk.line}</span>
-                                                        <span className="text-error font-bold">{btnk.timeSpent || btnk.time}</span>
-                                                    </div>
-                                                )) : (
-                                                    <div className="flex justify-between border-b border-base-300 pb-1"><span>Line 12 (For Loop)</span> <span className="text-error font-bold">4m 12s</span></div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Refactor Section */}
-                            <div className="card bg-base-100 shadow-sm border border-base-300">
-                                <div className="card-body p-6">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h2 className="card-title text-xl flex items-center gap-2">
-                                            <Wand2 className="text-secondary" /> AI Code Refactor
-                                        </h2>
-                                        <button className="btn btn-secondary btn-sm" onClick={handleRefactorCode} disabled={isRefactoring}>
-                                            {isRefactoring ? <span className="loading loading-spinner"></span> : "Refactor My Code"}
-                                        </button>
-                                    </div>
-
-                                    {refactoredCode ? (
-                                        <div className="bg-neutral p-4 rounded-xl overflow-auto text-neutral-content font-mono text-sm max-h-64 whitespace-pre-wrap">
-                                            {refactoredCode}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-base-content/60">Click refactor to see how AI would write your solution cleaner using advanced design patterns.</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* F5: Code Replay Engine */}
-                            <div className="card bg-base-100 shadow-sm border border-base-300 overflow-hidden">
-                                <div className="card-body p-6">
-                                    <div className="flex justify-between">
-                                        <h2 className="card-title text-xl mb-4 flex items-center gap-2">
-                                            <PlayCircle className="text-primary" /> Recruiter Replay Engine
-                                        </h2>
-                                        <span className="badge badge-accent">Visible to Recruiters & You</span>
-                                    </div>
-                                    <p className="text-sm text-base-content/60 mb-4">You and recruiters can replay your exact keystrokes synced with your execution timeline to see *how* you arrive at solutions.</p>
-
-                                    {replayTimeline.length > 0 ? (
-                                        <div className="bg-neutral p-4 rounded-xl flex flex-col gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <button className="btn btn-circle btn-primary btn-sm"><Play className="size-4 fill-current" /></button>
-                                                <input
-                                                    type="range"
-                                                    min={0}
-                                                    max={replayTimeline.length - 1}
-                                                    defaultValue={replayTimeline.length - 1}
-                                                    className="range range-xs range-primary flex-1"
-                                                    onChange={(e) => setCode(replayTimeline[e.target.value].code)}
-                                                />
-                                                <span className="font-mono text-neutral-content text-xs">{replayTimeline.length} Frames Captured</span>
-                                            </div>
-                                            <div className="bg-base-300 p-2 rounded text-xs font-mono opacity-80 select-none pointer-events-none h-32 overflow-hidden relative">
-                                                <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-base-300 to-transparent h-4 z-10 block"></div>
-                                                <pre className="text-base-content">{code}</pre>
-                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-base-300 to-transparent h-4 z-10 block"></div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-neutral p-4 rounded-xl flex items-center justify-center opacity-50 text-sm">
-                                            No tracking data captured for this session.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <button className="btn btn-outline w-full mt-4" onClick={() => setPhase("setup")}>
-                                Start New Session
-                            </button>
-
-                        </div>
-                    </div>
-                )}
             </div>
-        </div>
-    );
-}
+        );
+    }
 
-// Add map icon fallback
-function Map(props) {
-    return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" x2="9" y1="3" y2="18"></line><line x1="15" x2="15" y1="6" y2="21"></line></svg>
+    return null;
 }
 
 export default InterviewPage;
