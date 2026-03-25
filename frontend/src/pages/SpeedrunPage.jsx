@@ -497,7 +497,7 @@ function SpeedrunPage() {
                 {(matchState === "lobby" || matchState === "queue" || matchState === "private_waiting") ? (
                     renderLobby()
                 ) : (
-                    <motion.div key="arena" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col pt-32 h-screen overflow-hidden bg-transparent">
+                    <motion.div key="arena" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col pt-64 h-screen overflow-hidden bg-transparent">
                         
                         {/* 1. ARENA COMMAND BAR */}
                         <div className="px-8 pb-6 flex items-center justify-between gap-12 max-w-[1920px] mx-auto w-full">

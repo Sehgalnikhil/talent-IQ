@@ -153,7 +153,7 @@ function ProblemsPage() {
 
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-6 pt-32 pb-12 relative z-10">
+      <div className="max-w-6xl mx-auto px-6 pt-64 pb-12 relative z-10">
         
         {/* HEADER PROGRESS RINGS */}
         <motion.div

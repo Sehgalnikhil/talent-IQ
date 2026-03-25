@@ -82,8 +82,8 @@ function InterviewPage() {
 
     useEffect(() => {
         const checkTheme = () => {
-           const theme = document.documentElement.getAttribute("data-theme");
-           setIsDark(!["light", "cupcake", "bumblebee", "emerald", "corporate", "retro", "cyberpunk", "valentine", "garden", "lofi", "pastel", "fantasy", "wireframe", "cmyk", "autumn", "business", "acid", "lemonade", "winter", "nord"].includes(theme));
+            const theme = document.documentElement.getAttribute("data-theme");
+            setIsDark(!["light", "cupcake", "bumblebee", "emerald", "corporate", "retro", "cyberpunk", "valentine", "garden", "lofi", "pastel", "fantasy", "wireframe", "cmyk", "autumn", "business", "acid", "lemonade", "winter", "nord"].includes(theme));
         };
         checkTheme();
         const observer = new MutationObserver(checkTheme);
@@ -319,9 +319,9 @@ function InterviewPage() {
             toast.error("Enter a valid Codebase Matrix URL.");
             return setIsLoading(false);
         }
-        
+
         if (interviewType === "GitHubPR") {
-             try {
+            try {
                 const res = await axiosInstance.post("/interview/github-mock", { githubUrl });
                 setProblemContext(res.data.problemContext);
                 setChatLog([{ role: "ai", text: `[System Design Engineer]: ${res.data.firstMessage}` }]);
@@ -399,7 +399,7 @@ function InterviewPage() {
         return (
             <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
                 <Navbar />
-                
+
                 {/* AMBIENT ENGINE */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden h-screen">
                     <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[140px] animate-pulse" />
@@ -407,7 +407,7 @@ function InterviewPage() {
                 </div>
 
                 <div className="max-w-7xl mx-auto px-6 pb-32 relative z-10 flex flex-col items-center">
-                    
+
                     {/* SECTOR IDENTITY */}
                     <div className="text-center space-y-4 mb-16">
                         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="size-24 mx-auto rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent p-[2px] shadow-2xl">
@@ -420,16 +420,16 @@ function InterviewPage() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 w-full">
-                        
+
                         {/* CONFIGURATION STACK */}
                         <motion.div initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className={`lg:col-span-8 p-1 rounded-[48px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl`}>
                             <div className="p-12 space-y-12">
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                     <div className="space-y-8">
                                         <header className="flex items-center gap-4 opacity-40">
-                                           <Users className="size-5" />
-                                           <span className="text-xs font-black uppercase tracking-widest">Profile_Calibration</span>
+                                            <Users className="size-5" />
+                                            <span className="text-xs font-black uppercase tracking-widest">Profile_Calibration</span>
                                         </header>
 
                                         {/* RESUME COMPONENT */}
@@ -468,8 +468,8 @@ function InterviewPage() {
 
                                     <div className="space-y-8">
                                         <header className="flex items-center gap-4 opacity-40">
-                                           <Zap className="size-5" />
-                                           <span className="text-xs font-black uppercase tracking-widest">Chaos_Modulators</span>
+                                            <Zap className="size-5" />
+                                            <span className="text-xs font-black uppercase tracking-widest">Chaos_Modulators</span>
                                         </header>
 
                                         {/* HOSTILITY DIAL */}
@@ -488,8 +488,8 @@ function InterviewPage() {
                                         {/* MODE SWITCHES */}
                                         <div className="space-y-3">
                                             {[
-                                                { label: "Stress_Protocol", icon: <AlertTriangle/>, state: stressMode, setter: setStressMode, color: "text-error", bg: "bg-error/10" },
-                                                { label: "Emotion_Tracking", icon: <Camera/>, state: emotionMode, setter: setEmotionMode, color: "text-info", bg: "bg-info/10" }
+                                                { label: "Stress_Protocol", icon: <AlertTriangle />, state: stressMode, setter: setStressMode, color: "text-error", bg: "bg-error/10" },
+                                                { label: "Emotion_Tracking", icon: <Camera />, state: emotionMode, setter: setEmotionMode, color: "text-info", bg: "bg-info/10" }
                                             ].map(mode => (
                                                 <div key={mode.label} onClick={() => mode.setter(!mode.state)} className={`flex items-center justify-between p-6 rounded-[24px] cursor-pointer transition-all border ${mode.state ? `${mode.color} ${mode.bg} border-current shadow-lg` : 'bg-white/5 border-white/5 opacity-40 hover:opacity-100'}`}>
                                                     <div className="flex items-center gap-4">
@@ -504,20 +504,20 @@ function InterviewPage() {
                                 </div>
 
                                 <button onClick={handleStartInterview} disabled={isLoading} className="btn bg-gradient-to-r from-primary via-secondary to-accent w-full h-24 rounded-[32px] border-none text-white shadow-2xl font-black tracking-widest text-xl group relative overflow-hidden">
-                                     <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                                     <PlayCircle className="size-8" />
-                                     {isLoading ? "INITIALIZING_GAUNTLET..." : "INITIALIZE_INTERVIEW_ARENA"}
+                                    <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                    <PlayCircle className="size-8" />
+                                    {isLoading ? "INITIALIZING_GAUNTLET..." : "INITIALIZE_INTERVIEW_ARENA"}
                                 </button>
                             </div>
                         </motion.div>
 
                         {/* SESSION HISTORY SIDEBAR */}
                         <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="lg:col-span-4 space-y-8">
-                            
+
                             <div className={`p-10 rounded-[48px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl`}>
                                 <header className="flex items-center gap-4 mb-8 opacity-40">
-                                   <HistoryIcon className="size-5" />
-                                   <span className="text-xs font-black uppercase tracking-widest">Archive_Timeline</span>
+                                    <HistoryIcon className="size-5" />
+                                    <span className="text-xs font-black uppercase tracking-widest">Archive_Timeline</span>
                                 </header>
 
                                 {(() => {
@@ -562,7 +562,7 @@ function InterviewPage() {
 
     if (phase === "active") {
         return (
-            <div className={`h-screen flex flex-col pt-36 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
+            <div className={`h-screen flex flex-col pt-48 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
                 <Navbar />
 
                 {/* Floating AI Coach Toast */}
@@ -610,8 +610,8 @@ function InterviewPage() {
                         <div className="px-6 h-16 bg-white/5 border-b border-white/10 font-black text-[10px] flex items-center justify-between uppercase tracking-[0.4em] opacity-40">
                             <span>Intelligence_Feed</span>
                             <div className="flex items-center gap-4">
-                               <button onClick={() => setAudioEnabled(!audioEnabled)} className={`flex items-center gap-2 ${!audioEnabled && 'opacity-30'}`}>{audioEnabled ? <Mic className="size-3" /> : <Mic className="size-3 line-through" />} VOX</button>
-                               <span className="flex items-center gap-1 text-primary"><Activity className="size-3" /> CORE_SYNC</span>
+                                <button onClick={() => setAudioEnabled(!audioEnabled)} className={`flex items-center gap-2 ${!audioEnabled && 'opacity-30'}`}>{audioEnabled ? <Mic className="size-3" /> : <Mic className="size-3 line-through" />} VOX</button>
+                                <span className="flex items-center gap-1 text-primary"><Activity className="size-3" /> CORE_SYNC</span>
                             </div>
                         </div>
 
@@ -634,13 +634,13 @@ function InterviewPage() {
                         </div>
 
                         <div className="p-6 bg-black/40 border-t border-white/10 relative">
-                             <div className="relative group">
+                            <div className="relative group">
                                 <input type="text" className="input input-lg w-full bg-white/5 border-white/10 rounded-2xl px-6 font-medium text-sm focus:border-primary/50 transition-all text-white placeholder:opacity-30" placeholder="Articulate your strategy or respond..." value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} />
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                                     <button onMouseDown={() => setIsRecordingVoice(true)} onMouseUp={() => setIsRecordingVoice(false)} className={`btn btn-circle btn-sm ${isRecordingVoice ? 'btn-error' : 'btn-ghost'}`}><Mic className="size-4" /></button>
                                     <button onClick={handleSendMessage} className="btn btn-circle btn-sm btn-primary shadow-lg shadow-primary/20"><Send className="size-4" /></button>
                                 </div>
-                             </div>
+                            </div>
                         </div>
                     </div>
 
@@ -648,11 +648,11 @@ function InterviewPage() {
                         <div className="flex-1 flex flex-col bg-black border-l border-white/10">
                             <div className="h-16 border-b border-white/10 px-8 flex items-center justify-between bg-white/5 shadow-inner">
                                 <div className="flex items-center gap-6">
-                                     <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2">
                                         <div className="size-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--color-primary),1)]" />
                                         <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">System_Terminal</span>
-                                     </div>
-                                     <div className="flex items-center gap-4 border-l border-white/10 pl-6">
+                                    </div>
+                                    <div className="flex items-center gap-4 border-l border-white/10 pl-6">
                                         <div className="flex items-center gap-2 text-[10px] font-black opacity-60">
                                             <Timer className="size-3" />
                                             <span>Time: {liveComplexity.time}</span>
@@ -661,7 +661,7 @@ function InterviewPage() {
                                             <CpuIcon className="size-3" />
                                             <span>Space: {liveComplexity.space}</span>
                                         </div>
-                                     </div>
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <button onClick={handleAIDebug} className="btn btn-ghost btn-xs text-[10px] font-black uppercase tracking-widest gap-2"><Bug className="size-3" /> Reveal_Bugs</button>
@@ -671,12 +671,12 @@ function InterviewPage() {
                             </div>
                             <div className="flex-1 relative overflow-hidden">
                                 <Editor height="100%" language={language} value={code} onChange={setCode} theme="vs-dark" options={{ minimap: { enabled: false }, fontSize: 16, cursorBlinking: "smooth", smoothScrolling: true, padding: { top: 32, left: 32 } }} />
-                                
+
                                 <div className="absolute bottom-8 right-8 space-y-3 pointer-events-none">
-                                     <div className="p-6 rounded-3xl bg-black/60 backdrop-blur-3xl border border-white/10 max-w-sm shadow-4xl text-left space-y-2">
-                                         <p className="text-[9px] font-black uppercase tracking-widest text-primary">Active_Prompt</p>
-                                         <p className="text-xs font-bold leading-relaxed opacity-70 italic">{problemContext}</p>
-                                     </div>
+                                    <div className="p-6 rounded-3xl bg-black/60 backdrop-blur-3xl border border-white/10 max-w-sm shadow-4xl text-left space-y-2">
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-primary">Active_Prompt</p>
+                                        <p className="text-xs font-bold leading-relaxed opacity-70 italic">{problemContext}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
