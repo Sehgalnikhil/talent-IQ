@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { MicIcon, MicOffIcon, PlayIcon, SquareIcon, MessageSquareIcon, Volume2Icon } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../lib/axios";
+import SoundReactiveSphere from "../components/SoundReactiveSphere";
 
 export default function VoiceInterviewPage() {
     const [isListening, setIsListening] = useState(false);
@@ -12,6 +13,10 @@ export default function VoiceInterviewPage() {
         { role: "ai", text: "Hello! I am your AI Technical Interviewer. Whenever you are ready, let's begin the interview. I will be assessing your communication and problem-solving skills." }
     ]);
     const [isInterviewActive, setIsInterviewActive] = useState(false);
+    const [evaluation, setEvaluation] = useState(null);
+    const [isEvaluating, setIsEvaluating] = useState(false);
+    const [analyser, setAnalyser] = useState(null);
+    const audioContextRef = useRef(null);
     
     const recognitionRef = useRef(null);
     const synthesisRef = useRef(window.speechSynthesis);
@@ -101,19 +106,20 @@ export default function VoiceInterviewPage() {
         try {
             // Build Contextual Dialogue History String to pass turn memories Node
             const dialogueContext = newMessages.map(m => `${m.role === "user" ? "Candidate" : "Interviewer"}: ${m.text}`).join("\n");
-
+            
             const prompt = `You are an elite Senior FAANG Technical Interviewer conducting a live interactive mock screening over voice. 
             
-            Strict Guidelines:
-            1. Keep responses highly conversational and CONCISE (2-3 sentences max) since it's going to be read ALOUD.
-            2. Never use Code Blocks, emojis, or Markdown (**bolding**).
-            3. Follow up strictly on candidate statements. If their logic is vague, drill deeper. 
-            4. Introduce natural fillers occasionally ("I see", "Got it", "That's a good point").
-            
-            Previous Dialogue Stream:
+            Deployment-Grade Guidelines (Strict):
+            1. Response Length: Keep responses highly conversational and CONCISE (1-2 sentences max). Setup response ideal for Text-To-Speech audio reads.
+            2. Strict Hygiene: NEVER use Code Blocks, bullet points, Markdown (like **bolding** or # header structures), or symbols/emojis.
+            3. Iterative follow-ups: Focus strictly on candidate statements. If their logic is correct, immediately introduce rigorous follow-up constraints: systemic bottlenecks, memory limits, or race conditions.
+            4. Do not explain full solutions. Offer subtle single-sentence conceptual hints instead of yielding answers.
+            5. Use subtle conversational fillers occasionally ("I see", "Got it", "That's a good point") to keep pacing natural.
+
+            Previous Dialogue Context:
             ${dialogueContext}
             
-            Interviewer Response (respond as Interviewer following up sequential Node setups absolute flawlessly):`;
+            Interviewer Response:`;
 
             // Using the existing chat endpoint as a proxy for the interviewer
             const res = await axiosInstance.post("/interview/chat", { prompt });
@@ -131,22 +137,56 @@ export default function VoiceInterviewPage() {
 
     const startInterview = async () => {
         try {
-            // Explicitly prompt for mic access node streams
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Setup Web Audio API constraints flawlessly
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioContext = new AudioContext();
+            const analyserNode = audioContext.createAnalyser();
+            const source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyserNode);
+            analyserNode.fftSize = 256;
+
+            setAnalyser(analyserNode);
+            audioContextRef.current = audioContext;
+
             setIsInterviewActive(true);
             localStorage.setItem("voice_interview_active", "true");
             speak(messages[0].text);
         } catch (error) {
+            console.error(error);
             toast.error("Microphone access is required to take the voice interview.");
         }
     };
 
-    const endInterview = () => {
+    const endInterview = async () => {
         setIsInterviewActive(false);
+        setIsEvaluating(true);
         localStorage.setItem("voice_interview_active", "false");
         if (isListening) toggleListen();
         if (synthesisRef.current) synthesisRef.current.cancel();
-        toast("Interview concluded. Check your dashboard for feedback!", { icon: "🏁" });
+
+        // Close AudioContext nodes
+        if (audioContextRef.current) {
+            try { audioContextRef.current.close(); } catch (e) {}
+        }
+
+        try {
+            const dialogueContext = messages.map(m => `${m.role === "user" ? "Candidate" : "Interviewer"}: ${m.text}`).join("\n");
+            const prompt = `Evaluate the candidate based on this voice interview interaction. Return strict JSON ONLY with no markdown: {"score": 1-100, "feedback": "...", "strengths": ["string"], "weaknesses": ["string"]}\nDialogue:\n${dialogueContext}`;
+            
+            const res = await axiosInstance.post("/interview/chat", { prompt });
+            let rawJson = res.data.response || "{}";
+            const jsonMatch = rawJson.match(/\{[\s\S]*\}/);
+            const jsonString = jsonMatch ? jsonMatch[0] : "{}";
+            setEvaluation(JSON.parse(jsonString));
+            toast.success("Interview Evaluated! 🏁");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to generate voice evaluation report.");
+        } finally {
+            setIsEvaluating(false);
+        }
     };
 
     return (
@@ -174,25 +214,9 @@ export default function VoiceInterviewPage() {
                                 <PlayIcon className="size-6 fill-current" /> Begin Interview
                             </button>
                         ) : (
-                            <div className="flex flex-col items-center z-10">
-                                <div className="flex items-center gap-1.5 h-16">
-                                    {[...Array(11)].map((_, i) => (
-                                        <motion.div 
-                                            key={i} 
-                                            animate={{ 
-                                                height: isListening ? [10, 40, 20, 50, 10] : 10 
-                                            }}
-                                            transition={{ 
-                                                repeat: Infinity, 
-                                                duration: 1 + Math.random() * 0.5, 
-                                                delay: i * 0.08, 
-                                                ease: "easeInOut" 
-                                            }}
-                                            className={`w-2.5 rounded-full bg-primary shadow-[0_0_15px_rgba(59,130,246,0.3)] ${!isListening && 'opacity-30'}`}
-                                        />
-                                    ))}
-                                </div>
-                                <span className="text-xs font-bold text-base-content/50 uppercase tracking-widest mt-4">
+                            <div className="flex flex-col items-center z-10 w-full h-full">
+                                <SoundReactiveSphere analyserNode={analyser} />
+                                <span className="text-xs font-bold text-base-content/50 uppercase tracking-widest mt-2">
                                     {isListening ? "Listening..." : "AI is speaking or paused"}
                                 </span>
                             </div>
@@ -239,6 +263,49 @@ export default function VoiceInterviewPage() {
                             </button>
                         </div>
                     )}
+                    {/* Modal Overlay for Evaluation / Loading */}
+                    <AnimatePresence>
+                        {(isEvaluating || evaluation) && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-base-300/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                                <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} className="bg-base-100 max-w-lg w-full rounded-3xl p-8 border border-base-300 shadow-2xl relative">
+                                    {isEvaluating ? (
+                                        <div className="text-center py-12 flex flex-col items-center">
+                                            <div className="loading loading-spinner loading-lg text-primary mb-4" />
+                                            <h3 className="text-xl font-bold">Evaluating Performance...</h3>
+                                            <p className="text-xs text-base-content/60 mt-1">Our AI is analyzing your pacing and dialogue responses.</p>
+                                        </div>
+                                    ) : evaluation && (
+                                        <div className="space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-2xl font-black">Performance Report</h3>
+                                                <div className={`badge badge-lg gap-1 font-bold ${evaluation.score >= 80 ? 'badge-success' : evaluation.score >= 50 ? 'badge-warning' : 'badge-error'}`}>
+                                                    Score: {evaluation.score}
+                                                </div>
+                                            </div>
+                                            <p className="text-sm bg-base-200 p-4 rounded-xl border border-base-300 text-base-content/80">{evaluation.feedback}</p>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <span className="text-xs font-black uppercase text-success">Strengths</span>
+                                                    <ul className="list-disc pl-4 text-xs mt-1 space-y-1 text-base-content/70">
+                                                        {evaluation.strengths?.map((s, i) => <li key={i}>{s}</li>)}
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <span className="text-xs font-black uppercase text-error">Weaknesses</span>
+                                                    <ul className="list-disc pl-4 text-xs mt-1 space-y-1 text-base-content/70">
+                                                        {evaluation.weaknesses?.map((w, i) => <li key={i}>{w}</li>)}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => setEvaluation(null)} className="btn btn-primary w-full shadow-lg">
+                                                Dismiss
+                                            </button>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </div>

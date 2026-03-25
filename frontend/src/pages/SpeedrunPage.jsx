@@ -14,7 +14,6 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
 
-// Feature #15: ELO Rank system
 const ELO_RANKS = [
     { name: "Bronze", min: 0, max: 1099, color: "text-orange-700", bg: "bg-orange-700/10", emoji: "🥉" },
     { name: "Silver", min: 1100, max: 1299, color: "text-gray-400", bg: "bg-gray-400/10", emoji: "🥈" },

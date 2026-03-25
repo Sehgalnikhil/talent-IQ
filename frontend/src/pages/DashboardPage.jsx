@@ -206,14 +206,17 @@ function DashboardPage() {
         <FloatingParticles />
         <WelcomeSection onCreateSession={() => setShowCreateModal(true)} />
 
-        <div className="max-w-7xl mx-auto px-6 space-y-8 mt-2">
+        <motion.div 
+           variants={containerVariants} 
+           initial="hidden" 
+           animate="show" 
+           className="max-w-7xl mx-auto px-6 space-y-8 mt-2"
+        >
 
           {/* Feature #5: DAILY CHALLENGE CARD */}
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, type: "spring", stiffness: 80 }}
-            className={`relative overflow-hidden rounded-3xl border shadow-xl p-6 ${dailyChallenge.isDone ? 'bg-success/10 border-success/30' : 'bg-gradient-to-r from-warning/10 via-base-100 to-error/10 border-warning/30'}`}
+            variants={itemVariants}
+            className={`relative overflow-hidden rounded-3xl shadow-2xl p-6 ${dailyChallenge.isDone ? 'bg-success/5' : 'bg-gradient-to-br from-warning/5 via-base-100/50 to-error/5'}`}
           >
             <div className="absolute top-0 right-0 w-40 h-40 bg-warning/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
@@ -249,10 +252,8 @@ function DashboardPage() {
 
           {/* AI Daily Tip */}
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 80 }}
-            className="bg-gradient-to-r from-primary/20 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden backdrop-blur-md shadow-lg shadow-primary/5"
+            variants={itemVariants}
+            className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden backdrop-blur-md shadow-xl shadow-primary/5"
           >
             <div className="p-3 bg-primary/20 rounded-xl">
               <SparklesIcon className="size-6 text-primary animate-pulse" />
@@ -264,12 +265,10 @@ function DashboardPage() {
 
           {/* Speedrun Arena Node Card */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, type: "spring", stiffness: 80 }}
+            variants={itemVariants}
             className="w-full"
           >
-            <TiltCard onClick={() => navigate("/speedrun")} className="p-8 bg-gradient-to-br from-[#1a1c23]/90 to-[#0c0e12]/95 border border-error/20 shadow-[0_0_50px_rgba(239,68,68,0.1)] hover:border-error/40 group cursor-pointer">
+            <TiltCard onClick={() => navigate("/speedrun")} className="p-8 bg-gradient-to-br from-[#1a1c23]/90 to-[#0c0e12]/95 shadow-[0_4px_50px_rgba(239,68,68,0.15)] hover:shadow-[0_0_60px_rgba(239,68,68,0.25)] group cursor-pointer rounded-3xl">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6 pointer-events-none">
                 <div className="flex items-center gap-5">
                   <div className="size-16 rounded-2xl bg-gradient-to-br from-error/30 to-orange-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.3)] group-hover:scale-105 transition-transform">
@@ -295,7 +294,7 @@ function DashboardPage() {
           </motion.div>
 
 
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Feature #3: REAL HEATMAP + Feature #4: SPARKLINES */}
             <motion.div variants={itemVariants} className="col-span-1 lg:col-span-2 group">
               <TiltCard className="h-full card bg-base-100/60 backdrop-blur-xl shadow-2xl shadow-base-300/50 border border-base-100 hover:border-primary/30 transition-all duration-500 relative p-8 rounded-3xl">
@@ -401,7 +400,7 @@ function DashboardPage() {
                 )}
               </TiltCard>
             </motion.div>
-          </motion.div>
+          </div>
 
           {/* Feature #20: ACHIEVEMENT BADGES */}
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, type: "spring", stiffness: 100 }}>
@@ -462,7 +461,7 @@ function DashboardPage() {
             <ErrorBoundary><PomodoroWidget initialSessions={pomodoroSessions} /></ErrorBoundary>
             <ErrorBoundary><StudyPlanWidget initialPlan={studyPlan} solvedCount={solved.length} /></ErrorBoundary>
           </motion.div>
-        </div>
+        </motion.div>
       </div>
 
       <CreateSessionModal

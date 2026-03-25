@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRightIcon, Code2Icon, CheckCircle2Icon, SearchIcon, ArrowLeftIcon, StarIcon, BrainCircuitIcon, CheckCircleIcon, LayersIcon, DatabaseIcon, ZapIcon, SparklesIcon, LockIcon, ShieldAlertIcon, SwordsIcon, TrophyIcon, UsersIcon, RepeatIcon, ActivityIcon, GitCommitIcon, HistoryIcon, MicIcon } from "lucide-react";
 import { getDifficultyBadgeClass } from "../lib/utils";
 import toast from "react-hot-toast";
+import SkillTreeConstellation from "../components/SkillTreeConstellation";
 
 const trackDetails = {
     "blind-75": {
@@ -428,8 +429,8 @@ function TrackPage() {
                             <h3 className="font-black text-sm uppercase tracking-wider text-base-content/50 mb-4 flex items-center gap-2">
                                 <ActivityIcon className="size-4 text-primary" /> Gap Visualizer
                             </h3>
-                            <div className="flex justify-center my-4">
-                                <RadarChart data={radarData} color={track.color} />
+                            <div className="flex justify-center my-4 relative h-64 w-full">
+                                <SkillTreeConstellation data={radarData} />
                             </div>
                             <p className="text-xs text-center text-base-content/60 font-medium leading-relaxed">
                                 You have severe structural weaknesses in <strong className="text-base-content">Dynamic Programming</strong>. The elastic difficulty AI is mutating upcoming nodes to compensate.

@@ -83,7 +83,12 @@ export const analyzeResume = async (req, res) => {
 
 export const chatWithInterviewer = async (req, res) => {
     try {
-        const { chatLog, code, interviewType, hostility } = req.body;
+        const { chatLog, code, interviewType, hostility, prompt } = req.body;
+
+        if (prompt) {
+            let text = await askAIWithFallback(prompt, false);
+            return res.status(200).json({ reply: text, response: text });
+        }
 
         // 🚀 PREFER LOCAL OLLAMA FIRST (No early model exit here)
 

@@ -4,7 +4,7 @@ import { UserButton } from "@clerk/clerk-react";
 import NotificationCenter from "./NotificationCenter";
 import { useState, useEffect } from "react";
 
-const THEMES = ["dark", "light", "dracula", "nord", "cyberpunk", "synthwave", "night", "sunset"];
+const THEMES = ["dark", "light", "dracula", "nord", "synthwave", "night", "sunset", "luxury", "corporate"];
 
 function Navbar() {
   const location = useLocation();
