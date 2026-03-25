@@ -18,10 +18,12 @@ import {
 import { UserButton } from "@clerk/clerk-react";
 import NotificationCenter from "./NotificationCenter";
 import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const THEMES = ["dark", "light", "dracula", "nord", "synthwave", "night", "sunset", "luxury", "corporate"];
 
 function Navbar() {
+  const [isExploreHovered, setIsExploreHovered] = useState(false);
   const location = useLocation();
   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
   const [scrolled, setScrolled] = useState(false);
@@ -79,35 +81,54 @@ function Navbar() {
               ))}
 
               {/* EXPLORE MEGA MENU NODE */}
-              <div className="dropdown dropdown-bottom ml-6">
-                 <div tabIndex={0} role="button" className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent">
+              <div className="relative ml-6">
+                 <div 
+                   onMouseEnter={() => setIsExploreHovered(true)}
+                   onMouseLeave={() => setIsExploreHovered(false)}
+                   className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent cursor-pointer"
+                 >
                     <SparklesIcon className="size-4 group-hover:animate-pulse" />
                     <span>Explore Space</span>
                     <ChevronDownIcon className="size-3 opacity-30" />
                  </div>
-                 <ul tabIndex={0} className="dropdown-content z-[150] menu p-8 shadow-[0_0_80px_rgba(0,0,0,0.5)] bg-base-100 border border-white/5 mt-3 grid grid-cols-2 gap-x-12 gap-y-8 animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none focus:pointer-events-auto focus-within:pointer-events-auto">
-                    {/* Column 1: Learning & Practice */}
-                    <div className="space-y-4">
-                       <header className="px-4 py-2 border-b border-white/5 mb-4">
-                          <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary">Intelligence Tracks</span>
-                       </header>
-                       <li><Link to="/curated" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><BookMarkedIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Curated Pathways</span><span className="text-[9px] opacity-40 uppercase font-black">Sovereign Knowledge</span></div></div></Link></li>
-                       <li><Link to="/whiteboard" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><CpuIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">System Architecture</span><span className="text-[9px] opacity-40 uppercase font-black">Interactive Canvas</span></div></div></Link></li>
-                       <li><Link to="/playground" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><Code2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Neural Sandbox</span><span className="text-[9px] opacity-40 uppercase font-black">Real-time Compiler</span></div></div></Link></li>
-                       <li><Link to="/flashcards" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><HistoryIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Smart Memory</span><span className="text-[9px] opacity-40 uppercase font-black">AI Spaced Repetition</span></div></div></Link></li>
-                    </div>
-
-                    {/* Column 2: Interview Simulation */}
-                    <div className="space-y-4">
-                       <header className="px-4 py-2 border-b border-error/10 mb-4">
-                          <span className="text-[10px] font-black uppercase tracking-[0.5em] text-error">Combat Protocol</span>
-                       </header>
-                       <li><Link to="/interview" className="rounded-2xl p-5 bg-error/5 hover:bg-error text-error hover:text-white transition-all group shadow-xl"><div className="flex items-center gap-4"><div className="p-2 bg-error/20 rounded-xl"><SparklesIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Neural Interview</span><span className="text-[9px] opacity-60 uppercase font-black">AI Consensus Board</span></div></div></Link></li>
-                       <li><Link to="/voice-interview" className="rounded-2xl p-5 hover:bg-error/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-error/10 rounded-xl group-hover:bg-error text-error group-hover:text-white transition-all"><Mic2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Acoustic Session</span><span className="text-[9px] opacity-40 uppercase font-black">Sync-Vocal Analysis</span></div></div></Link></li>
-                       <li><Link to="/u/Developer" className="rounded-2xl p-5 hover:bg-secondary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-secondary/10 rounded-xl group-hover:bg-secondary text-secondary group-hover:text-white transition-all"><UserCircle2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Sovereign Portfolio</span><span className="text-[9px] opacity-40 uppercase font-black">Master Node Status</span></div></div></Link></li>
-                       <li><Link to="/generate" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><SparklesIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">AI Problem Lab</span><span className="text-[9px] opacity-40 uppercase font-black">Infinite generation</span></div></div></Link></li>
-                    </div>
-                 </ul>
+                 
+                 <AnimatePresence>
+                   {isExploreHovered && (
+                     <motion.div
+                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                       animate={{ opacity: 1, y: 0, scale: 1 }}
+                       exit={{ opacity: 0, scale: 0.95 }}
+                       transition={{ duration: 0.2 }}
+                       onMouseEnter={() => setIsExploreHovered(true)}
+                       onMouseLeave={() => setIsExploreHovered(false)}
+                       className="absolute top-full left-1/2 -translate-x-1/2 mt-4 z-[200] w-[800px] pointer-events-auto"
+                     >
+                       <ul className="menu p-10 shadow-[0_0_100px_rgba(0,0,0,0.6)] bg-base-100/98 backdrop-blur-3xl border border-white/10 grid grid-cols-2 gap-x-12 gap-y-8 rounded-[40px] overflow-hidden">
+                          {/* Column 1: Learning & Practice */}
+                          <div className="space-y-4">
+                             <header className="px-4 py-2 border-b border-white/5 mb-4">
+                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary">Intelligence Tracks</span>
+                             </header>
+                             <li><Link to="/curated" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><BookMarkedIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Curated Pathways</span><span className="text-[9px] opacity-40 uppercase font-black">Sovereign Knowledge</span></div></div></Link></li>
+                             <li><Link to="/whiteboard" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><CpuIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">System Architecture</span><span className="text-[9px] opacity-40 uppercase font-black">Interactive Canvas</span></div></div></Link></li>
+                             <li><Link to="/playground" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><Code2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Neural Sandbox</span><span className="text-[9px] opacity-40 uppercase font-black">Real-time Compiler</span></div></div></Link></li>
+                             <li><Link to="/flashcards" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><HistoryIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Smart Memory</span><span className="text-[9px] opacity-40 uppercase font-black">AI Spaced Repetition</span></div></div></Link></li>
+                          </div>
+      
+                          {/* Column 2: Interview Simulation */}
+                          <div className="space-y-4">
+                             <header className="px-4 py-2 border-b border-error/10 mb-4">
+                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-error">Combat Protocol</span>
+                             </header>
+                             <li><Link to="/interview" className="rounded-2xl p-5 bg-error/5 hover:bg-error text-error hover:text-white transition-all group shadow-xl"><div className="flex items-center gap-4"><div className="p-2 bg-error/20 rounded-xl"><SparklesIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Neural Interview</span><span className="text-[9px] opacity-60 uppercase font-black">AI Consensus Board</span></div></div></Link></li>
+                             <li><Link to="/voice-interview" className="rounded-2xl p-5 hover:bg-error/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-error/10 rounded-xl group-hover:bg-error text-error group-hover:text-white transition-all"><Mic2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Acoustic Session</span><span className="text-[9px] opacity-40 uppercase font-black">Sync-Vocal Analysis</span></div></div></Link></li>
+                             <li><Link to="/u/Developer" className="rounded-2xl p-5 hover:bg-secondary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-secondary/10 rounded-xl group-hover:bg-secondary text-secondary group-hover:text-white transition-all"><UserCircle2Icon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">Sovereign Portfolio</span><span className="text-[9px] opacity-40 uppercase font-black">Master Node Status</span></div></div></Link></li>
+                             <li><Link to="/generate" className="rounded-2xl p-5 hover:bg-primary/5 group"><div className="flex items-center gap-4"><div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary text-primary group-hover:text-white transition-all"><SparklesIcon className="size-4" /></div><div className="flex flex-col"><span className="font-black text-xs uppercase tracking-widest">AI Problem Lab</span><span className="text-[9px] opacity-40 uppercase font-black">Infinite generation</span></div></div></Link></li>
+                          </div>
+                       </ul>
+                     </motion.div>
+                   )}
+                 </AnimatePresence>
               </div>
             </div>
           </div>
