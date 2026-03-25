@@ -478,7 +478,7 @@ function ProblemPage() {
   }, [chatMessages]);
 
   return (
-    <div className="h-screen bg-base-300 flex flex-col overflow-hidden text-base-content selection:bg-primary/30">
+    <div className="h-screen bg-base-300 flex flex-col pt-32 overflow-hidden text-base-content selection:bg-primary/30">
       <Navbar />
 
       {/* Floating Glassy Top Toolbar bar */}
