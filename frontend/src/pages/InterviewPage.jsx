@@ -337,6 +337,64 @@ function InterviewPage() {
         setIsLoading(false);
     };
 
+    const handleRunCode = async () => {
+        setIsLoading(true);
+        toast("Executing Matrix Vector...", { icon: '⚡' });
+        try {
+            const result = await executeCode(language, code);
+            if (!result.success) {
+                toast.error("Execution Conflict: " + (result.error || result.errorType));
+            } else {
+                toast.success("Execution Completed");
+                const output = result.output;
+                setChatLog(prev => [...prev, { role: "ai", text: `[Terminal]: Execution Result:\n${output}` }]);
+            }
+        } catch (err) {
+            toast.error("Process Terminated: Cluster Offline.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAIDebug = async () => {
+        setIsLoading(true);
+        toast("Scanning for Vulnerabilities...", { icon: '⚙️' });
+        try {
+            const res = await axiosInstance.post("/interview/chat", {
+                chatLog: [...chatLog, { role: "user", text: "Analyze my code for potential bugs or logical errors." }],
+                code: code,
+                interviewType: "BugScan",
+                hostility: 1
+            });
+            setChatLog(prev => [...prev, { role: "ai", text: `[System Debugger]: ${res.data.reply}` }]);
+            toast.success("Scan Complete");
+        } catch {
+            toast.error("Debugger Sync Failed");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAskCoach = async () => {
+        setIsAskingCoach(true);
+        toast("Consulting Co-Pilot...", { icon: '🧠' });
+        try {
+            const res = await axiosInstance.post("/interview/chat", {
+                chatLog: [...chatLog, { role: "user", text: "Give me a subtle hint about my current approach without revealing the full solution." }],
+                code: code,
+                interviewType,
+                hostility: 1
+            });
+            setCoachHint(res.data.reply);
+            setShowCoachMessage(true);
+            toast.success("Hint Received");
+        } catch {
+            toast.error("Co-Pilot Link Severed");
+        } finally {
+            setIsAskingCoach(false);
+        }
+    };
+
     if (phase === "setup") {
         return (
             <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
