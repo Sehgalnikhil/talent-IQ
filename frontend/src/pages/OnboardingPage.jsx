@@ -172,7 +172,7 @@ function OnboardingPage() {
     };
 
     return (
-        <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-36 pb-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
+        <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-64 pb-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
             <Navbar />
             
             {/* AMBIENT ENGINE */}
