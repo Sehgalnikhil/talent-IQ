@@ -88,7 +88,9 @@ function ProblemsPage() {
 
   const filteredProblems = problems.filter((p) => {
     const normalizedQuery = searchQuery.toLowerCase().trim();
-    const matchesSearch = p.title.toLowerCase().includes(normalizedQuery) || p.category.toLowerCase().includes(normalizedQuery);
+    const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+    const searchSpace = `${p.title} ${p.category} ${p.difficulty}`.toLowerCase();
+    const matchesSearch = queryWords.length === 0 || queryWords.every(word => searchSpace.includes(word));
     const matchesDifficulty = difficultyFilter === "All" || p.difficulty === difficultyFilter;
     const matchesCategory = categoryFilter === "All" || p.category.includes(categoryFilter);
     const matchesCompany = companyFilter === "All" || (COMPANY_TAGS[p.id] && COMPANY_TAGS[p.id].includes(companyFilter));
