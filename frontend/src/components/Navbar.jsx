@@ -43,7 +43,7 @@ function Navbar() {
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 ${scrolled ? 'mt-0' : 'mt-2'}`}>
       <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl ${scrolled ? 'bg-base-100/70 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
         
-        <div className="px-10 py-4 flex items-center justify-between relative z-10">
+        <div className="px-8 py-2.5 flex items-center justify-between relative z-10">
           
           {/* LOGO & PRIMARY CLUSTER */}
           <div className="flex items-center gap-14">
@@ -67,9 +67,9 @@ function Navbar() {
                 <Link
                   key={node.path}
                   to={node.path}
-                  className={`flex items-center gap-2 px-6 py-3.5 rounded-3xl transition-all duration-500 font-black text-[11px] uppercase tracking-widest border border-transparent ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest border border-transparent ${
                     isActive(node.path)
-                      ? "bg-primary text-primary-content shadow-[0_0_30px_rgba(var(--color-primary),0.4)] scale-110"
+                      ? "bg-primary text-primary-content shadow-[0_0_25px_rgba(var(--color-primary),0.3)] scale-105"
                       : `text-base-content/50 hover:bg-base-content/5 hover:text-base-content ${node.color || ""}`
                   }`}
                 >
@@ -80,7 +80,7 @@ function Navbar() {
 
               {/* EXPLORE MEGA MENU NODE */}
               <div className="dropdown dropdown-hover ml-6">
-                 <div tabIndex={0} role="button" className="flex items-center gap-2 px-8 py-3.5 rounded-3xl transition-all duration-500 font-black text-[11px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent">
+                 <div tabIndex={0} role="button" className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent">
                     <SparklesIcon className="size-4 group-hover:animate-pulse" />
                     <span>Explore Space</span>
                     <ChevronDownIcon className="size-3 opacity-30" />

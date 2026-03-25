@@ -356,7 +356,7 @@ function SpeedrunPage() {
     };
 
     const renderLobby = () => (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center relative p-6 font-sans">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center relative p-6 pt-40 pb-32 font-sans overflow-y-auto no-scrollbar">
             {/* AMBIENT ENGINE */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden h-screen -z-10">
                 <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-error/10 rounded-full blur-[140px] animate-pulse" />
