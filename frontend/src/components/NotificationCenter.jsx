@@ -69,7 +69,7 @@ export default function NotificationCenter() {
             setNotifications(prev => [newNotif, ...prev.slice(0, 19)]);
             if (!open) toast.success(newNotif.text, { 
                 icon: "🛰️", 
-                style: { background: "#050505", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }
+                className: "bg-base-100 text-base-content border border-base-content/10 shadow-2xl rounded-2xl font-black text-xs uppercase italic tracking-tighter"
             });
         };
 
@@ -90,7 +90,7 @@ export default function NotificationCenter() {
                     setOpen(!open);
                     if (!open) markAllRead();
                 }}
-                className="group p-2 rounded-xl transition-all duration-300 hover:bg-white/5 border border-transparent hover:border-white/10 relative"
+                className="group p-2 rounded-xl transition-all duration-300 hover:bg-base-content/5 border border-transparent hover:border-base-content/10 relative"
             >
                 <div className="relative">
                     <BellIcon className={`size-5 transition-transform duration-500 ${open ? "rotate-[-10deg]" : "group-hover:rotate-12"}`} />
@@ -122,21 +122,21 @@ export default function NotificationCenter() {
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             className="absolute top-full right-0 mt-6 z-[110] w-[400px] pointer-events-auto"
                         >
-                            <div className="bg-black/98 backdrop-blur-3xl border border-white/10 rounded-[40px] shadow-4xl overflow-hidden flex flex-col max-h-[600px]">
+                            <div className="bg-base-100 backdrop-blur-3xl border border-base-content/10 rounded-[40px] shadow-4xl overflow-hidden flex flex-col max-h-[600px]">
                                 {/* HEADER */}
-                                <div className="px-8 pt-8 pb-6 border-b border-white/5 bg-gradient-to-br from-white/5 to-transparent">
+                                <div className="px-8 pt-8 pb-6 border-b border-base-content/5 bg-gradient-to-br from-base-content/5 to-transparent">
                                     <div className="flex items-center justify-between">
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 <SatelliteIcon className="size-4 text-primary animate-pulse" />
-                                                <h3 className="text-sm font-black italic tracking-tight uppercase">Pulse Nucleus</h3>
+                                                <h3 className="text-sm font-black italic tracking-tight uppercase text-base-content">Pulse Nucleus</h3>
                                             </div>
-                                            <p className="text-[9px] font-black opacity-30 uppercase tracking-[0.4em] mt-1">Live Node Synchronizer</p>
+                                            <p className="text-[9px] font-black opacity-30 uppercase tracking-[0.4em] mt-1 text-base-content">Live Node Synchronizer</p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-[9px] font-black px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full">{notifications.length} Nodes</span>
-                                            <button onClick={() => setOpen(false)} className="size-8 rounded-lg hover:bg-white/5 flex items-center justify-center transition-colors">
-                                                <XIcon className="size-4 opacity-40 hover:opacity-100" />
+                                            <button onClick={() => setOpen(false)} className="size-8 rounded-lg hover:bg-base-content/5 flex items-center justify-center transition-colors">
+                                                <XIcon className="size-4 opacity-40 hover:opacity-100 text-base-content" />
                                             </button>
                                         </div>
                                     </div>
@@ -153,21 +153,21 @@ export default function NotificationCenter() {
                                                     animate={{ opacity: 1, x: 0 }}
                                                     exit={{ opacity: 0, scale: 0.95 }}
                                                     layout
-                                                    className={`group p-5 rounded-3xl border transition-all duration-500 overflow-hidden relative cursor-default ${n.read ? "bg-white/[0.02] border-white/5 opacity-60" : "bg-white/5 border-white/10 shadow-lg"}`}
+                                                    className={`group p-5 rounded-3xl border transition-all duration-500 overflow-hidden relative cursor-default ${n.read ? "bg-base-content/[0.02] border-base-content/5 opacity-60" : "bg-base-content/5 border-base-content/10 shadow-lg"}`}
                                                 >
                                                     {/* Glow accent for unread */}
                                                     {!n.read && <div className="absolute inset-0 bg-primary/5 -z-10 animate-pulse" />}
                                                     
                                                     <div className="flex gap-4">
-                                                        <div className={`size-11 rounded-2xl flex items-center justify-center shrink-0 border border-white/5 ${n.read ? "bg-white/5 text-white/40" : "bg-primary/10 text-primary"}`}>
+                                                        <div className={`size-11 rounded-2xl flex items-center justify-center shrink-0 border border-base-content/5 ${n.read ? "bg-base-content/5 text-base-content/40" : "bg-primary/10 text-primary"}`}>
                                                             {n.icon}
                                                         </div>
                                                         <div className="flex flex-col gap-1">
                                                             <div className="flex items-center gap-2">
-                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${n.read ? "text-white/40" : "text-primary"}`}>{n.type}</span>
-                                                                <span className="text-[8px] font-bold opacity-30 uppercase tracking-widest">/ {n.time} /</span>
+                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${n.read ? "text-base-content/40" : "text-primary"}`}>{n.type}</span>
+                                                                <span className="text-[8px] font-bold opacity-30 uppercase tracking-widest text-base-content">/ {n.time} /</span>
                                                             </div>
-                                                            <p className={`text-xs font-medium leading-relaxed tracking-tight ${n.read ? "text-white/40" : "text-white/90"}`}>{n.text}</p>
+                                                            <p className={`text-xs font-medium leading-relaxed tracking-tight ${n.read ? "text-base-content/40" : "text-base-content"}`}>{n.text}</p>
                                                         </div>
                                                     </div>
                                                 </motion.div>

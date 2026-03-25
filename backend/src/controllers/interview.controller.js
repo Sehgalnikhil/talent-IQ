@@ -427,8 +427,6 @@ export const runCodeAI = async (req, res) => {
 export const visualizeFlow = async (req, res) => {
     try {
         const { code, language } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({ svg: "<svg></svg>" });
 
         const prompt = `You are an elite Algorithm Visualizer. Analyze this ${language} code and generate a clean, responsive SVG flowchart detailing its absolute execution flow.
 
@@ -471,8 +469,7 @@ Make it concise and speedy.`;
 export const translateCode = async (req, res) => {
     try {
         const { code, fromLanguage, toLanguage } = req.body;
-        const aiModel = getModel();
-        if (!aiModel || !code) return res.status(200).json({ code: code || "" });
+        if (!code) return res.status(200).json({ code: code || "" });
 
         const prompt = `You are an elite developer. Translate this ${fromLanguage} code into idiomatic, identical ${toLanguage}. 
 Output ONLY the raw code block. No explanations, no markdown wrap.`;
@@ -543,7 +540,6 @@ Rate their design out of 10 for clarity and scale. Give your response in a short
 export const generateExecutionTrace = async (req, res) => {
     try {
         const { code } = req.body;
-        const aiModel = getModel();
 
         const prompt = `Analyze this code and generate a stepwise variable execution trace as if checking it line by line. 
         Return a valid JSON array where each item has: "line" (approximate line number string), "text" (explanation of trace), and an optional "vars" (object of variable values). 
@@ -566,7 +562,6 @@ export const generateExecutionTrace = async (req, res) => {
 export const generateAutoDrawDiagram = async (req, res) => {
     try {
         const { code, chatLog } = req.body;
-        const aiModel = getModel();
 
         const chatContext = Array.isArray(chatLog) ? chatLog.map(l => l.role + ": " + l.text).join("\\n") : "No chat";
         const prompt = `Based on the following interview chat context and code, generate a Mermaid.js diagram that maps out the underlying software system architecture or logic flow discussed.
@@ -615,7 +610,6 @@ export const analyzeEmotion = async (req, res) => {
 export const startGithubMock = async (req, res) => {
     try {
         const { githubUrl } = req.body;
-        const aiModel = getModel();
 
         const prompt = `The candidate just provided this GitHub repository URL: ${githubUrl}.
         You are the Staff Engineer of this repository. Generate a synthetic "Architectural Feature Request" or "Bug Report" based on what you guess this repo does.
@@ -635,12 +629,6 @@ export const startGithubMock = async (req, res) => {
 export const reviewCode = async (req, res) => {
     try {
         const { code, language, problemTitle } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({
-            complexity: "O(n)", spaceComplexity: "O(1)",
-            issues: ["Add more comments"], suggestions: ["Consider edge cases"],
-            rating: 7, summary: "Solid solution with room for optimization."
-        });
 
         const prompt = `You are a senior FAANG engineer reviewing a ${language} solution to "${problemTitle}".
 Code: \`\`\`${language}\n${code}\n\`\`\`
@@ -719,8 +707,6 @@ Respond ONLY in JSON: {"plan": [{"day": 1, "theme": "Arrays & Hashing", "tasks":
 export const generateProblem = async (req, res) => {
     try {
         const { topic, difficulty, context } = req.body;
-        const aiModel = getModel();
-        if (!aiModel) return res.status(200).json({ title: "Find Peak Element", description: "Find a peak in an array...", examples: [], constraints: [] });
 
         const prompt = `Generate a unique, original coding interview problem about "${topic}" at "${difficulty}" difficulty${context ? ` inspired by: ${context}` : ""}.
 Respond EXTREMELY CONCISELY and BRIEFLY to ensure ultra-fast response time (under 1 second). Skip long headers or filler text.

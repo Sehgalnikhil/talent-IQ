@@ -1,12 +1,43 @@
 import { Link } from "react-router";
 import Navbar from "../components/Navbar";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { PROBLEMS } from "../data/problems";
 import { ChevronRightIcon, Code2Icon, CheckCircle2Icon, SearchIcon, FlameIcon, ClockIcon, TrophyIcon, TagIcon, SparklesIcon, BotIcon, XIcon, LightbulbIcon, ArrowRightIcon } from "lucide-react";
 import { getDifficultyBadgeClass } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Float, Stars, Environment, PerspectiveCamera, Sparkles } from "@react-three/drei";
+
+function ArenaBackground() {
+  return (
+    <group>
+      <Stars radius={100} depth={50} count={3000} factor={4} saturation={1} fade speed={2} />
+      <Sparkles count={50} scale={20} size={3} speed={0.5} opacity={0.2} color="#00daf3" />
+      {[...Array(20)].map((_, i) => (
+        <Float key={i} speed={1.5} rotationIntensity={2} floatIntensity={1} position={[
+          (Math.random() - 0.5) * 40,
+          (Math.random() - 0.5) * 40,
+          (Math.random() - 0.5) * 20 - 20
+        ]}>
+          <mesh rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}>
+            <icosahedronGeometry args={[Math.random() * 0.8 + 0.2, 0]} />
+            <meshStandardMaterial 
+              color={i % 2 === 0 ? "#00daf3" : "#8F00FF"} 
+              emissive={i % 2 === 0 ? "#00daf3" : "#8F00FF"}
+              emissiveIntensity={0.8}
+              transparent
+              opacity={0.3}
+              wireframe={i % 3 === 0}
+            />
+          </mesh>
+        </Float>
+      ))}
+      <Environment preset="city" />
+    </group>
+  );
+}
 
 // Feature #9: Company tag data (mapped to problems)
 const COMPANY_TAGS = {
@@ -150,6 +181,16 @@ function ProblemsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-base-300 to-base-200 font-sans selection:bg-primary/30 relative overflow-hidden">
+      
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <Canvas gl={{ antialias: true, alpha: true }}>
+          <PerspectiveCamera makeDefault position={[0, 0, 15]} fov={45} />
+          <Suspense fallback={null}>
+            <ArenaBackground />
+          </Suspense>
+        </Canvas>
+      </div>
+
       {/* Background Dim accents */}
       <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl -z-10 pointer-events-none" />
       <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl -z-10 pointer-events-none" />

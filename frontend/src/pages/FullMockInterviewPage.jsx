@@ -24,6 +24,7 @@ import { executeCode } from '../lib/piston';
 import axiosInstance from '../lib/axios';
 import toast from 'react-hot-toast';
 import DecodingText from '../components/DecodingText';
+import MatrixRain from '../components/MatrixRain';
 
 const AptitudeOptionCard = ({ children, isSelected, onClick }) => {
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -285,19 +286,36 @@ export default function FullMockInterviewPage() {
           setCalculatedFinalScore(calculatedTotal);
 
           setIsEvaluating(true);
-          const feedbackRes = await axiosInstance.post("/interview/chat", {
-             chatLog: [
-               { role: "user", text: `Generate a Final Evaluation Report. Aptitude Score: ${aptitudePct}%, Coding Score: ${codingPct}%. Analyze these strictly and return valid JSON.` }
-             ],
-             interviewType: "Final Evaluation"
-          });
+          const prompt = `You are an elite FAANG Hiring Manager producing a final evaluation report for a candidate completing the Full Gauntlet interview loop.
+Performance Analytics:
+- Aptitude Diagnostics: ${aptitudePct}% Correct
+- Code Generation & Execution: ${codingPct}% Score
+- Architecture/System Design: 80% (heuristic average)
+- ML/Behavioral: 85% (heuristic average)
+
+RETURN STRICTLY VALID JSON EXACTLY LIKE THIS STRUCTURE:
+{
+  "overall_score": ${Math.round((aptitudePct + codingPct + 80 + 85) / 4)},
+  "level": "L3 | L4 | L5",
+  "strengths": ["Specific Strength 1", "Specific Strength 2"],
+  "weaknesses": ["Actionable Area 1", "Actionable Area 2"],
+  "hire_decision": "Strong Hire | Hire | Borderline | No Hire",
+  "feedback": "A very detailed, professional 3-sentence summary of their performance justifying the decision."
+}`;
+
+          const feedbackRes = await axiosInstance.post("/interview/chat", { prompt });
 
           let parsed = {};
           try {
-             const jsonMatch = feedbackRes.data.reply.match(/\{[\s\S]*\}/);
+             let rawText = feedbackRes.data.reply || feedbackRes.data.response || "";
+             if (rawText.includes("\`\`\`")) {
+                rawText = rawText.replace(/\`\`\`(json)?/gi, "").replace(/\`\`\`/g, "").trim();
+             }
+             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
              parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
           } catch (e) {
-             parsed = { feedback: feedbackRes.data.reply || "Assessment Finished.", hire_decision: "Yes", level: "L4", strengths: ["Analytical"], weaknesses: ["Verbose"] };
+             console.error("AI Evaluation parsing failed entirely:", e);
+             parsed = { feedback: "Evaluation Offline. Engine failed to sync real-time report.", hire_decision: "Yes", level: "L4", strengths: ["Fallback Active"], weaknesses: ["Quota Exceeded"] };
           }
           setAiReport(parsed);
 
@@ -406,13 +424,23 @@ export default function FullMockInterviewPage() {
   if (!isStarted) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex flex-col justify-center px-4 pt-64 pb-12 relative overflow-hidden bg-[#111317] text-white" style={{ backgroundColor: "#111317" }}>
+        <div className="min-h-screen flex flex-col justify-center px-4 pt-20 pb-12 relative overflow-hidden bg-[#111317] text-white" style={{ backgroundColor: "#111317" }}>
+          {/* Matrix Rain Digital Background */}
+          <MatrixRain color="rgba(124, 77, 255, 0.25)" />
+          
           {/* Deep Void Background Glows */}
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#7C4DFF]/10 rounded-full blur-[120px] pointer-events-none"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-[#00E5FF]/10 rounded-full blur-[100px] pointer-events-none"></div>
 
           <div className="container mx-auto max-w-6xl relative z-10 flex flex-col md:flex-row gap-12 items-center">
-            <div className="flex-1 text-left">
+            <div className="flex-1 text-left relative">
+              <button 
+                onClick={() => navigate('/dashboard')} 
+                className="flex items-center gap-2 text-[#948ea1] hover:text-[#00daf3] transition-colors font-bold tracking-widest text-xs uppercase mb-8 group"
+              >
+                <ArrowLeftIcon className="size-4 group-hover:-translate-x-1 transition-transform" />
+                Return to Dashboard
+              </button>
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -484,9 +512,14 @@ export default function FullMockInterviewPage() {
               </div>
 
               <button 
-                onClick={startInterview}
-                disabled={!uploadedResume || isInitializing}
-                className={`btn btn-lg rounded-[1rem] px-14 py-4 border-0 text-white shadow-[0_0_40px_rgba(146,68,244,0.4)] transition-all font-inter font-bold tracking-wide w-full md:w-auto h-16 ${!uploadedResume || isInitializing ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:shadow-[0_0_60px_rgba(146,68,244,0.6)] hover:scale-[1.02] bg-gradient-to-r from-[#d8b9ff] to-[#9244f4]'}`}
+                onClick={(e) => {
+                  if (!uploadedResume || isInitializing) {
+                    e.preventDefault();
+                    return;
+                  }
+                  startInterview();
+                }}
+                className={`flex items-center justify-center text-lg rounded-[1rem] px-14 py-4 border-0 text-white transition-all font-inter font-bold tracking-wide w-full md:w-auto h-16 bg-gradient-to-r from-[#d8b9ff] to-[#9244f4] ${!uploadedResume || isInitializing ? 'opacity-50 grayscale cursor-not-allowed' : 'shadow-[0_0_40px_rgba(146,68,244,0.4)] hover:shadow-[0_0_60px_rgba(146,68,244,0.6)] hover:scale-[1.02]'}`}
               >
                 {isInitializing ? (
                   <span className="flex items-center gap-3">
@@ -532,7 +565,15 @@ export default function FullMockInterviewPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen flex flex-col w-full !bg-[#111317] text-white" style={{ backgroundColor: "#111317", color: "white" }}>
+      <div className="min-h-screen flex flex-col w-full !bg-[#111317] text-white overflow-hidden relative" style={{ backgroundColor: "#111317", color: "white" }}>
+        
+        {/* Matrix Rain Active Arena Background */}
+        <MatrixRain color="rgba(0, 218, 243, 0.15)" />
+        
+        {/* CRT Scanline and Vignette Outlay */}
+        <div className="pointer-events-none fixed inset-0 z-[100] bg-[radial-gradient(circle_at_center,transparent_0,rgba(0,0,0,0.6)_100%)] opacity-30 mix-blend-overlay" />
+        <div className="pointer-events-none fixed inset-0 z-[100] bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] opacity-20" />
+
         {/* Progress Timeline Header */}
         <div className="bg-[#111317]/90 backdrop-blur-2xl border-b border-[#494455]/30 p-4 sticky top-16 z-30 shadow-md">
           <div className="container mx-auto max-w-7xl">
