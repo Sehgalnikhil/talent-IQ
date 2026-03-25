@@ -189,7 +189,7 @@ function ProblemsPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-base-100/20 backdrop-blur-md rounded-2xl p-4 border border-white/5 mb-6 space-y-4 shadow-lg"
+          className="bg-base-100/20 backdrop-blur-md rounded-2xl p-4 border border-white/5 mb-6 space-y-4 shadow-lg relative z-20"
         >
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">

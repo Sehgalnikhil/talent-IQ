@@ -41,7 +41,7 @@ function Navbar() {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 pointer-events-none ${scrolled ? 'mt-0' : 'mt-2'}`}>
-      <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100/70 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
+      <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
         
         <div className="px-8 py-2.5 flex items-center justify-between relative z-10">
           
@@ -85,7 +85,7 @@ function Navbar() {
                     <span>Explore Space</span>
                     <ChevronDownIcon className="size-3 opacity-30" />
                  </div>
-                 <ul tabIndex={0} className="dropdown-content z-[150] menu p-8 shadow-[0_0_80px_rgba(0,0,0,0.5)] bg-base-100/98 backdrop-blur-3xl rounded-[50px] w-[600px] border border-white/5 mt-3 grid grid-cols-2 gap-x-12 gap-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                 <ul tabIndex={0} className="dropdown-content z-[150] menu p-8 shadow-[0_0_80px_rgba(0,0,0,0.5)] bg-base-100 border border-white/5 mt-3 grid grid-cols-2 gap-x-12 gap-y-8 animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none focus:pointer-events-auto focus-within:pointer-events-auto">
                     {/* Column 1: Learning & Practice */}
                     <div className="space-y-4">
                        <header className="px-4 py-2 border-b border-white/5 mb-4">
