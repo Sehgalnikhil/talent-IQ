@@ -29,8 +29,27 @@ const getModel = () => {
     return null;
 };
 
-export const askAIWithFallback = async (prompt, isJson = true) => {
-    // 1️⃣ TRY GEMINI FIRST (Primary high-intelligence model)
+export const askAIWithFallback = async (prompt, isJson = true, preferOllama = false) => {
+    // 1️⃣ OPTIONAL: PREFER LOCAL OLLAMA FIRST (User optimization)
+    if (preferOllama) {
+        try {
+            const payload = {
+                model: process.env.OLLAMA_MODEL || "qwen2",
+                prompt: prompt,
+                stream: false
+            };
+            if (isJson) payload.format = "json";
+            const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
+            const resp = await axios.post(ollamaUrl, payload, { timeout: 25000 });
+            let response = resp.data.response;
+            if (!isJson) response = `[LOCAL OLLAMA] ${response}`;
+            return response;
+        } catch (ollamaErr) {
+            console.warn("⚠️ Local Ollama Failed (Preference). Falling back to Gemini...", ollamaErr.message);
+        }
+    }
+
+    // 2️⃣ TRY GEMINI (Primary/Secondary depending on preference)
     try {
         const aiModel = getModel();
         if (aiModel) {
@@ -41,40 +60,44 @@ export const askAIWithFallback = async (prompt, isJson = true) => {
         console.warn("⚠️ Gemini AI Failed (Quota or Error). Attempting Local Ollama Fallback...", geminiErr.message);
     }
 
-    // 2️⃣ FALLBACK TO LOCAL OLLAMA (Production safety net)
-    try {
-        const payload = {
-            model: process.env.OLLAMA_MODEL || "qwen2",
-            prompt: prompt,
-            stream: false
-        };
-
-        if (isJson) payload.format = "json";
-
-        const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
-        const resp = await axios.post(ollamaUrl, payload, { timeout: 25000 }); // Increased timeout for heavier local models
-        
-        let response = resp.data.response;
-        // Tag local responses so the user knows it's the fallback
-        if (!isJson) {
-            response = `[LOCAL OLLAMA FALLBACK] ${response}`;
+    // 3️⃣ FALLBACK TO LOCAL OLLAMA (Production safety net - ONLY if not already tried as preference)
+    if (!preferOllama) {
+        try {
+            const payload = {
+                model: process.env.OLLAMA_MODEL || "qwen2",
+                prompt: prompt,
+                stream: false
+            };
+    
+            if (isJson) payload.format = "json";
+    
+            const ollamaUrl = `${process.env.OLLAMA_HOST || "http://localhost:11434"}/api/generate`;
+            const resp = await axios.post(ollamaUrl, payload, { timeout: 25000 }); // Increased timeout for heavier local models
+            
+            let response = resp.data.response;
+            // Tag local responses so the user knows it's the fallback
+            if (!isJson) {
+                response = `[LOCAL OLLAMA FALLBACK] ${response}`;
+            }
+            return response;
+        } catch (ollamaErr) {
+            console.error("❌ Both Gemini and local Ollama failed:", ollamaErr.message);
         }
-        return response;
-    } catch (ollamaErr) {
-        console.error("❌ Both Gemini and local Ollama failed:", ollamaErr.message);
-        
-        // 3️⃣ FINAL EMERGENCY FALLBACK (Ensures session never crashes)
-        if (isJson) {
+    }
+
+    // 4️⃣ FINAL EMERGENCY FALLBACK (Ensures session never crashes)
+    if (isJson) {
             return JSON.stringify({
+                title: "Heuristic AI Problem: Peak Analysis",
+                description: "The AI node is in recalibration mode. Solve this baseline: Find any peak element in an array where current > neighbors.",
                 explanation: "The AI node is recalibrating. Based on your current progress, consider looking into potential edge cases or performance optimizations.",
                 feedback: "System Offline: Emergency heuristics active.",
                 score: 70, strengths: ["Analytical Persistence"], weaknesses: ["External Dependency dependency"]
             });
         }
         
-        return "[HEURISTIC_BACKUP] Your logic makes sense. Could you expand on how you'd handle edge cases or scale the system design?";
-    }
-};
+    return "[HEURISTIC_BACKUP] Your logic makes sense. Could you expand on how you'd handle edge cases or scale the system design?";
+}
 
 export const analyzeResume = async (req, res) => {
     try {
@@ -724,7 +747,7 @@ Respond ONLY in valid JSON matching this exact structure:
 }`;
         let rawText = "";
         try {
-            rawText = await askAIWithFallback(prompt);
+            rawText = await askAIWithFallback(prompt, true, true);
         } catch (err) {
             console.error("AI Generation Review Error inside GenerateProblem:", err);
             return res.status(500).json({ error: "Generation failed on both Gemini and local Ollama interfaces." });

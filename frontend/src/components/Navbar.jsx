@@ -13,9 +13,10 @@ import {
    Mic2Icon,
    BookMarkedIcon,
    HistoryIcon,
-   UserCircle2Icon
+   UserCircle2Icon,
+   StarIcon
 } from "lucide-react";
-import { UserButton } from "@clerk/clerk-react";
+import { UserButton, useUser } from "@clerk/clerk-react";
 import NotificationCenter from "./NotificationCenter";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -23,6 +24,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const THEMES = ["dark", "light", "dracula", "nord", "synthwave", "night", "sunset", "luxury", "corporate"];
 
 function Navbar() {
+   const { user } = useUser();
    const [isExploreHovered, setIsExploreHovered] = useState(false);
    const location = useLocation();
    const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
@@ -65,6 +67,7 @@ function Navbar() {
                         { label: "Dashboard", path: "/dashboard", icon: LayoutDashboardIcon },
                         { label: "Arena", path: "/speedrun", icon: SwordsIcon, color: "text-error" },
                         { label: "Leaderboard", path: "/leaderboard", icon: TrophyIcon },
+                        { label: "Profile", path: `/u/${user?.username || user?.firstName || "Candidate"}`, icon: UserCircle2Icon },
                      ].map((node) => (
                         <Link
                            key={node.path}
@@ -123,8 +126,8 @@ function Navbar() {
                              </div>
                              <div className="space-y-2">
                                 <li><Link to="/interview" className="rounded-3xl p-6 bg-error/5 hover:bg-error text-error hover:text-white transition-all group border border-error/5 shadow-2xl"><div className="flex items-center gap-5"><div className="size-12 bg-error/20 rounded-2xl flex items-center justify-center"><SparklesIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest">Neural Interview</span><span className="text-[9px] opacity-60 uppercase font-black tracking-widest">AI Consensus Board</span></div></div></Link></li>
+                                 <li><Link to="/behavioral" className="rounded-3xl p-6 hover:bg-warning/10 group border border-transparent hover:border-warning/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-warning/15 rounded-2xl flex items-center justify-center text-warning group-hover:bg-warning group-hover:text-white transition-all"><StarIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">STAR Simulator</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Soft-Skill Analysis</span></div></div></Link></li>
                                 <li><Link to="/voice-interview" className="rounded-3xl p-6 hover:bg-error/10 group border border-transparent hover:border-error/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-error/15 rounded-2xl flex items-center justify-center text-error group-hover:bg-error group-hover:text-white transition-all"><Mic2Icon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Acoustic Session</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Sync-Vocal Analysis</span></div></div></Link></li>
-                                <li><Link to="/u/Developer" className="rounded-3xl p-6 hover:bg-secondary/10 group border border-transparent hover:border-secondary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-secondary/15 rounded-2xl flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all"><UserCircle2Icon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">Sovereign Portfolio</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Master Node Status</span></div></div></Link></li>
                                 <li><Link to="/generate" className="rounded-3xl p-6 hover:bg-primary/10 group border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-5"><div className="size-12 bg-primary/15 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all"><SparklesIcon className="size-5" /></div><div className="flex flex-col"><span className="font-black text-sm uppercase tracking-widest text-base-content">AI Problem Lab</span><span className="text-[9px] opacity-40 uppercase font-black tracking-widest text-base-content">Infinite generation</span></div></div></Link></li>
                              </div>
                           </div>

@@ -92,9 +92,33 @@ export function initSocket(server, clientUrl) {
             const { userId, name, roomId } = data;
             const room = rooms.get(roomId);
 
-            if (room && room.isPrivate && room.status === "waiting") {
+            if (!room) {
+                return socket.emit("opponent_disconnected", { reason: "Combat Protocol Node not found. Re-check the Room ID." });
+            }
+
+            const existingPlayerKey = Object.keys(room.players).find(key => room.players[key].userId === userId);
+
+            // Allow re-join if user was already in the room (e.g. refresh)
+            if (existingPlayerKey) {
+                // Update socket mapping
+                const oldData = room.players[existingPlayerKey];
+                delete room.players[existingPlayerKey];
+                room.players[socket.id] = { ...oldData, socketId: socket.id };
+                socket.join(roomId);
+                
+                socket.emit("match_found", {
+                    roomId,
+                    problemId: room.problemId,
+                    players: Object.values(room.players)
+                });
+                return;
+            }
+
+            if (room.isPrivate && Object.keys(room.players).length < 2) {
                 room.players[socket.id] = { socketId: socket.id, userId, name, progress: 0, code: "", status: "playing" };
-                room.status = "active";
+                if (Object.keys(room.players).length === 2) {
+                    room.status = "active";
+                }
                 socket.join(roomId);
 
                 io.to(roomId).emit("match_found", {
@@ -104,7 +128,7 @@ export function initSocket(server, clientUrl) {
                 });
                 console.log(`User ${name} joined private match: ${roomId}`);
             } else {
-                socket.emit("opponent_disconnected", { reason: "Room not found or already full." });
+                socket.emit("opponent_disconnected", { reason: "Arena Protocol saturated. Room is already full." });
             }
         });
 
@@ -181,11 +205,30 @@ export function initSocket(server, clientUrl) {
             const qIndex = queue.findIndex(u => u.socketId === socket.id);
             if (qIndex !== -1) queue.splice(qIndex, 1);
 
-            // Remove from room and notify opponent
+            // Handle Room Disconnection
             for (const [roomId, room] of rooms.entries()) {
                 if (room.players[socket.id]) {
-                    socket.to(roomId).emit("opponent_disconnected", { reason: "Opponent left the game." });
-                    rooms.delete(roomId);
+                    const player = room.players[socket.id];
+                    console.log(`Player ${player.name} disconnected from room ${roomId}`);
+
+                    if (room.isPrivate) {
+                        // DON'T instantly delete private rooms, allow re-join based on userId
+                        // Just notify the other player
+                        socket.to(roomId).emit("opponent_update", {
+                            socketId: socket.id,
+                            status: "disconnected"
+                        });
+                        
+                        // Delete only if room is truly abandoned (last person leaves)
+                        // Note: If they both refresh, the room stays forever? No, we'll let it be.
+                        if (Object.keys(room.players).length <= 1) {
+                           rooms.delete(roomId);
+                        }
+                    } else {
+                        // For random matches, disconnect is fatal
+                        socket.to(roomId).emit("opponent_disconnected", { reason: "Opponent disconnected from protocol." });
+                        rooms.delete(roomId);
+                    }
                     break;
                 }
             }
