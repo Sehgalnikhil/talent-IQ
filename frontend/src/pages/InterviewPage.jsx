@@ -562,7 +562,7 @@ function InterviewPage() {
 
     if (phase === "active") {
         return (
-            <div className={`h-screen flex flex-col pt-16 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
+            <div className={`h-screen flex flex-col pt-36 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
                 <Navbar />
 
                 {/* Floating AI Coach Toast */}
@@ -577,7 +577,7 @@ function InterviewPage() {
                     )}
                 </AnimatePresence>
 
-                <div className="bg-black/60 backdrop-blur-3xl px-8 h-12 flex justify-between items-center z-40 border-b border-white/10">
+                <div className="bg-black/80 backdrop-blur-4xl px-8 h-16 flex justify-between items-center z-40 border-b border-white/10 shadow-2xl">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 px-3 py-1 bg-error/10 border border-error/20 rounded-full animate-pulse">
                             <span className="size-2 bg-error rounded-full block"></span>
@@ -607,7 +607,7 @@ function InterviewPage() {
 
                 <div className="flex-1 flex overflow-hidden">
                     <div className={`${interviewType === "Behavioral" ? "w-full max-w-4xl mx-auto rounded-t-xl" : "w-[30%] border-r border-white/10"} bg-black/20 flex flex-col backdrop-blur-3xl`}>
-                        <div className="px-6 h-12 bg-white/5 border-b border-white/10 font-black text-[10px] flex items-center justify-between uppercase tracking-[0.4em] opacity-40">
+                        <div className="px-6 h-16 bg-white/5 border-b border-white/10 font-black text-[10px] flex items-center justify-between uppercase tracking-[0.4em] opacity-40">
                             <span>Intelligence_Feed</span>
                             <div className="flex items-center gap-4">
                                <button onClick={() => setAudioEnabled(!audioEnabled)} className={`flex items-center gap-2 ${!audioEnabled && 'opacity-30'}`}>{audioEnabled ? <Mic className="size-3" /> : <Mic className="size-3 line-through" />} VOX</button>
@@ -645,8 +645,8 @@ function InterviewPage() {
                     </div>
 
                     {interviewType !== "Behavioral" && (
-                        <div className="flex-1 flex flex-col bg-black">
-                            <div className="h-12 border-b border-white/10 px-8 flex items-center justify-between bg-white/5">
+                        <div className="flex-1 flex flex-col bg-black border-l border-white/10">
+                            <div className="h-16 border-b border-white/10 px-8 flex items-center justify-between bg-white/5 shadow-inner">
                                 <div className="flex items-center gap-6">
                                      <div className="flex items-center gap-2">
                                         <div className="size-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--color-primary),1)]" />
