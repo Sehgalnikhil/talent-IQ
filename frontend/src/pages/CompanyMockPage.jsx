@@ -59,7 +59,7 @@ export default function CompanyMockPage() {
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
-                className="flex-1 max-w-5xl mx-auto w-full p-4 lg:p-8 relative z-10"
+                className="flex-1 max-w-5xl mx-auto w-full pt-64 pb-8 px-4 lg:px-8 relative z-10"
             >
                 <motion.div variants={cardVariants} className="mb-12 text-center max-w-2xl mx-auto">
                     <h1 className="text-4xl lg:text-5xl font-black mb-4 flex items-center justify-center gap-3">

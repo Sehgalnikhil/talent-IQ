@@ -112,7 +112,7 @@ function FlashcardPage() {
             <div className="absolute top-0 right-0 size-96 bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse" />
             <div className="absolute bottom-0 left-0 size-96 bg-secondary/10 rounded-full blur-3xl -z-10" />
 
-            <div className="max-w-3xl mx-auto px-4 py-12 w-full z-10 flex-1 flex flex-col justify-center">
+            <div className="max-w-3xl mx-auto px-4 pt-64 pb-12 w-full z-10 flex-1 flex flex-col justify-center">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
                     <div>

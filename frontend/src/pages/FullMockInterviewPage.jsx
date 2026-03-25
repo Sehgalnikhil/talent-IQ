@@ -406,7 +406,7 @@ export default function FullMockInterviewPage() {
   if (!isStarted) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex flex-col justify-center px-4 py-12 relative overflow-hidden bg-[#111317] text-white" style={{ backgroundColor: "#111317" }}>
+        <div className="min-h-screen flex flex-col justify-center px-4 pt-64 pb-12 relative overflow-hidden bg-[#111317] text-white" style={{ backgroundColor: "#111317" }}>
           {/* Deep Void Background Glows */}
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#7C4DFF]/10 rounded-full blur-[120px] pointer-events-none"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-[#00E5FF]/10 rounded-full blur-[100px] pointer-events-none"></div>
