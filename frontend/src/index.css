@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: dark, light, dracula, nord, synthwave, night, sunset, luxury, corporate;
+  themes: dark, light, dracula, nord, cyberpunk, synthwave, night, sunset;
 }
 
 @theme {
@@ -35,6 +35,7 @@
 }
 
 @layer components {
+
   /* Elevate DaisyUI Cards */
   .card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
@@ -88,16 +89,19 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(8px);
     transition: all 0.2s;
-    padding-right: 2.5rem !important; /* Ensure space for arrow */
+    padding-right: 2.5rem !important;
+    /* Ensure space for arrow */
   }
 
   /* Fix transparent dropdown options */
   .select option {
-    background-color: #1a1d24 !important; /* Solid dark color matching theme */
+    background-color: #1a1d24 !important;
+    /* Solid dark color matching theme */
     color: #f8fafc !important;
   }
 
-  .input:focus, .select:focus {
+  .input:focus,
+  .select:focus {
     border-color: oklch(var(--p));
     box-shadow: 0 0 0 1px oklch(var(--p));
   }
