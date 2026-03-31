@@ -284,7 +284,7 @@ function TrackPage() {
 
             <div className={`absolute top-0 right-0 w-96 h-96 bg-${track.color}/10 rounded-full blur-[100px] mix-blend-screen animate-pulse pointer-events-none -z-10`} />
 
-            <div className="max-w-7xl mx-auto px-4 pt-64 pb-8 relative z-10 flex flex-col xl:flex-row gap-8">
+            <div className="max-w-7xl mx-auto px-4 pt-24 pb-8 relative z-10 flex flex-col xl:flex-row gap-8">
 
                 {/* LEFT SIDE: MAIN TRACK DAG */}
                 <div className="flex-1">

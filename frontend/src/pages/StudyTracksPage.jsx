@@ -133,7 +133,7 @@ function StudyTracksPage() {
                 <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[128px] mix-blend-screen animate-pulse" style={{ animationDelay: '2s' }}></div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-4 pt-64 pb-16 relative z-10">
+            <div className="max-w-6xl mx-auto px-4 pt-24 pb-16 relative z-10">
                 <div className="text-center mb-16 space-y-4">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-base-100 border border-base-300 shadow-sm text-sm font-medium mb-4">
                         <FlameIcon className="size-4 text-orange-500" />

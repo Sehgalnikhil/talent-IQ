@@ -142,7 +142,7 @@ export default function BehavioralInterviewPage() {
         <div className="min-h-screen bg-base-200 flex flex-col">
             <Navbar />
             
-            <div className="max-w-5xl mx-auto w-full pt-64 pb-8 px-4 lg:px-8 flex-1 flex flex-col">
+            <div className="max-w-5xl mx-auto w-full pt-24 pb-8 px-4 lg:px-8 flex-1 flex flex-col">
                 <div className="mb-6 text-center max-w-3xl mx-auto">
                     <h1 className="text-4xl font-black mb-4 flex items-center justify-center gap-3">
                         <PresentationIcon className="size-10 text-primary" />

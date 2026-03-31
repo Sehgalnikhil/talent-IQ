@@ -157,7 +157,7 @@ export default function VoiceInterviewPage() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-secondary/5 rounded-full blur-[180px] animate-pulse" />
             </div>
 
-            <main className="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-12 space-y-8 h-screen flex flex-col">
+            <main className="relative z-10 max-w-6xl mx-auto px-6 pt-24 pb-12 space-y-8 h-screen flex flex-col">
                 
                 {/* 1. HEADER HUD */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-4">

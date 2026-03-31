@@ -86,7 +86,7 @@ export default function PublicProfilePage() {
                 />
             </div>
 
-            <main className="relative z-10 max-w-7xl mx-auto px-6 pt-64 pb-32 space-y-12">
+            <main className="relative z-10 max-w-7xl mx-auto px-6 pt-24 pb-32 space-y-12">
                 
                 {/* 1. NODE IDENTITY HEADER */}
                 <motion.div 

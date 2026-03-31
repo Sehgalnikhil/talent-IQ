@@ -82,6 +82,7 @@ function SpeedrunPage() {
     const [testResults, setTestResults] = useState(null);
     const [sabotagePoints, setSabotagePoints] = useState(0);
     const [activeSabotage, setActiveSabotage] = useState(null);
+    const [oppSabotageEffect, setOppSabotageEffect] = useState(null);
 
     const [whisperTip, setWhisperTip] = useState("");
     const lastKeystrokeTime = useRef(Date.now());
@@ -94,6 +95,20 @@ function SpeedrunPage() {
 
     const timerRef = useRef(null);
     const languageRef = useRef("javascript");
+    const sabotageTimerRef = useRef(null);
+    
+    // Refs for socket callbacks to avoid re-initializing effect
+    const matchTimeRef = useRef(0);
+    const eloRef = useRef(1200);
+    const historyRef = useRef([]);
+    const problemRef = useRef(null);
+    const opponentRef = useRef(null);
+
+    useEffect(() => { matchTimeRef.current = matchTime; }, [matchTime]);
+    useEffect(() => { eloRef.current = elo; }, [elo]);
+    useEffect(() => { historyRef.current = matchHistory; }, [matchHistory]);
+    useEffect(() => { problemRef.current = problem; }, [problem]);
+    useEffect(() => { opponentRef.current = opponent; }, [opponent]);
 
     useEffect(() => {
         const checkTheme = () => {
@@ -120,49 +135,58 @@ function SpeedrunPage() {
 
     useEffect(() => {
         socket.connect();
-        socket.on("match_found", (data) => {
+        
+        const onMatchFound = (data) => {
             setRoomId(data.roomId);
             const prob = PROBLEMS[data.problemId];
             setProblem(prob);
+            // Access ref if needed, but here we can set directly
             setCode(prob.starterCode[languageRef.current]);
             const opp = data.players.find(p => p.socketId !== socket.id);
             setOpponent(opp);
             setMatchState("active");
             setMatchTime(0);
+            if (timerRef.current) clearInterval(timerRef.current);
             timerRef.current = setInterval(() => setMatchTime(prev => prev + 1), 1000);
             toast.success("Consensus Synchronized! Fight for survival.", { icon: "🔥" });
-        });
+        };
 
-        socket.on("private_room_created", (code) => {
+        const onPrivateRoomCreated = (code) => {
             setMatchState("private_waiting");
             setPrivateCode(code);
             toast.success("Private Matrix Created");
-        });
+        };
 
-        socket.on("opponent_update", (data) => {
-            setOpponent(prev => prev ? { ...prev, code: data.code, progress: data.progress } : null);
+        const onOpponentUpdate = (data) => {
+            setOpponent(prev => {
+                if (!prev) return { socketId: data.socketId, code: data.code, progress: data.progress, name: "AGHOST_NODE", language: data.language || "javascript" };
+                return { ...prev, code: data.code, progress: data.progress, language: data.language || prev.language || "javascript" };
+            });
             if (data.metrics) setOpponentMetrics(data.metrics);
-        });
+        };
 
-        socket.on("receive_taunt", (emoji) => {
+        const onReceiveTaunt = (emoji) => {
             setOpponentTaunt(emoji);
             setTimeout(() => setOpponentTaunt(null), 3000);
-        });
+        };
 
-        socket.on("receive_sabotage", (type) => {
+        const onReceiveSabotage = (type) => {
+            if (sabotageTimerRef.current) clearTimeout(sabotageTimerRef.current);
             setActiveSabotage(type);
             toast.error(`Opponent used ${type.toUpperCase()}_VIRUS!`, { icon: type === 'flashbang' ? "🔦" : "💥" });
-            setTimeout(() => setActiveSabotage(null), type === "earthquake" ? 3000 : 5000);
-        });
+            sabotageTimerRef.current = setTimeout(() => setActiveSabotage(null), type === "earthquake" ? 3000 : 5000);
+        };
 
-        socket.on("match_over", (data) => {
+        const onMatchOver = (data) => {
             setWinner(data.winner);
             setMatchState("finished");
-            clearInterval(timerRef.current);
+            if (timerRef.current) clearInterval(timerRef.current);
+            
             const won = data.winner.socketId === socket.id;
             const oppElo = 1200;
-            const change = calcEloChange(elo, oppElo, won);
-            const newElo = Math.max(0, elo + change);
+            const change = calcEloChange(eloRef.current, oppElo, won);
+            const newElo = Math.max(0, eloRef.current + change);
+            
             setEloChange(change);
             setElo(newElo);
 
@@ -175,44 +199,54 @@ function SpeedrunPage() {
 
             const entry = {
                 date: new Date().toISOString(),
-                problem: problem?.title || "Unknown",
+                problem: problemRef.current?.title || "Unknown",
                 won,
                 eloChange: change,
                 newElo,
-                time: matchTime,
-                opponent: opponent?.name || "Unknown"
+                time: matchTimeRef.current,
+                opponent: opponentRef.current?.name || "Unknown"
             };
             
-            const history = [...matchHistory, entry];
-            setMatchHistory(history);
+            setMatchHistory(prev => {
+                const updated = [...prev, entry];
+                // Save to metadata using functional update logic
+                axiosInstance.post("/users/metadata/update", {
+                    key: "speedrun",
+                    value: { elo: newElo, wins: won ? 1 : 0, history: updated }
+                }).catch(err => console.error("Could not save matching weights", err));
+                return updated;
+            });
+        };
 
-            axiosInstance.post("/users/metadata/update", {
-                key: "speedrun",
-                value: { elo: newElo, wins: won ? 1 : 0, history: history }
-            }).catch(err => console.error("Could not save matching weights", err));
-        });
-
-        socket.on("opponent_disconnected", (data) => {
+        const onOpponentDisconnected = (data) => {
             toast.error(data.reason);
-            clearInterval(timerRef.current);
+            if (timerRef.current) clearInterval(timerRef.current);
             setMatchState("lobby");
             setRoomId(null);
             setProblem(null);
             setOpponent(null);
-        });
+        };
+
+        socket.on("match_found", onMatchFound);
+        socket.on("private_room_created", onPrivateRoomCreated);
+        socket.on("opponent_update", onOpponentUpdate);
+        socket.on("receive_taunt", onReceiveTaunt);
+        socket.on("receive_sabotage", onReceiveSabotage);
+        socket.on("match_over", onMatchOver);
+        socket.on("opponent_disconnected", onOpponentDisconnected);
 
         return () => {
-            socket.off("match_found");
-            socket.off("private_room_created");
-            socket.off("opponent_update");
-            socket.off("receive_taunt");
-            socket.off("receive_sabotage");
-            socket.off("match_over");
-            socket.off("opponent_disconnected");
+            socket.off("match_found", onMatchFound);
+            socket.off("private_room_created", onPrivateRoomCreated);
+            socket.off("opponent_update", onOpponentUpdate);
+            socket.off("receive_taunt", onReceiveTaunt);
+            socket.off("receive_sabotage", onReceiveSabotage);
+            socket.off("match_over", onMatchOver);
+            socket.off("opponent_disconnected", onOpponentDisconnected);
             socket.disconnect();
-            clearInterval(timerRef.current);
+            if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [elo, matchHistory, problem, opponent, matchTime]);
+    }, []);
 
     const handleCodeChange = (newCode) => {
         if (newCode.length - code.length > 60) {
@@ -252,8 +286,8 @@ function SpeedrunPage() {
     useEffect(() => {
         if (matchState === "active" && roomId) {
             const timer = setTimeout(() => {
-                socket.emit("code_update", { roomId, code, progress: 50, metrics: myMetrics });
-            }, 300);
+                socket.emit("code_update", { roomId, code, progress: 50, metrics: myMetrics, language: selectedLanguage });
+            }, 150);
             return () => clearTimeout(timer);
         }
     }, [code, matchState, roomId, myMetrics]);
@@ -268,6 +302,8 @@ function SpeedrunPage() {
         if (sabotagePoints < 1) return toast.error("Not enough Chaos Points!");
         setSabotagePoints(prev => prev - 1);
         socket.emit("send_sabotage", { roomId, type });
+        setOppSabotageEffect(type);
+        setTimeout(() => setOppSabotageEffect(null), 5000);
         toast.success(`Used Sabotage: ${type.toUpperCase()}`, { icon: "😈" });
     };
 
@@ -356,7 +392,7 @@ function SpeedrunPage() {
     };
 
     const renderLobby = () => (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center relative p-6 pt-40 pb-32 font-sans overflow-y-auto no-scrollbar">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center relative p-6 pt-24 pb-8 font-sans overflow-y-auto no-scrollbar">
             {/* AMBIENT ENGINE */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden h-screen -z-10">
                 <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-error/10 rounded-full blur-[140px] animate-pulse" />
@@ -497,10 +533,10 @@ function SpeedrunPage() {
                 {(matchState === "lobby" || matchState === "queue" || matchState === "private_waiting") ? (
                     renderLobby()
                 ) : (
-                    <motion.div key="arena" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col pt-64 h-screen overflow-hidden bg-transparent">
+                    <motion.div key="arena" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col pt-24 h-screen overflow-hidden bg-transparent">
                         
                         {/* 1. ARENA COMMAND BAR */}
-                        <div className="px-8 pb-6 flex items-center justify-between gap-12 max-w-[1920px] mx-auto w-full">
+                        <div className="px-8 pb-4 flex items-center justify-between gap-8 max-w-[1920px] mx-auto w-full">
                             
                             {/* ADVERSARY METRICS: LEFT */}
                             <div className="flex-1 flex items-center gap-6">
@@ -551,7 +587,7 @@ function SpeedrunPage() {
                         </div>
 
                         {/* 2. BATTLE GRID ENGINE */}
-                        <div className="flex-1 flex px-8 pb-8 gap-8 max-w-[1920px] mx-auto w-full overflow-hidden">
+                        <div className="flex-1 flex px-8 pb-6 gap-6 max-w-[1920px] mx-auto w-full overflow-hidden">
                             
                             {/* L: SCHEMATIC DESCRIPTION */}
                             <div className={`w-[24%] rounded-[40px] border p-10 overflow-y-auto no-scrollbar relative shadow-3xl ${isDark ? 'bg-white/5 border-white/5' : 'bg-base-100/60 border-black/5'} backdrop-blur-3xl hidden xl:block`}>
@@ -695,8 +731,38 @@ function SpeedrunPage() {
                                       <span className="text-[9px] font-black uppercase tracking-[0.4em] text-error">Adversary_Stream</span>
                                    </div>
                                 </header>
-                                <div className="flex-1 opacity-40 grayscale pointer-events-none p-4">
-                                     <Editor height="100%" language="javascript" value={opponent?.code || "// Tracking Adversary Node..."} theme="vs-dark" options={{ minimap: { enabled: false }, readOnly: true, lineNumbers: "off", fontSize: 12 }} />
+                                <div className="flex-1 opacity-40 grayscale pointer-events-none p-4 relative">
+                                     <div className="absolute inset-0 bg-transparent flex items-center justify-center pointer-events-none z-50">
+                                        <AnimatePresence>
+                                            {oppSabotageEffect && (
+                                                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="bg-error/30 backdrop-blur-md px-4 py-2 rounded-full border border-error/50 flex items-center gap-2">
+                                                    <BombIcon className="size-4 text-white" />
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-tighter">Sabotaged!</span>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                     </div>
+                                     <motion.div 
+                                        className="h-full w-full"
+                                        animate={oppSabotageEffect === "earthquake" ? { x: [-5, 5, -5, 5, 0] } : { x: 0 }}
+                                        transition={{ repeat: oppSabotageEffect === "earthquake" ? Infinity : 0, duration: 0.1 }}
+                                        style={{ 
+                                            filter: oppSabotageEffect === "flashbang" ? "invert(1) blur(8px)" : (oppSabotageEffect === "obfuscate" ? "blur(10px)" : "none") 
+                                        }}
+                                     >
+                                         <Editor 
+                                            height="100%" 
+                                            language={opponent?.language || "javascript"}
+                                            value={opponent?.code || "// Tracking Adversary Node..."} 
+                                            theme="vs-dark" 
+                                            options={{ 
+                                                minimap: { enabled: false }, 
+                                                readOnly: true, 
+                                                lineNumbers: "off", 
+                                                fontSize: 12 
+                                            }} 
+                                         />
+                                     </motion.div>
                                 </div>
                                 <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
                             </div>

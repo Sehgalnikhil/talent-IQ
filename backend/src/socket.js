@@ -133,7 +133,7 @@ export function initSocket(server, clientUrl) {
         });
 
         // Handle code progress update
-        socket.on("code_update", ({ roomId, code, progress, metrics }) => {
+        socket.on("code_update", ({ roomId, code, progress, metrics, language }) => {
             const room = rooms.get(roomId);
             if (room && room.players[socket.id]) {
                 room.players[socket.id].code = code;
@@ -144,7 +144,8 @@ export function initSocket(server, clientUrl) {
                     socketId: socket.id,
                     code,
                     progress,
-                    metrics
+                    metrics,
+                    language
                 });
             }
         });

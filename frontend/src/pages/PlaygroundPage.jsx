@@ -45,7 +45,7 @@ function PlaygroundPage() {
     };
 
     return (
-        <div className="h-screen bg-base-300 flex flex-col overflow-hidden text-base-content selection:bg-primary/30 pt-32">
+        <div className="h-screen bg-base-300 flex flex-col overflow-hidden text-base-content selection:bg-primary/30 pt-24">
             <Navbar />
 
             {/* Background Accents */}

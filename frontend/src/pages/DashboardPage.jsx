@@ -19,7 +19,7 @@ import {
   LayoutDashboardIcon,
   CommandIcon,
 } from "lucide-react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -45,6 +45,7 @@ import {
   BurnoutWidget, 
   PatternStatsWidget 
 } from "../components/MLWidgets";
+import GauntletTransition from "../components/GauntletTransition";
 
 // --- GSAP REGISTRATION ---
 gsap.registerPlugin(ScrollTrigger);
@@ -102,6 +103,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useUser();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showGauntletTransition, setShowGauntletTransition] = useState(false);
   const [roomConfig, setRoomConfig] = useState({ problem: "", difficulty: "" });
   const [theme, setTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
   const isDark = useMemo(() => theme !== "light" && theme !== "nord" && theme !== "corporate", [theme]);
@@ -214,8 +216,8 @@ function DashboardPage() {
         </Canvas>
       </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-64 space-y-12">
-        <header className="pt-8 pb-6 flex flex-col md:flex-row items-end justify-between gap-8 dashboard-item">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-16 space-y-8">
+        <header className="pt-4 pb-4 flex flex-col md:flex-row items-end justify-between gap-6 dashboard-item">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
                <div className={`size-8 rounded-lg flex items-center justify-center border ${isDark ? 'bg-primary/20 border-primary/40' : 'bg-primary/10 border-primary/20'}`}>
@@ -285,7 +287,7 @@ function DashboardPage() {
            </div>
            
            <div className="dashboard-item">
-              <TiltCard onClick={() => navigate("/full-gauntlet")} className={`p-12 border transition-all rounded-[50px] group cursor-pointer h-full relative overflow-hidden shadow-2xl ${isDark ? 'bg-gradient-to-br from-primary/10 to-transparent border-primary/20 hover:border-primary/50' : 'bg-base-100 border-primary/20 hover:border-primary/50'}`}>
+              <TiltCard onClick={() => setShowGauntletTransition(true)} className={`p-12 border transition-all rounded-[50px] group cursor-pointer h-full relative overflow-hidden shadow-2xl ${isDark ? 'bg-gradient-to-br from-primary/10 to-transparent border-primary/20 hover:border-primary/50' : 'bg-base-100 border-primary/20 hover:border-primary/50'}`}>
               <div className="size-40 bg-primary/5 absolute -top-10 -right-10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
                  <div className="flex items-center justify-between pointer-events-none relative z-10">
                     <div className="space-y-6">
@@ -335,6 +337,12 @@ function DashboardPage() {
       </main>
 
       <CreateSessionModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} roomConfig={roomConfig} setRoomConfig={setRoomConfig} onCreateRoom={handleCreateRoom} isCreating={createSessionMutation.isPending} />
+
+      <AnimatePresence>
+        {showGauntletTransition && (
+          <GauntletTransition onComplete={() => navigate("/full-gauntlet")} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

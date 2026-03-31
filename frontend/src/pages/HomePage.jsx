@@ -206,7 +206,7 @@ const HomePage = () => {
       </nav>
 
       {/* 1. HERO SECTION */}
-      <Section className="text-center pt-32">
+      <Section className="text-center pt-16">
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}

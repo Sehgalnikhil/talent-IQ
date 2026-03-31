@@ -424,7 +424,7 @@ RETURN STRICTLY VALID JSON EXACTLY LIKE THIS STRUCTURE:
   if (!isStarted) {
     return (
       <PageTransition>
-        <div className="min-h-screen flex flex-col justify-center px-4 pt-20 pb-12 relative overflow-hidden bg-[#111317] text-white" style={{ backgroundColor: "#111317" }}>
+        <div className="min-h-screen flex flex-col justify-center px-4 pt-12 pb-12 relative overflow-hidden bg-[#111317] text-white" style={{ backgroundColor: "#111317" }}>
           {/* Matrix Rain Digital Background */}
           <MatrixRain color="rgba(124, 77, 255, 0.25)" />
           
@@ -575,7 +575,7 @@ RETURN STRICTLY VALID JSON EXACTLY LIKE THIS STRUCTURE:
         <div className="pointer-events-none fixed inset-0 z-[100] bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] opacity-20" />
 
         {/* Progress Timeline Header */}
-        <div className="bg-[#111317]/90 backdrop-blur-2xl border-b border-[#494455]/30 p-4 sticky top-16 z-30 shadow-md">
+        <div className="bg-[#111317]/90 backdrop-blur-2xl border-b border-[#494455]/30 py-3 px-4 sticky top-24 z-30 shadow-md">
           <div className="container mx-auto max-w-7xl">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {ROUNDS.map((round, idx) => (
@@ -600,7 +600,7 @@ RETURN STRICTLY VALID JSON EXACTLY LIKE THIS STRUCTURE:
         </div>
 
         {/* Dynamic Interview Content Area */}
-        <div className="flex-1 container mx-auto px-4 py-8 max-w-7xl flex flex-col">
+        <div className="flex-1 container mx-auto px-4 py-4 max-w-7xl flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentRound.id}
@@ -611,12 +611,12 @@ RETURN STRICTLY VALID JSON EXACTLY LIKE THIS STRUCTURE:
               className="flex-1 flex flex-col"
             >
               {/* This is where we inject the specific UI for each round */}
-              <div className="flex-1 rounded-3xl bg-[#1a1c20]/80 border border-[#494455]/30 flex flex-col shadow-[0_8px_40px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl p-8 relative">
+              <div className="flex-1 rounded-3xl bg-[#1a1c20]/80 border border-[#494455]/30 flex flex-col shadow-[0_8px_40px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl p-6 relative">
                   
                   {/* Decorative Background */}
                   <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[#9244f4]/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-                  <div className="flex items-center gap-4 mb-8 relative z-10 border-b border-[#494455]/30 pb-6">
+                  <div className="flex items-center gap-4 mb-6 relative z-10 border-b border-[#494455]/30 pb-4">
                     <div className="p-4 rounded-2xl bg-[#9244f4]/20 text-[#d8b9ff] border border-[#9244f4]/40 shadow-[0_0_15px_rgba(146,68,244,0.3)]">
                       <currentRound.icon className="size-8" />
                     </div>

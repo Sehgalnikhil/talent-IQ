@@ -397,7 +397,7 @@ function InterviewPage() {
 
     if (phase === "setup") {
         return (
-            <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
+            <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-24 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
                 <Navbar />
 
                 {/* AMBIENT ENGINE */}
@@ -562,7 +562,7 @@ function InterviewPage() {
 
     if (phase === "active") {
         return (
-            <div className={`h-screen flex flex-col pt-48 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
+            <div className={`h-screen flex flex-col pt-24 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
                 <Navbar />
 
                 {/* Floating AI Coach Toast */}
@@ -688,7 +688,7 @@ function InterviewPage() {
 
     if (phase === "feedback") {
         return (
-            <div className={`min-h-screen pt-32 transition-colors duration-700 font-sans relative overflow-x-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300'}`}>
+            <div className={`min-h-screen pt-24 transition-colors duration-700 font-sans relative overflow-x-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300'}`}>
                 <Navbar />
                 <div className="max-w-5xl mx-auto px-6 pb-32 relative z-10 flex flex-col items-center">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`w-full p-1 rounded-[64px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100'} backdrop-blur-3xl shadow-3xl text-center`}>

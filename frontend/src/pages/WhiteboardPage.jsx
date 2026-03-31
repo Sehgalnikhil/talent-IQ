@@ -457,7 +457,7 @@ function WhiteboardPage() {
     };
 
     return (
-        <div className="h-screen bg-base-200 flex flex-col font-sans selection:bg-primary/30 pt-32">
+        <div className="h-screen bg-base-200 flex flex-col font-sans selection:bg-primary/30 pt-24">
             <Navbar />
 
             <div className="flex-1 flex overflow-hidden relative">
