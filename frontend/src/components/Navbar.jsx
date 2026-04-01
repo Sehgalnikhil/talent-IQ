@@ -50,7 +50,7 @@ function Navbar() {
 
    return (
       <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 pointer-events-none ${scrolled ? 'mt-0' : 'mt-2'}`}>
-         <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
+         <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100/80 backdrop-blur-3xl border-base-content/10' : 'bg-transparent border-transparent'}`}>
 
             <div className="px-5 py-2.5 flex items-center justify-between relative z-10">
 
@@ -118,7 +118,7 @@ function Navbar() {
                        transition={{ duration: 0.25, ease: "easeOut" }}
                        className="absolute top-[80%] right-0 pt-6 z-[200] w-[750px] pointer-events-auto"
                      >
-                       <div className="menu p-10 shadow-[0_30px_100px_rgba(0,0,0,0.7)] bg-base-100/98 backdrop-blur-3xl border border-white/10 rounded-[48px] overflow-hidden grid grid-cols-2 gap-10">
+                       <div className="menu p-10 shadow-[0_30px_100px_rgba(0,0,0,0.2)] bg-base-100/95 backdrop-blur-3xl border border-base-content/10 rounded-[48px] overflow-hidden grid grid-cols-2 gap-10">
                           {/* Column 1: Learning & Practice */}
                           <div className="flex flex-col gap-5">
                              <div className="px-5 py-3 border-b border-base-content/10 mb-2">
@@ -174,8 +174,8 @@ function Navbar() {
                         <div tabIndex={0} role="button" className="btn btn-ghost btn-circle btn-sm">
                            <PaletteIcon className="size-4 opacity-30" />
                         </div>
-                        <ul tabIndex={0} className="dropdown-content z-[200] menu p-5 shadow-3xl bg-base-100/98 backdrop-blur-3xl rounded-[32px] w-64 border border-white/5 mt-4 gap-2">
-                           <header className="text-center py-2 mb-2 border-b border-white/5">
+                        <ul tabIndex={0} className="dropdown-content z-[200] menu p-5 shadow-3xl bg-base-100/95 backdrop-blur-3xl rounded-[32px] w-64 border border-base-content/5 mt-4 gap-2">
+                           <header className="text-center py-2 mb-2 border-b border-base-content/5">
                               <span className="text-[10px] font-black uppercase tracking-widest opacity-40">INTERFACE_THEME</span>
                            </header>
                            <div className="grid grid-cols-1 gap-1">
@@ -192,7 +192,7 @@ function Navbar() {
 
                      <NotificationCenter />
 
-                     <div className="ml-2 pl-4 border-l border-white/10 scale-[1.1]">
+                     <div className="ml-2 pl-4 border-l border-base-content/10 scale-[1.1]">
                         <UserButton appearance={{ elements: { userButtonAvatarBox: "size-10 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-primary/20" } }} />
                      </div>
                   </div>

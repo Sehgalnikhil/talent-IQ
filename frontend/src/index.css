@@ -1,13 +1,25 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: dark, light, dracula, nord, cyberpunk, synthwave, night, sunset, luxury, corporate;
+  themes: dark, dracula, nord, cyberpunk, synthwave, night, sunset, luxury, corporate,
+    light {
+    "primary": "#6366f1",
+    "secondary": "#a855f7",
+    "accent": "#ec4899",
+    "neutral": "#1e293b",
+    "base-100": "#ffffff",
+    "base-200": "#fbfcfe",
+    "base-300": "#f1f5f9",
+    "base-content": "#0f172a",
+    "--rounded-box": "1.5rem",
+    "--rounded-btn": "0.75rem"
+  };
 }
 
 @theme {
-  --color-glass-bg: rgba(255, 255, 255, 0.03);
-  --color-glass-border: rgba(255, 255, 255, 0.08);
-  --color-glass-glow: rgba(var(--color-primary), 0.1);
+  --color-glass-bg: oklch(var(--b1) / 0.6);
+  --color-glass-border: oklch(var(--bc) / 0.08);
+  --color-glass-glow: oklch(var(--p) / 0.1);
 }
 
 @layer base {
@@ -38,16 +50,16 @@
 
   /* Elevate DaisyUI Cards */
   .card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    background: linear-gradient(135deg, oklch(var(--b1) / 0.7), oklch(var(--b2) / 0.4));
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 10px 40px -15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid oklch(var(--bc) / 0.08);
+    box-shadow: 0 10px 40px -15px oklch(0 0 0 / 0.05), inset 0 1px 0 oklch(var(--bc) / 0.05) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
   .card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    border-color: oklch(var(--p) / 0.3);
+    box-shadow: 0 20px 60px -15px oklch(0 0 0 / 0.15), inset 0 1px 0 oklch(var(--p) / 0.1) !important;
     transform: translateY(-2px);
   }
 
@@ -77,16 +89,18 @@
   /* Inputs & Selects */
   .input {
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: oklch(var(--bc) / 0.02) !important;
+    border: 1px solid oklch(var(--bc) / 0.1);
+    color: oklch(var(--bc));
     backdrop-filter: blur(8px);
     transition: all 0.2s;
   }
 
   .select {
     border-radius: 12px;
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: oklch(var(--bc) / 0.03) !important;
+    border: 1px solid oklch(var(--bc) / 0.1);
+    color: oklch(var(--bc));
     backdrop-filter: blur(8px);
     transition: all 0.2s;
     padding-right: 2.5rem !important;
@@ -95,9 +109,8 @@
 
   /* Fix transparent dropdown options */
   .select option {
-    background-color: #1a1d24 !important;
-    /* Solid dark color matching theme */
-    color: #f8fafc !important;
+    background-color: oklch(var(--b1)) !important;
+    color: oklch(var(--bc)) !important;
   }
 
   .input:focus,
@@ -118,10 +131,10 @@
 
 @layer utilities {
   .premium-glass {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+    background: linear-gradient(135deg, oklch(var(--bc) / 0.05), oklch(var(--bc) / 0.01));
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid oklch(var(--bc) / 0.1);
+    box-shadow: 0 4px 30px oklch(0 0 0 / 0.1), inset 0 1px 0 oklch(var(--bc) / 0.05);
   }
 
   .glow-effect {

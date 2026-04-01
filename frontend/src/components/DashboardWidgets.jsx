@@ -530,7 +530,7 @@ export function HireabilityWidget() {
         <div className="bg-base-100/60 backdrop-blur-md rounded-2xl p-5 border border-base-300 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:scale-110 transition-transform duration-500"></div>
             
-            <h3 className="font-bold flex items-center gap-2 mb-4 text-white">
+            <h3 className="font-bold flex items-center gap-2 mb-4 text-base-content">
                 <BrainCircuitIcon className="size-5 text-primary animate-pulse" /> Predictive AI Benchmarker
             </h3>
 
@@ -578,7 +578,7 @@ export function InterviewSessionsWidget({ isDark }) {
     });
 
     if (isLoading) return (
-        <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-base-100 border-base-300'} rounded-2xl p-8 border flex items-center justify-center`}>
+        <div className={`${isDark ? 'bg-base-content/5 border-base-content/10' : 'bg-base-100 border-base-300'} rounded-2xl p-8 border flex items-center justify-center`}>
             <Loader2Icon className="size-6 animate-spin text-primary" />
         </div>
     );
@@ -586,36 +586,36 @@ export function InterviewSessionsWidget({ isDark }) {
     const sessionList = Array.isArray(sessions) ? sessions : (sessions?.sessions || []);
 
     return (
-        <div className={`${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-base-100 border-base-300'} rounded-[32px] border p-8 shadow-2xl relative overflow-hidden group transition-all duration-500 hover:border-primary/20`}>
-            <div className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity ${isDark ? 'text-primary' : 'text-primary/20'}`}>
+        <div className={`${isDark ? 'bg-base-100 border-base-content/5' : 'bg-base-100 border-base-300'} rounded-[32px] border p-8 shadow-2xl relative overflow-hidden group transition-all duration-500 hover:border-primary/20`}>
+            <div className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity ${isDark ? 'text-primary' : 'text-primary'}`}>
                 <HistoryIcon className="size-24 text-primary" />
             </div>
             
             <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
-                    <h3 className={`text-2xl font-black tracking-tight flex items-center gap-2 ${isDark ? 'text-white' : 'text-base-content'}`}>
+                    <h3 className={`text-2xl font-black tracking-tight flex items-center gap-2 ${isDark ? 'text-base-content' : 'text-base-content'}`}>
                         <HistoryIcon className="size-6 text-primary" /> Cognitive Archive
                     </h3>
-                    <p className={`text-xs font-bold ${isDark ? 'text-white/40' : 'text-base-content/40'} uppercase tracking-widest mt-1`}>Holographic Replays & Deep Analytics</p>
+                    <p className={`text-xs font-bold ${isDark ? 'text-base-content/40' : 'text-base-content/40'} uppercase tracking-widest mt-1`}>Holographic Replays & Deep Analytics</p>
                 </div>
                 <div className="badge badge-primary badge-outline font-bold tracking-widest">{sessionList.length} SESSIONS</div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
                 {sessionList.length === 0 ? (
-                    <div className={`col-span-full py-12 text-center ${isDark ? 'bg-white/5 border-white/10' : 'bg-base-200 border-base-300'} rounded-2xl border border-dashed`}>
+                    <div className={`col-span-full py-12 text-center ${isDark ? 'bg-base-content/5 border-base-content/10' : 'bg-base-200 border-base-300'} rounded-2xl border border-dashed`}>
                         <Bot className="size-12 mx-auto mb-4 opacity-20" />
-                        <p className={`font-bold ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>No archival logs found in the simulation cloud.</p>
+                        <p className={`font-bold ${isDark ? 'text-base-content/40' : 'text-base-content/40'}`}>No archival logs found in the simulation cloud.</p>
                         <Link to="/interview" className="btn btn-primary btn-sm mt-4 px-8 rounded-full font-black">START FIRST SESSION</Link>
                     </div>
                 ) : (
                     sessionList.slice(0, 4).map((session) => (
                         <motion.div 
                             key={session._id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            whileHover={{ y: -5 }}
-                            className={`${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-base-200 border-base-300 hover:bg-base-300'} border p-5 rounded-2xl hover:border-primary/30 transition-all cursor-pointer flex flex-col justify-between`}
+                             initial={{ opacity: 0, y: 10 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             whileHover={{ y: -5 }}
+                             className={`${isDark ? 'bg-base-content/5 border-base-content/10 hover:bg-base-content/10' : 'bg-base-200 border-base-300 hover:bg-base-300'} border p-5 rounded-2xl hover:border-primary/30 transition-all cursor-pointer flex flex-col justify-between`}
                             onClick={() => window.location.href = `/replay/${session._id}`}
                         >
                             <div>
@@ -625,14 +625,14 @@ export function InterviewSessionsWidget({ isDark }) {
                                     </div>
                                     <Sparkles className="size-3 text-primary opacity-40" />
                                 </div>
-                                <h4 className={`font-bold text-lg mb-1 truncate ${isDark ? 'text-white' : 'text-base-content'}`}>{session.company}</h4>
-                                <p className={`text-[10px] font-black ${isDark ? 'text-white/30' : 'text-base-content/30'} uppercase tracking-widest mb-4`}>{session.type} Simulation</p>
+                                 <h4 className={`font-bold text-lg mb-1 truncate ${isDark ? 'text-base-content' : 'text-base-content'}`}>{session.company}</h4>
+                                 <p className={`text-[10px] font-black ${isDark ? 'text-base-content/30' : 'text-base-content/30'} uppercase tracking-widest mb-4`}>{session.type} Simulation</p>
                             </div>
 
-                            <div className={`flex items-center justify-between pt-4 border-t ${isDark ? 'border-white/5' : 'border-base-300/50'}`}>
+                            <div className={`flex items-center justify-between pt-4 border-t ${isDark ? 'border-base-content/10' : 'border-base-300/50'}`}>
                                 <div className="flex items-center gap-2">
-                                    <TimerIcon className={`size-3 ${isDark ? 'text-white/40' : 'text-base-content/40'}`} />
-                                    <span className={`text-[10px] font-bold ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>{Math.round(session.duration / 60)} min</span>
+                                    <TimerIcon className={`size-3 ${isDark ? 'text-base-content/40' : 'text-base-content/40'}`} />
+                                    <span className={`text-[10px] font-bold ${isDark ? 'text-base-content/40' : 'text-base-content/40'}`}>{Math.round(session.duration / 60)} min</span>
                                 </div>
                                 <div className="btn btn-circle btn-xs btn-primary">
                                     <PlayIcon className="size-2 fill-current" />

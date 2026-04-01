@@ -5,7 +5,7 @@ function StatsCards({ activeSessionsCount, recentSessionsCount }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 h-full">
       {/* Active Count Node */}
-      <div className="group relative overflow-hidden bg-base-100/40 backdrop-blur-3xl border border-white/10 rounded-[40px] p-8 shadow-2xl transition-all hover:bg-white/5 hover:border-primary/40">
+      <div className="group relative overflow-hidden bg-base-100/40 backdrop-blur-3xl border border-base-content/10 rounded-[40px] p-8 shadow-2xl transition-all hover:bg-base-content/5 hover:border-primary/40">
         <div className="absolute top-0 right-0 p-6 opacity-30 group-hover:scale-110 transition-transform">
            <div className="size-20 rounded-full bg-primary/20 blur-3xl animate-pulse" />
         </div>
@@ -27,7 +27,7 @@ function StatsCards({ activeSessionsCount, recentSessionsCount }) {
       </div>
 
       {/* Persistence Count Node */}
-      <div className="group relative overflow-hidden bg-base-100/40 backdrop-blur-3xl border border-white/10 rounded-[40px] p-8 shadow-2xl transition-all hover:bg-white/5 hover:border-secondary/40">
+      <div className="group relative overflow-hidden bg-base-100/40 backdrop-blur-3xl border border-base-content/10 rounded-[40px] p-8 shadow-2xl transition-all hover:bg-base-content/5 hover:border-secondary/40">
         <div className="absolute top-0 right-0 p-6 opacity-30 group-hover:scale-110 transition-transform">
            <div className="size-20 rounded-full bg-secondary/20 blur-3xl animate-pulse" />
         </div>
