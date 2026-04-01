@@ -23,8 +23,8 @@ function ArenaBackground() {
         ]}>
           <mesh rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}>
             <icosahedronGeometry args={[Math.random() * 0.8 + 0.2, 0]} />
-            <meshStandardMaterial 
-              color={i % 2 === 0 ? "#00daf3" : "#8F00FF"} 
+            <meshStandardMaterial
+              color={i % 2 === 0 ? "#00daf3" : "#8F00FF"}
               emissive={i % 2 === 0 ? "#00daf3" : "#8F00FF"}
               emissiveIntensity={0.8}
               transparent
@@ -181,7 +181,7 @@ function ProblemsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-base-300 to-base-200 font-sans selection:bg-primary/30 relative overflow-hidden">
-      
+
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas gl={{ antialias: true, alpha: true }}>
           <PerspectiveCamera makeDefault position={[0, 0, 15]} fov={45} />

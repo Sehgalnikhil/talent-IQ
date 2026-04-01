@@ -7,8 +7,13 @@ import {
     // New features
     reviewCode, explainProblemELI5, generateStudyPlan, generateProblem, generateFlashcards, evaluateBehavioral,
     startGauntlet, saveGauntletSession, getGauntletLeaderboard, visualizeFlow,
-    translateCode, oracleLint
+    translateCode, oracleLint,
+    saveInterviewSession, getInterviewSessions, getInterviewSessionById,
+    togglePublicVisibility, getPublicSessionById
+
 } from "../controllers/interview.controller.js";
+
+
 
 const router = express.Router();
 
@@ -45,5 +50,16 @@ router.post("/study-plan", generateStudyPlan);
 router.post("/generate-problem", generateProblem);
 router.post("/flashcards", generateFlashcards);
 router.post("/evaluate-behavioral", evaluateBehavioral);
+
+router.post("/sessions", saveInterviewSession);
+router.get("/sessions", getInterviewSessions);
+router.get("/session/:id", getInterviewSessionById);
+
+// Public Link System
+router.post("/session/:id/toggle-public", togglePublicVisibility);
+router.get("/public/session/:id", getPublicSessionById);
+
+
+
 
 export default router;

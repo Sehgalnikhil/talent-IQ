@@ -565,4 +565,89 @@ export function HireabilityWidget() {
         </div>
     );
 }
-export default { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, RecommenderWidget, HireabilityWidget };
+// ──────────────────────────────────
+// #16: Interview History Replay Widget
+// ──────────────────────────────────
+export function InterviewSessionsWidget({ isDark }) {
+    const { data: sessions, isLoading } = useQuery({
+        queryKey: ['interview-sessions-list'],
+        queryFn: async () => {
+            const res = await axiosInstance.get("/interview/sessions");
+            return res.data;
+        }
+    });
+
+    if (isLoading) return (
+        <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-base-100 border-base-300'} rounded-2xl p-8 border flex items-center justify-center`}>
+            <Loader2Icon className="size-6 animate-spin text-primary" />
+        </div>
+    );
+
+    const sessionList = Array.isArray(sessions) ? sessions : (sessions?.sessions || []);
+
+    return (
+        <div className={`${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-base-100 border-base-300'} rounded-[32px] border p-8 shadow-2xl relative overflow-hidden group transition-all duration-500 hover:border-primary/20`}>
+            <div className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity ${isDark ? 'text-primary' : 'text-primary/20'}`}>
+                <HistoryIcon className="size-24 text-primary" />
+            </div>
+            
+            <div className="flex items-center justify-between mb-8 relative z-10">
+                <div>
+                    <h3 className={`text-2xl font-black tracking-tight flex items-center gap-2 ${isDark ? 'text-white' : 'text-base-content'}`}>
+                        <HistoryIcon className="size-6 text-primary" /> Cognitive Archive
+                    </h3>
+                    <p className={`text-xs font-bold ${isDark ? 'text-white/40' : 'text-base-content/40'} uppercase tracking-widest mt-1`}>Holographic Replays & Deep Analytics</p>
+                </div>
+                <div className="badge badge-primary badge-outline font-bold tracking-widest">{sessionList.length} SESSIONS</div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+                {sessionList.length === 0 ? (
+                    <div className={`col-span-full py-12 text-center ${isDark ? 'bg-white/5 border-white/10' : 'bg-base-200 border-base-300'} rounded-2xl border border-dashed`}>
+                        <Bot className="size-12 mx-auto mb-4 opacity-20" />
+                        <p className={`font-bold ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>No archival logs found in the simulation cloud.</p>
+                        <Link to="/interview" className="btn btn-primary btn-sm mt-4 px-8 rounded-full font-black">START FIRST SESSION</Link>
+                    </div>
+                ) : (
+                    sessionList.slice(0, 4).map((session) => (
+                        <motion.div 
+                            key={session._id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            whileHover={{ y: -5 }}
+                            className={`${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-base-200 border-base-300 hover:bg-base-300'} border p-5 rounded-2xl hover:border-primary/30 transition-all cursor-pointer flex flex-col justify-between`}
+                            onClick={() => window.location.href = `/replay/${session._id}`}
+                        >
+                            <div>
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${session.score >= 80 ? 'bg-success/20 text-success' : session.score >= 50 ? 'bg-warning/20 text-warning' : 'bg-error/20 text-error'}`}>
+                                        SCORE: {session.score}
+                                    </div>
+                                    <Sparkles className="size-3 text-primary opacity-40" />
+                                </div>
+                                <h4 className={`font-bold text-lg mb-1 truncate ${isDark ? 'text-white' : 'text-base-content'}`}>{session.company}</h4>
+                                <p className={`text-[10px] font-black ${isDark ? 'text-white/30' : 'text-base-content/30'} uppercase tracking-widest mb-4`}>{session.type} Simulation</p>
+                            </div>
+
+                            <div className={`flex items-center justify-between pt-4 border-t ${isDark ? 'border-white/5' : 'border-base-300/50'}`}>
+                                <div className="flex items-center gap-2">
+                                    <TimerIcon className={`size-3 ${isDark ? 'text-white/40' : 'text-base-content/40'}`} />
+                                    <span className={`text-[10px] font-bold ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>{Math.round(session.duration / 60)} min</span>
+                                </div>
+                                <div className="btn btn-circle btn-xs btn-primary">
+                                    <PlayIcon className="size-2 fill-current" />
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+import { HistoryIcon, Bot, PlayIcon as PlayIconLucide, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+export default { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, RecommenderWidget, HireabilityWidget, InterviewSessionsWidget };
+

@@ -23,6 +23,133 @@ import { WeaknessAnalyzer, SmartTagger } from "../lib/ml-engine";
 import { motion, AnimatePresence } from "framer-motion";
 import { PROBLEMS } from "../data/problems";
 
+// 3D Imports for Skill Constellation
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Stars, Line, Html, Float } from "@react-three/drei";
+import * as THREE from "three";
+import { useMemo, useRef } from "react";
+
+// --- 3D GALAXY SKILL TREE COMPONENTS ---
+
+function SkillNode({ category, strengthScore, position, color }) {
+    const scale = 0.5 + (strengthScore / 100) * 1.5;
+    
+    return (
+        <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5} position={position}>
+            {/* The glowing star */}
+            <mesh>
+                <sphereGeometry args={[scale, 32, 32]} />
+                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={strengthScore > 70 ? 2 : 0.8} toneMapped={false} />
+            </mesh>
+            
+            {/* Halo pulse effect */}
+            <mesh>
+                <sphereGeometry args={[scale * 1.5, 32, 32]} />
+                <meshStandardMaterial color={color} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
+            </mesh>
+
+            {/* Text Overlay synced to 3D space */}
+            <Html position={[0, -scale - 0.8, 0]} center transform sprite zIndexRange={[100, 0]}>
+                <div className="text-center font-black uppercase tracking-widest pointer-events-none select-none whitespace-nowrap bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                    <div className="text-[6px] text-white/50">{strengthScore >= 70 ? 'OPTIMIZED' : 'LEARNING'}</div>
+                    <div className="text-[10px] drop-shadow-lg" style={{ color }}>{category}</div>
+                </div>
+            </Html>
+        </Float>
+    );
+}
+
+function GalaxySkillTree({ data }) {
+    // Generate positions via spherical fibonacci 
+    const nodes = useMemo(() => {
+        if (!data || data.length === 0) return [];
+        
+        const count = data.length;
+        const radius = 6;
+        const PHI = Math.PI * (3 - Math.sqrt(5)); // Golden angle
+
+        return data.map((item, i) => {
+            const y = 1 - (i / (count - 1)) * 2 || 0; // Handle single item
+            const r = Math.sqrt(1 - y * y);
+            const theta = PHI * i; 
+
+            const x = Math.cos(theta) * r;
+            const z = Math.sin(theta) * r;
+            
+            const position = [x * radius, y * radius, z * radius];
+            const color = item.strengthScore >= 70 ? "#10b981" : "#3b82f6";
+            
+            return { ...item, position, color };
+        });
+    }, [data]);
+
+    // Generate neural connections between proximal nodes
+    const connections = useMemo(() => {
+        const lines = [];
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const p1 = new THREE.Vector3(...nodes[i].position);
+                const p2 = new THREE.Vector3(...nodes[j].position);
+                if (p1.distanceTo(p2) < 8) {
+                    const isStrong = nodes[i].strengthScore > 60 && nodes[j].strengthScore > 60;
+                    lines.push({
+                        points: [p1, p2],
+                        color: isStrong ? "#10b981" : "#00f0ff",
+                        opacity: isStrong ? 0.4 : 0.05
+                    });
+                }
+            }
+        }
+        return lines;
+    }, [nodes]);
+
+    const groupRef = useRef();
+    useFrame((state) => {
+        if (groupRef.current) {
+            groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+        }
+    });
+
+    if (nodes.length === 0) {
+        return (
+            <Html center>
+                <div className="text-white/50 text-xs font-black uppercase tracking-widest text-center animate-pulse flex flex-col items-center gap-2">
+                    Neural Matrix Empty
+                </div>
+            </Html>
+        );
+    }
+
+    return (
+        <group ref={groupRef}>
+            <Stars radius={50} depth={50} count={2500} factor={4} saturation={1} fade speed={1} />
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 10, 10]} intensity={2} color="#00f0ff" />
+            <spotLight position={[-10, -10, -10]} intensity={1.5} color="#ff00ff" />
+
+            {/* Neural Pipelines */}
+            {connections.map((c, i) => (
+                <Line 
+                    key={i} 
+                    points={c.points} 
+                    color={c.color} 
+                    lineWidth={1.5} 
+                    transparent 
+                    opacity={c.opacity} 
+                />
+            ))}
+
+            {/* Core Idea Nodes */}
+            {nodes.map((node, i) => (
+                <SkillNode key={i} {...node} />
+            ))}
+            
+            <OrbitControls enableZoom={true} enablePan={true} autoRotate autoRotateSpeed={0.5} />
+        </group>
+    );
+}
+// ---------------------------------------------
+
 export default function PublicProfilePage() {
     const { username } = useParams();
     const [stats, setStats] = useState({ solved: 0, streak: 0, points: 0 });
@@ -229,35 +356,17 @@ export default function PublicProfilePage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {heatmapData.length > 0 ? (
-                                    heatmapData.map((c, i) => (
-                                        <div key={c.category} className={`p-5 rounded-3xl border transition-all hover:bg-white/5 ${isDark ? 'border-white/5 bg-white/2' : 'border-black/5 bg-black/2'}`}>
-                                            <div className="flex justify-between items-center mb-4">
-                                                <span className="text-xs font-black uppercase tracking-widest opacity-80">{c.category}</span>
-                                                <div className="flex items-center gap-2">
-                                                   <span className={`text-[10px] font-black px-3 py-1 rounded-full ${c.strengthScore >= 70 ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
-                                                      {c.strengthScore >= 70 ? 'OPTIMIZED' : 'LEARNING'}
-                                                   </span>
-                                                   <span className="text-xs font-black">{c.strengthScore}</span>
-                                                </div>
-                                            </div>
-                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                                <motion.div 
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${c.strengthScore}%` }}
-                                                    transition={{ duration: 1, delay: i * 0.05 }}
-                                                    className={`h-full ${c.strengthScore >= 70 ? 'bg-success' : 'bg-primary'} shadow-[0_0_15px_rgba(var(--color-primary),0.3)]`} 
-                                                />
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="col-span-full py-20 text-center opacity-30 italic flex flex-col items-center gap-4">
-                                       <HexagonIcon className="size-12 animate-spin-slow" />
-                                       <p className="text-sm font-black uppercase tracking-widest">Awaiting Solution Genesis...</p>
+                            {/* THE 3D GALAXY MAP */}
+                            <div className="w-full h-[500px] rounded-[32px] overflow-hidden bg-[#020202] border border-white/10 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] relative group">
+                                <Canvas camera={{ position: [0, 0, 16], fov: 50 }}>
+                                    <GalaxySkillTree data={heatmapData} />
+                                </Canvas>
+                                
+                                <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="bg-black/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50">
+                                         Orbital Drag Enabled [ Neural Mapping ]
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </motion.div>
 

@@ -1,9 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Webcam from "react-webcam";
-import { CameraIcon, StopCircleIcon, PlayIcon, MicIcon, UploadCloudIcon, FrownIcon, SmileIcon, RefreshCwIcon, StarIcon, PresentationIcon } from "lucide-react";
+import { CameraIcon, StopCircleIcon, RefreshCwIcon, StarIcon, PresentationIcon, MicIcon, SmileIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../lib/axios";
+
+// 3D Imports
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Environment, MeshReflectorMaterial } from "@react-three/drei";
+import HolographicAvatar from "../components/HolographicAvatar";
+import * as THREE from "three";
 
 const QUESTIONS = [
     "Tell me about a time you had a conflict with a teammate.",
@@ -11,6 +17,77 @@ const QUESTIONS = [
     "Tell me about a time you failed to meet a deadline.",
     "How do you handle ambiguous requirements?"
 ];
+
+// The Interrogation Room Component
+function InterrogationRoom({ pressureLevel, sentiment, isRecording }) {
+    // Morph the room color from a sleek #0f172a to deep red based on pressure
+    const roomColor = new THREE.Color().lerpColors(new THREE.Color("#0f172a"), new THREE.Color("#450000"), pressureLevel);
+    
+    // Add pulsing to the main spotlight if pressure is high
+    const spotLightRef = useRef();
+    useFrame(({ clock }) => {
+        if (spotLightRef.current && pressureLevel > 0.5) {
+            spotLightRef.current.intensity = 2 + Math.sin(clock.elapsedTime * 8) * 0.5;
+        } else if (spotLightRef.current) {
+            spotLightRef.current.intensity = 2;
+        }
+    });
+
+    return (
+        <group>
+            <color attach="background" args={[roomColor]} />
+            <fog attach="fog" args={[roomColor, 5, 30]} />
+
+            {/* The AI Avatar acting as the Interviewer */}
+            <group position={[0, 1.2, -3]}>
+                <HolographicAvatar sentiment={sentiment} isSpeaking={!isRecording && pressureLevel === 0} />
+            </group>
+
+            {/* Glossy Floor */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
+                <planeGeometry args={[50, 50]} />
+                <MeshReflectorMaterial
+                    blur={[300, 100]}
+                    resolution={1024}
+                    mixBlur={1}
+                    mixStrength={50}
+                    roughness={0.8}
+                    depthScale={1.2}
+                    minDepthThreshold={0.4}
+                    maxDepthThreshold={1.4}
+                    color="#050505"
+                    metalness={0.7}
+                />
+            </mesh>
+
+            {/* Walls */}
+            <mesh position={[0, 4, 0]} scale={[-20, -10, -20]}>
+                <boxGeometry args={[1, 1, 1]} />
+                <meshStandardMaterial color={roomColor} roughness={0.9} side={THREE.BackSide} />
+            </mesh>
+            
+            <ambientLight intensity={0.4} />
+            <spotLight 
+                ref={spotLightRef}
+                position={[0, 8, -2]} 
+                intensity={2} 
+                color={pressureLevel > 0.6 ? "#ff3333" : (sentiment === 'impressed' ? "#ffb300" : "#ffffff")} 
+                angle={0.6} 
+                penumbra={1} 
+            />
+            
+            <Environment preset={pressureLevel > 0.5 ? "night" : "city"} />
+            <OrbitControls 
+                enableZoom={false} 
+                enablePan={false} 
+                minPolarAngle={Math.PI / 2.2} 
+                maxPolarAngle={Math.PI / 2 + 0.1}
+                minAzimuthAngle={-0.2}
+                maxAzimuthAngle={0.2}
+            />
+        </group>
+    );
+}
 
 export default function BehavioralInterviewPage() {
     const webcamRef = useRef(null);
@@ -49,16 +126,15 @@ export default function BehavioralInterviewPage() {
         setRecordedChunks([]);
         setVideoUrl(null);
         setFeedback(null);
-        setAnswerText(""); // Clear previous
+        setAnswerText("");
         
         try {
             mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
                 mimeType: "video/webm"
             });
-            mediaRecorderRef.current.addEventListener(
-                "dataavailable",
-                handleDataAvailable
-            );
+            mediaRecorderRef.current.addEventListener("dataavailable", ({ data }) => {
+                if (data.size > 0) setRecordedChunks((prev) => prev.concat(data));
+            });
             mediaRecorderRef.current.start();
             setIsRecording(true);
             
@@ -68,16 +144,7 @@ export default function BehavioralInterviewPage() {
         } catch (error) {
             toast.error("Camera access required to record your response.");
         }
-    }, [webcamRef, setIsRecording, mediaRecorderRef, recognition]);
-
-    const handleDataAvailable = useCallback(
-        ({ data }) => {
-            if (data.size > 0) {
-                setRecordedChunks((prev) => prev.concat(data));
-            }
-        },
-        [setRecordedChunks]
-    );
+    }, [webcamRef, recognition]);
 
     const handleStopCaptureClick = useCallback(() => {
         mediaRecorderRef.current.stop();
@@ -87,30 +154,12 @@ export default function BehavioralInterviewPage() {
         }
         setTimeout(() => {
             if (recordedChunks.length) {
-                const blob = new Blob(recordedChunks, {
-                    type: "video/webm"
-                });
+                const blob = new Blob(recordedChunks, { type: "video/webm" });
                 const url = URL.createObjectURL(blob);
                 setVideoUrl(url);
             }
         }, 100);
-    }, [mediaRecorderRef, webcamRef, setIsRecording, recordedChunks, recognition]);
-
-    const handleDownload = useCallback(() => {
-        if (recordedChunks.length) {
-            const blob = new Blob(recordedChunks, {
-                type: "video/webm"
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            document.body.appendChild(a);
-            a.style = "display: none";
-            a.href = url;
-            a.download = `behavioral-q${currentQuestionIndex + 1}.webm`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-    }, [recordedChunks, currentQuestionIndex]);
+    }, [mediaRecorderRef, recordedChunks, recognition]);
 
     const nextQuestion = () => {
         setCurrentQuestionIndex((prev) => (prev + 1) % QUESTIONS.length);
@@ -138,179 +187,235 @@ export default function BehavioralInterviewPage() {
         }
     };
 
+    // Calculate Environment Pressure 
+    const fillerWords = (answerText.match(/\b(um|ah|uh|like|so yeah|basically|you know)\b/gi) || []).length;
+    let pressureLevel = Math.min(fillerWords / 5, 1); // 5+ filler words maxes out pressure
+    
+    let sentiment = "neutral";
+    if (feedback?.score >= 80) {
+        sentiment = "impressed";
+        pressureLevel = 0; // Release pressure on victory
+    } else if (feedback?.score < 50 && feedback?.score > 0) {
+        sentiment = "angry";
+    } else if (pressureLevel > 0.6) {
+        sentiment = "stressed";
+    }
+
     return (
-        <div className="min-h-screen bg-base-200 flex flex-col">
+        <div className="h-screen bg-base-200 flex flex-col overflow-hidden">
             <Navbar />
             
-            <div className="max-w-5xl mx-auto w-full pt-24 pb-8 px-4 lg:px-8 flex-1 flex flex-col">
-                <div className="mb-6 text-center max-w-3xl mx-auto">
-                    <h1 className="text-4xl font-black mb-4 flex items-center justify-center gap-3">
-                        <PresentationIcon className="size-10 text-primary" />
-                        STAR Method Simulator
-                    </h1>
-                    <p className="text-base-content/60">
-                        Record yourself answering real behavioral questions. The AI will analyze your facial expressions, pacing, and 
-                        grade your answer using the Situation-Task-Action-Result methodology.
-                    </p>
+            <div className="pt-24 pb-6 px-6 max-w-[1600px] mx-auto w-full h-full flex flex-col gap-6">
+                {/* Header */}
+                <div className="flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div className="size-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary shadow-[0_0_20px_rgba(var(--color-primary),0.3)]">
+                            <PresentationIcon className="size-6" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black italic tracking-tight">The Hot Seat</h1>
+                            <p className="text-xs font-bold uppercase tracking-widest text-base-content/50">3D Virtual Interrogation Protocol</p>
+                        </div>
+                    </div>
+
+                    {/* Pressure Gauge */}
+                    <div className="flex items-center gap-4 bg-base-100 px-6 py-3 rounded-2xl border border-base-content/10 shadow-lg">
+                        <div className="text-xs font-black uppercase tracking-widest opacity-60">Neural Pressure</div>
+                        <div className="w-32 h-2 bg-base-300 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full transition-all duration-500 rounded-full"
+                                style={{ 
+                                    width: `${pressureLevel * 100}%`,
+                                    background: pressureLevel > 0.6 ? '#ff003c' : (pressureLevel > 0.3 ? '#f59e0b' : '#10b981')
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1">
+                {/* Split View */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
                     
-                    {/* Left: Camera & Recording */}
-                    <div className="flex flex-col gap-4">
-                        <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-300 relative aspect-video flex items-center justify-center bg-black/90">
+                    {/* Left: The Virtual Interrogation Room */}
+                    <div className="relative rounded-3xl overflow-hidden border border-base-content/10 shadow-2xl bg-black">
+                        <Canvas shadows camera={{ position: [0, 2, 5], fov: 45 }}>
+                            <InterrogationRoom pressureLevel={pressureLevel} sentiment={sentiment} isRecording={isRecording} />
+                        </Canvas>
+
+                        {/* Top HUD Overlay */}
+                        <div className="absolute top-6 left-6 right-6 flex justify-between pointer-events-none">
+                            <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                <span className={`size-2 rounded-full ${isRecording ? 'bg-error animate-ping' : 'bg-success'}`} />
+                                {isRecording ? "Transcribing Voice..." : "AI Ready"}
+                            </div>
+                            <div className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 text-white text-xs font-bold uppercase tracking-wider">
+                                Filler Flags: <span className={pressureLevel > 0.5 ? 'text-error' : 'text-warning'}>{fillerWords}</span>
+                            </div>
+                        </div>
+
+                        {/* Webcam PIP Overlay */}
+                        <div className="absolute bottom-6 right-6 w-48 h-32 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-base-300">
                             {videoUrl ? (
                                 <video src={videoUrl} controls className="w-full h-full object-cover" />
                             ) : (
-                                <Webcam
-                                    audio={true}
-                                    ref={webcamRef}
-                                    muted={true}
-                                    className="w-full h-full object-cover"
-                                />
-                            )}
-
-                            {isRecording && (
-                                <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                                    <div className="size-3 rounded-full bg-error animate-pulse" />
-                                    <span className="text-white text-xs font-bold uppercase tracking-wider">Recording</span>
-                                </div>
+                                <Webcam audio={true} ref={webcamRef} muted={true} className="w-full h-full object-cover" />
                             )}
                         </div>
 
-                        {/* Controls */}
-                        <div className="flex justify-center gap-4 bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300">
+                        {/* Centered Controls at bottom */}
+                        <div className="absolute bottom-6 left-6 right-56 flex justify-start pl-6 items-end pointer-events-auto">
                             {!videoUrl ? (
                                 isRecording ? (
-                                    <button onClick={handleStopCaptureClick} className="btn btn-error btn-lg gap-2 shadow-error/30 shadow-lg hover:scale-105 transition-transform w-48">
-                                        <StopCircleIcon className="size-6" /> Stop
+                                    <button onClick={handleStopCaptureClick} className="btn btn-error shadow-error/30 shadow-2xl hover:scale-105 transition-transform px-8 gap-2 border border-error/50">
+                                        <StopCircleIcon className="size-5" /> Terminate Feed
                                     </button>
                                 ) : (
-                                    <button onClick={handleStartCaptureClick} className="btn btn-primary btn-lg gap-2 shadow-primary/30 shadow-lg hover:scale-105 transition-transform w-48">
-                                        <CameraIcon className="size-6" /> Record Answer
+                                    <button onClick={handleStartCaptureClick} className="btn bg-[#ffb300] hover:bg-[#ffb300]/80 text-black shadow-[#ffb300]/30 shadow-2xl hover:scale-105 transition-transform px-8 gap-2 border-none font-black uppercase tracking-widest">
+                                        <CameraIcon className="size-5" /> Start Interview
                                     </button>
                                 )
                             ) : (
-                                <>
-                                    <button onClick={() => setVideoUrl(null)} className="btn btn-ghost gap-2">
+                                <div className="flex gap-3">
+                                    <button onClick={() => setVideoUrl(null)} className="btn bg-base-100/80 backdrop-blur text-base-content hover:bg-base-200 border border-base-content/20 shadow-xl">
                                         <RefreshCwIcon className="size-4" /> Retake
-                                    </button>
-                                    <button onClick={handleDownload} className="btn btn-outline gap-2">
-                                        <UploadCloudIcon className="size-4" /> Download
                                     </button>
                                     <button 
                                         onClick={analyzeResponse} 
                                         disabled={isAnalyzing}
-                                        className="btn btn-secondary gap-2 px-8 font-bold text-white shadow-secondary/30 shadow-lg hover:scale-105 transition-transform"
+                                        className="btn btn-primary font-black uppercase tracking-widest shadow-primary/30 shadow-xl hover:scale-105 border-none"
                                     >
-                                        {isAnalyzing ? <span className="loading loading-spinner loading-sm" /> : <StarIcon className="size-5 fill-current" />}
+                                        {isAnalyzing ? <span className="loading loading-spinner loading-sm" /> : <StarIcon className="size-4 fill-current" />}
                                         Analyze STAR
                                     </button>
-                                </>
+                                </div>
                             )}
-                        </div>
-                        {/* Manual Textbox input script setup structures */}
-                        <div className="card bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300 mt-0 flex flex-col">
-                             <label className="text-xs uppercase font-black text-base-content/50 mb-1.5 flex justify-between">
-                                <span>🎯 Script Outline / Transcription Support</span>
-                                <span className="text-[10px] text-primary">Paste your script to get AI Grading</span>
-                             </label>
-                             <textarea 
-                                value={answerText}
-                                onChange={e => setAnswerText(e.target.value)}
-                                placeholder="Write or paste your response script outline here so AI can analyze the content directly in addition to your delivery!"
-                                className="textarea textarea-bordered h-24 text-sm font-medium resize-none bg-base-200/30"
-                             />
-                             {/* Analyze text trigger button */}
-                             {answerText.trim() && !videoUrl && (
-                                  <button 
-                                      onClick={analyzeResponse} 
-                                      disabled={isAnalyzing} 
-                                      className="btn btn-secondary btn-sm mt-3 gap-2 font-black text-white shadow-secondary/20 shadow-lg w-full rounded-xl"
-                                  >
-                                      {isAnalyzing ? <span className="loading loading-spinner loading-xs" /> : <StarIcon className="size-3.5 fill-current" />}
-                                      Analyze Written Response
-                                  </button>
-                             )}
                         </div>
                     </div>
 
-                    {/* Right: Question & Feedback */}
-                    <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-2 pb-10">
-                        {/* Question Card */}
-                        <div className="card bg-primary text-primary-content shadow-xl border-none">
-                            <div className="card-body">
-                                <div className="text-xs uppercase font-bold tracking-wider opacity-70 mb-2">Question {currentQuestionIndex + 1} of {QUESTIONS.length}</div>
-                                <h2 className="text-2xl font-bold font-serif leading-snug">"{QUESTIONS[currentQuestionIndex]}"</h2>
-                                <div className="card-actions justify-end mt-4">
-                                    <button onClick={nextQuestion} className="btn btn-sm btn-ghost hover:bg-white/20">Skip Question ⏭️</button>
-                                </div>
+                    {/* Right: Analysis Console */}
+                    <div className="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-6">
+                        
+                        {/* The Question Box */}
+                        <div className="bg-gradient-to-br from-primary/20 via-base-100 to-base-200 p-8 rounded-3xl border border-primary/20 shadow-lg relative overflow-hidden">
+                            <div className="absolute -top-10 -right-10 size-40 bg-primary/20 blur-3xl rounded-full pointer-events-none" />
+                            <div className="text-[10px] uppercase font-black tracking-[0.3em] text-primary/80 mb-4 flex items-center gap-2">
+                                <div className="h-px w-6 bg-primary/50" />
+                                Current prompt [ {currentQuestionIndex + 1} / {QUESTIONS.length} ]
+                            </div>
+                            <h2 className="text-3xl font-black font-serif leading-tight text-base-content relative z-10">"{QUESTIONS[currentQuestionIndex]}"</h2>
+                            <div className="flex justify-end mt-6">
+                                <button onClick={nextQuestion} className="text-xs font-bold uppercase tracking-widest text-base-content/40 hover:text-base-content transition-colors">Skip Prompt ⏭️</button>
                             </div>
                         </div>
 
-                        {/* Feedback Card */}
-                        {isAnalyzing && (
-                            <div className="card bg-base-100 border border-base-300 shadow-xl py-12 flex flex-col items-center justify-center animate-pulse">
-                                <MicIcon className="size-10 text-primary animate-bounce mb-4" />
-                                <h3 className="font-bold text-secondary">Analyzing Body Language & Transcription...</h3>
-                                <p className="text-xs text-base-content/50 mt-2">Checking for eye contact, pacing, and STAR framework.</p>
-                            </div>
-                        )}
+                        {/* Live Transcription Box */}
+                        <div className="bg-base-100 p-6 rounded-3xl border border-base-content/10 shadow-sm flex flex-col min-h-[150px]">
+                            <label className="text-[10px] uppercase font-black text-base-content/50 mb-3 flex items-center gap-2">
+                                <MicIcon className="size-3.5" /> Live Signal Transcription
+                            </label>
+                            {isRecording && !answerText && (
+                                <div className="flex-1 flex items-center justify-center opacity-30 text-sm font-black uppercase tracking-widest">
+                                    Listening...
+                                </div>
+                            )}
+                            {(!isRecording && !answerText && !videoUrl) && (
+                                <div className="flex-1 flex items-center justify-center opacity-30 text-sm font-black uppercase tracking-widest text-center px-8">
+                                    Press <span className="text-[#ffb300] mx-2">Start Interview</span> to begin establishing audio feed.
+                                </div>
+                            )}
+                            <textarea 
+                                value={answerText}
+                                onChange={e => setAnswerText(e.target.value)}
+                                placeholder="Transcription will appear here. You may also paste a pre-written script to bypass speech recognition."
+                                className="w-full flex-1 bg-transparent resize-none outline-none font-medium leading-relaxed text-sm read-only:opacity-70"
+                                readOnly={isRecording}
+                            />
+                            {(!isRecording && answerText.trim() && !videoUrl) && (
+                                <button 
+                                    onClick={analyzeResponse} 
+                                    disabled={isAnalyzing} 
+                                    className="btn btn-primary btn-sm mt-4 gap-2 font-black shadow-primary/20 shadow-lg"
+                                >
+                                    {isAnalyzing ? <span className="loading loading-spinner loading-xs" /> : <StarIcon className="size-3.5 fill-current" />}
+                                    Evaluate Typed Transcript
+                                </button>
+                            )}
+                        </div>
 
-                        {feedback && (
-                            <div className="card bg-base-100 border border-secondary/30 shadow-2xl animate-in slide-in-from-bottom-8">
-                                <div className="card-body">
-                                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-base-300">
-                                        <h3 className="card-title text-2xl font-black flex gap-2">
-                                            <StarIcon className="size-6 text-warning fill-warning" />
-                                            AI Assessment
+                        {/* Feedback / Results Window */}
+                        <div className="flex-1">
+                            {isAnalyzing && (
+                                <div className="h-full bg-base-100 rounded-3xl border border-base-content/10 flex flex-col items-center justify-center animate-pulse p-10 min-h-[300px]">
+                                    <div className="size-16 relative flex items-center justify-center mb-6">
+                                        <div className="absolute inset-0 border-4 border-primary/30 rounded-full animate-spin border-t-primary" />
+                                        <StarIcon className="size-6 text-primary" />
+                                    </div>
+                                    <h3 className="font-black text-lg uppercase tracking-wider text-base-content mb-2">Analyzing Behavioral Metrics</h3>
+                                    <p className="text-xs text-base-content/50 font-bold uppercase tracking-widest text-center max-w-xs leading-relaxed">Cross-referencing S.T.A.R. methodology against detected sentiment.</p>
+                                </div>
+                            )}
+
+                            {feedback && !isAnalyzing && (
+                                <div className="bg-base-100 rounded-3xl border-2 border-primary/20 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8">
+                                    <div className="p-6 border-b border-base-content/10 bg-primary/5 flex items-center justify-between">
+                                        <h3 className="text-lg font-black uppercase tracking-widest flex items-center gap-3">
+                                            <StarIcon className="size-5 text-warning fill-warning" />
+                                            S.T.A.R. Assessment
                                         </h3>
-                                        <div className={`radial-progress font-bold text-lg ${feedback.score >= 80 ? 'text-success' : 'text-warning'}`} 
-                                             style={{"--value": feedback.score, "--size": "3rem"}}>{feedback.score}</div>
+                                        <div className={`radial-progress font-black text-sm bg-base-100 border border-base-content/10 shadow-inner ${feedback.score >= 80 ? 'text-success' : 'text-warning'}`} 
+                                             style={{"--value": feedback.score, "--size": "3.5rem", "--thickness": "4px"}}>
+                                            {feedback.score}
+                                        </div>
                                     </div>
                                     
-                                    <div className="space-y-4 text-sm">
-                                        <div className="bg-base-200 p-3 rounded-xl border-l-4 border-primary">
-                                            <span className="font-bold block mb-1">Situation</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis?.situation || "Critique unavailable."}</span>
+                                    <div className="p-6 space-y-4">
+                                        <div className="bg-base-200/50 p-4 rounded-2xl border border-base-content/5 relative overflow-hidden">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary block mb-2">Situation</span>
+                                            <span className="text-sm font-medium leading-relaxed opacity-80">{feedback.starAnalysis?.situation || "Data unavailable."}</span>
                                         </div>
-                                        <div className="bg-base-200 p-3 rounded-xl border-l-4 border-error">
-                                            <span className="font-bold block mb-1">Task</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis?.task || "Critique unavailable."}</span>
+                                        <div className="bg-base-200/50 p-4 rounded-2xl border border-base-content/5 relative overflow-hidden">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-error" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-error block mb-2">Task</span>
+                                            <span className="text-sm font-medium leading-relaxed opacity-80">{feedback.starAnalysis?.task || "Data unavailable."}</span>
                                         </div>
-                                        <div className="bg-base-200 p-3 rounded-xl border-l-4 border-success">
-                                            <span className="font-bold block mb-1">Action</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis?.action || "Critique unavailable."}</span>
+                                        <div className="bg-base-200/50 p-4 rounded-2xl border border-base-content/5 relative overflow-hidden">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-success" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-success block mb-2">Action</span>
+                                            <span className="text-sm font-medium leading-relaxed opacity-80">{feedback.starAnalysis?.action || "Data unavailable."}</span>
                                         </div>
-                                        <div className="bg-base-200 p-3 rounded-xl border-l-4 border-warning">
-                                            <span className="font-bold block mb-1">Result</span>
-                                            <span className="text-base-content/80">{feedback.starAnalysis?.result || "Critique unavailable."}</span>
+                                        <div className="bg-base-200/50 p-4 rounded-2xl border border-base-content/5 relative overflow-hidden">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-warning" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-warning block mb-2">Result</span>
+                                            <span className="text-sm font-medium leading-relaxed opacity-80">{feedback.starAnalysis?.result || "Data unavailable."}</span>
                                         </div>
                                         
-                                        <div className="mt-6 flex items-start gap-4 p-4 bg-info/10 rounded-xl border border-info/20">
-                                            <SmileIcon className="size-8 text-info shrink-0" />
+                                        <div className="mt-6 flex items-start gap-4 p-5 bg-info/5 rounded-2xl border border-info/20">
+                                            <SmileIcon className="size-6 text-info shrink-0" />
                                             <div>
-                                                <h4 className="font-bold text-info mb-1">Delivery Tone</h4>
-                                                <p className="text-xs">{feedback.tone || "Tone assessment unavailable"}</p>
+                                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-info mb-1.5">Delivery & Tone</h4>
+                                                <p className="text-sm font-medium leading-relaxed opacity-80">{feedback.tone || "Tone assessment unavailable"}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Tips */}
-                        {!isAnalyzing && !feedback && (
-                            <div className="mt-4 p-5 bg-base-200 rounded-2xl border border-base-300 flex-1">
-                                <h3 className="font-bold mb-3 flex items-center gap-2">💡 STAR Framework Tips</h3>
-                                <ul className="space-y-3 text-sm text-base-content/70 font-medium">
-                                    <li><span className="text-primary font-black">S</span> - Describe the <b>Situation</b> clearly (Who, what, where).</li>
-                                    <li><span className="text-error font-black">T</span> - Explain your specific <b>Task</b> or goal.</li>
-                                    <li><span className="text-success font-black">A</span> - Focus on the <b>Action</b> YOU took, not the team. Use "I".</li>
-                                    <li><span className="text-warning font-black">R</span> - End with the <b>Result</b>. Quantify metrics if possible!</li>
-                                </ul>
-                            </div>
-                        )}
+                            {!isAnalyzing && !feedback && (
+                                <div className="h-full flex flex-col justify-center bg-base-100 p-8 rounded-3xl border border-base-content/10 min-h-[250px] opacity-70">
+                                    <h3 className="font-black text-sm uppercase tracking-widest flex items-center gap-3 mb-6">
+                                        <StarIcon className="size-5" /> Framework Guide
+                                    </h3>
+                                    <ul className="space-y-4 text-sm font-medium">
+                                        <li className="flex items-center gap-4"><span className="size-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-black">S</span> Describe the precise environment.</li>
+                                        <li className="flex items-center gap-4"><span className="size-8 rounded-lg bg-error/20 text-error flex items-center justify-center font-black">T</span> Outline your unique objective.</li>
+                                        <li className="flex items-center gap-4"><span className="size-8 rounded-lg bg-success/20 text-success flex items-center justify-center font-black">A</span> Detail the exact steps YOU took.</li>
+                                        <li className="flex items-center gap-4"><span className="size-8 rounded-lg bg-warning/20 text-warning flex items-center justify-center font-black">R</span> Quantify the final outcome.</li>
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                        
                     </div>
                 </div>
             </div>

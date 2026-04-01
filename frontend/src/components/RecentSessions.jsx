@@ -77,11 +77,18 @@ function RecentSessions({ sessions, isLoading }) {
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-base-300">
-                    <span className="text-xs font-semibold opacity-80 uppercase">Completed</span>
-                    <span className="text-xs opacity-40">
-                      {new Date(session.updatedAt).toLocaleDateString()}
+                    <button 
+                      disabled={session.status === "active"}
+                      onClick={() => window.location.href = `/replay/${session._id}`}
+                      className="btn btn-primary btn-xs rounded-full px-4 gap-1 font-black shadow-lg shadow-primary/20"
+                    >
+                      <Trophy className="size-3" /> WATCH REPLAY
+                    </button>
+                    <span className="text-[10px] opacity-40 font-mono">
+                      {new Date(session.updatedAt || session.createdAt).toLocaleDateString()}
                     </span>
                   </div>
+
                 </div>
               </div>
             ))

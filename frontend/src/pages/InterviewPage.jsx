@@ -5,14 +5,25 @@ import {
     Clock, Settings, Play, CheckCircle,
     XCircle, Zap, Eye, Activity, PlayCircle, Send,
     Wand2, Bug, Camera, Keyboard, Brain, FileWarning, Code2, Users, LayoutDashboard,
-    ListTree, Timer, Network, TerminalSquare, ChevronRight, SwordsIcon, SparklesIcon,
-    ShieldCheckIcon, BinaryIcon, CpuIcon, TrophyIcon, HistoryIcon
+    ListTree, Timer, Network, TerminalSquare, ChevronRight, Swords, Sparkles,
+    ShieldCheck, Binary, Cpu, Trophy, History, User, UserCircle2
 } from "lucide-react";
+
+
 import Editor from "@monaco-editor/react";
 import toast from "react-hot-toast";
 import axiosInstance from "../lib/axios";
 import { executeCode } from "../lib/piston";
 import { motion, AnimatePresence } from "framer-motion";
+import { Canvas } from "@react-three/fiber";
+import HolographicAvatar from "../components/HolographicAvatar";
+
+import { useSaveInterviewSession, useInterviewSessions } from "../hooks/useInterviews";
+import { useUserStats } from "../hooks/useUserStats";
+import { useCredits } from "../hooks/useCredits";
+import { useNavigate } from "react-router";
+
+
 
 function InterviewPage() {
     const [phase, setPhase] = useState("setup"); // setup, active, feedback
@@ -29,6 +40,7 @@ function InterviewPage() {
     const [stressMode, setStressMode] = useState(false);
     const [emotionMode, setEmotionMode] = useState(true);
     const [selectedCompany, setSelectedCompany] = useState("Google");
+    const [selectedArchetype, setSelectedArchetype] = useState("Standard Panel");
     const [interviewType, setInterviewType] = useState("DSA"); // DSA, GitHubPR, Behavioral
     const [problemContext, setProblemContext] = useState("Find all duplicates in an array in O(n) time and O(1) space.");
 
@@ -37,29 +49,44 @@ function InterviewPage() {
     const [aggressionLevel, setAggressionLevel] = useState(5);
 
     // Active State
-    const [code, setCode] = useState("function solution(arr) {\n  // Write your optimized solution here\n  \n}");
-    const [language, setLanguage] = useState("javascript");
-    const [theme, setTheme] = useState("vs-dark");
-    const [timeLeft, setTimeLeft] = useState(45 * 60);
-    const [warnings, setWarnings] = useState(0);
-    const [chatInput, setChatInput] = useState("");
     const [chatLog, setChatLog] = useState([
-        { role: "ai", text: "[Hiring Manager]: Hello! We are your FAANG interviewing panel today. We have a DSA Engineer, a System Design Engineer, and myself. To start testing you, please write your initial algorithm or talk to us about your thoughts before coding." }
+        { role: "assistant", content: "[Hiring Manager]: Hello! We are your FAANG interviewing panel today. We have a DSA Engineer, a System Design Engineer, and myself. To start testing you, please write your initial algorithm or talk to us about your thoughts before coding." }
     ]);
-    const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-
-    // Feedback State
     const [aiFeedback, setAiFeedback] = useState(null);
     const [refactoredCode, setRefactoredCode] = useState("");
     const [isRefactoring, setIsRefactoring] = useState(false);
+    const [message, setMessage] = useState("");
 
-    // Live Voice Recognition State
-    const [hasSpeechSupport] = useState('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+    // 🎧 VOICE INTELLIGENCE STACK
+    const [isVoiceModeActive, setIsVoiceModeActive] = useState(false);
+    const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+    const [isAISpeaking, setIsAISpeaking] = useState(false);
+    const [aiSentiment, setAiSentiment] = useState("neutral");
+    const [fillerWordsCount, setFillerWordsCount] = useState(0);
     const recognitionRef = useRef(null);
+    const [hasSpeechSupport] = useState('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+    const [warnings, setWarnings] = useState(0);
+
+
+
+
+    // 🚀 NEW TANSTACK STACK
+    const { data: cloudRecordingsData, isLoading: isLoadingRecordings } = useInterviewSessions();
+    const saveInterviewMutation = useSaveInterviewSession();
+    const { balance, isLoading: isLoadingCredits } = useCredits();
+    const navigate = useNavigate();
+    const cloudRecordings = cloudRecordingsData || [];
+
 
     // Live AI Complexity State
     const [liveComplexity, setLiveComplexity] = useState({ time: "O(?)", space: "O(?)" });
     const [isCalculatingComplexity, setIsCalculatingComplexity] = useState(false);
+
+    // Active State
+    const [code, setCode] = useState("function solution(arr) {\n  // Write your optimized solution here\n  \n}");
+    const [language, setLanguage] = useState("javascript");
+    const [theme, setTheme] = useState("vs-dark");
+    const [timeLeft, setTimeLeft] = useState(45 * 60);
 
     // Live Camera Tracking State
     const videoRef = useRef(null);
@@ -91,6 +118,10 @@ function InterviewPage() {
         return () => observer.disconnect();
     }, []);
 
+    // No longer using manual fetch for recordings - handled by useInterviewSessions
+
+
+
     // Handle Camera Lifecycle
     useEffect(() => {
         if (phase === "active" && emotionMode) {
@@ -107,13 +138,34 @@ function InterviewPage() {
                     setEmotionMode(false);
                 });
 
-            // Mock live analytics
-            const interval = setInterval(() => {
-                const rand = Math.random();
-                if (rand > 0.8) setCurrentStressLevel({ text: "High (Stressed)", color: "text-error", bg: "bg-error/10" });
-                else if (rand > 0.4) setCurrentStressLevel({ text: "Medium (Focused)", color: "text-warning", bg: "bg-warning/10" });
-                else setCurrentStressLevel({ text: "Low (Calm)", color: "text-success", bg: "bg-success/10" });
-            }, 5000);
+            // Real-time Emotion/Stress analytics via Gemini Vision
+            const interval = setInterval(async () => {
+                const video = document.querySelector('video');
+                if (!video || !video.videoWidth) return;
+                
+                try {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 300; // Resize to lower resolution to save bandwidth & Gemini API constraints
+                    canvas.height = (video.videoHeight / video.videoWidth) * 300;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageFile = canvas.toDataURL("image/jpeg", 0.8);
+
+                    const res = await axiosInstance.post('/interview/analyze-emotion', { imageFile });
+                    if (res.data && res.data.stressLevel !== undefined) {
+                        const level = res.data.stressLevel;
+                        if (level > 70) setCurrentStressLevel({ text: res.data.text || "High (Stressed)", color: "text-error", bg: "bg-error/10" });
+                        else if (level > 35) setCurrentStressLevel({ text: res.data.text || "Medium (Focused)", color: "text-warning", bg: "bg-warning/10" });
+                        else setCurrentStressLevel({ text: res.data.text || "Low (Calm)", color: "text-success", bg: "bg-success/10" });
+                        
+                        if (res.data.actionableHint && level > 70) {
+                            toast(res.data.actionableHint, { icon: "🧠", duration: 3000 });
+                        }
+                    }
+                } catch (error) {
+                    console.error("Camera Tracking Error:", error);
+                }
+            }, 10000); // Poll every 10 seconds
 
             return () => clearInterval(interval);
         } else {
@@ -176,8 +228,9 @@ function InterviewPage() {
                 }
             }
             if (finalTranscript) {
-                setChatInput((prev) => prev + " " + finalTranscript.trim());
+                setMessage((prev) => prev + " " + finalTranscript.trim());
             }
+
         };
 
         return () => {
@@ -251,7 +304,8 @@ function InterviewPage() {
                 const data = res.data;
                 toast.success("Identity Matrix Synchronized!");
                 setProblemContext(data.suggestedProblem || problemContext);
-                setChatLog([{ role: "ai", text: `Hello! I see you have experience with ${data.skills?.join(", ") || 'Modern Tech'}. Let's dive in. ${data.suggestedProblem}` }]);
+                setChatLog([{ role: "assistant", content: `Hello! I see you have experience with ${data.skills?.join(", ") || 'Modern Tech'}. Let's dive in. ${data.suggestedProblem}` }]);
+
                 setIsLoading(false);
             };
             reader.readAsText(file);
@@ -261,24 +315,81 @@ function InterviewPage() {
         }
     };
 
-    const handleSendMessage = async () => {
-        if (!chatInput.trim()) return;
-        const newLog = [...chatLog, { role: "user", text: chatInput }];
-        setChatLog(newLog);
-        setChatInput("");
+    const handleSendMessage = async (customMsg = null) => {
+        const text = customMsg || message;
+        if (!text.trim()) return;
+
+        const newChat = [...chatLog, { role: "user", content: text }];
+        setChatLog(newChat);
+        setMessage("");
         setIsLoading(true);
+
         try {
             const res = await axiosInstance.post("/interview/chat", {
-                chatLog: newLog,
-                code: code,
-                interviewType,
-                hostility: aggressionLevel
+                message: text,
+                hostility: aggressionLevel,
+                archetype: selectedArchetype,
+                problemContext: `Candidate is applying for a ${interviewType} position at ${selectedCompany}.`
             });
-            setChatLog([...newLog, { role: "ai", text: res.data.reply }]);
-        } catch {
-            setChatLog([...newLog, { role: "ai", text: "Matrix disruption. AI log truncated." }]);
+            
+            const aiMsg = { role: "assistant", content: res.data.content };
+            setChatLog([...newChat, aiMsg]);
+            
+            // 🎙️ TTS (Speak response if voice mode is on)
+            if (isVoiceModeActive) speakAI(res.data.content);
+
+
+        } catch (error) {
+            if (error.response?.status === 403 && error.response?.data?.requirePayment) {
+                toast.error("Neural Node Depleted. Refill required.", { icon: '⚡' });
+                navigate("/pricing");
+            } else {
+                toast.error("Cognitive Relay Offline.");
+            }
         } finally {
+
             setIsLoading(false);
+        }
+    };
+
+    const speakAI = (text) => {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.1;
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const toggleVoiceMode = () => {
+        if (!hasSpeechSupport) return toast.error("Speech Recognition not supported in this vessel.");
+        
+        if (!isVoiceModeActive) {
+            if (!recognitionRef.current) {
+                const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+                recognitionRef.current = new SpeechRecognition();
+                recognitionRef.current.continuous = true;
+                recognitionRef.current.interimResults = true;
+                recognitionRef.current.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript;
+                    if (event.results[0].isFinal) {
+                        handleSendMessage(transcript);
+                        recognitionRef.current.stop();
+                        setIsRecordingVoice(false);
+                    }
+                };
+
+                recognitionRef.current.onend = () => setIsRecordingVoice(false);
+            }
+            recognitionRef.current.start();
+            setIsRecordingVoice(true);
+            setIsVoiceModeActive(true);
+            toast.success("Voice Engine Primed. Listening...");
+        } else {
+            recognitionRef.current.stop();
+            setIsRecordingVoice(false);
+            setIsVoiceModeActive(false);
         }
     };
 
@@ -291,21 +402,34 @@ function InterviewPage() {
             toast.success("Session Archive Completed!");
 
             const recording = {
-                id: Date.now(),
                 company: selectedCompany,
-                type: interviewType,
-                date: new Date().toISOString(),
+                interviewType: interviewType,
                 duration: 45 * 60 - timeLeft,
                 chatLog: chatLog,
                 codeSnapshots: replayTimeline,
                 score: res.data.score || 0,
                 feedback: res.data.feedback || "",
+                strengths: res.data.strengths || [],
+                weaknesses: res.data.weaknesses || [],
+                problemContext: problemContext,
+                finalCode: code,
+                metrics: {
+                    fillerWords: fillerWordsCount,
+                    stressLevel: 25 // Simulated or linked to state
+                }
             };
-            const recordings = JSON.parse(localStorage.getItem("interviewRecordings") || "[]");
-            recordings.push(recording);
-            localStorage.setItem("interviewRecordings", JSON.stringify(recordings));
-        } catch { toast.error("Evaluation Sync Failed."); }
+
+            
+            // 🚀 MUTATION WITH OPTIMISTIC UPDATE
+            saveInterviewMutation.mutate(recording);
+            
+        } catch (err) { 
+            console.error(err);
+            toast.error("Evaluation Sync Failed."); 
+        }
     };
+
+
 
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60);
@@ -324,16 +448,17 @@ function InterviewPage() {
             try {
                 const res = await axiosInstance.post("/interview/github-mock", { githubUrl });
                 setProblemContext(res.data.problemContext);
-                setChatLog([{ role: "ai", text: `[System Design Engineer]: ${res.data.firstMessage}` }]);
+                setChatLog([{ role: "assistant", content: `[System Design Engineer]: ${res.data.firstMessage}` }]);
                 setPhase("active");
             } catch { toast.error("Codebase parsing offline."); }
         } else if (interviewType === "Behavioral") {
-            setChatLog([{ role: "ai", text: `[Hiring Manager]: Welcome. Let's explore your conflict resolution matrices. Tell me about your most complex disagreement.` }]);
+            setChatLog([{ role: "assistant", content: `[Hiring Manager]: Welcome. Let's explore your conflict resolution matrices. Tell me about your most complex disagreement.` }]);
             setPhase("active");
         } else {
-            setChatLog([{ role: "ai", text: "[Hiring Manager]: Hello! We are your FAANG panel. Let's start with your approach to the problem context." }]);
+            setChatLog([{ role: "assistant", content: "[Hiring Manager]: Hello! We are your FAANG panel. Let's start with your approach to the problem context." }]);
             setPhase("active");
         }
+
         setIsLoading(false);
     };
 
@@ -347,7 +472,7 @@ function InterviewPage() {
             } else {
                 toast.success("Execution Completed");
                 const output = result.output;
-                setChatLog(prev => [...prev, { role: "ai", text: `[Terminal]: Execution Result:\n${output}` }]);
+                setChatLog(prev => [...prev, { role: "assistant", content: `[Terminal]: Execution Result:\n${output}` }]);
             }
         } catch (err) {
             toast.error("Process Terminated: Cluster Offline.");
@@ -361,12 +486,12 @@ function InterviewPage() {
         toast("Scanning for Vulnerabilities...", { icon: '⚙️' });
         try {
             const res = await axiosInstance.post("/interview/chat", {
-                chatLog: [...chatLog, { role: "user", text: "Analyze my code for potential bugs or logical errors." }],
+                chatLog: [...chatLog, { role: "user", content: "Analyze my code for potential bugs or logical errors." }],
                 code: code,
                 interviewType: "BugScan",
                 hostility: 1
             });
-            setChatLog(prev => [...prev, { role: "ai", text: `[System Debugger]: ${res.data.reply}` }]);
+            setChatLog(prev => [...prev, { role: "assistant", content: `[System Debugger]: ${res.data.reply}` }]);
             toast.success("Scan Complete");
         } catch {
             toast.error("Debugger Sync Failed");
@@ -378,9 +503,11 @@ function InterviewPage() {
     const handleAskCoach = async () => {
         setIsAskingCoach(true);
         toast("Consulting Co-Pilot...", { icon: '🧠' });
+        setAiSentiment("impressed"); // Coach is always nice
+        setIsAISpeaking(true);
         try {
             const res = await axiosInstance.post("/interview/chat", {
-                chatLog: [...chatLog, { role: "user", text: "Give me a subtle hint about my current approach without revealing the full solution." }],
+                chatLog: [...chatLog, { role: "user", content: "Give me a subtle hint about my current approach without revealing the full solution." }],
                 code: code,
                 interviewType,
                 hostility: 1
@@ -388,8 +515,11 @@ function InterviewPage() {
             setCoachHint(res.data.reply);
             setShowCoachMessage(true);
             toast.success("Hint Received");
+            setTimeout(() => setIsAISpeaking(false), 3000);
         } catch {
             toast.error("Co-Pilot Link Severed");
+            setIsAISpeaking(false);
+            setAiSentiment("neutral");
         } finally {
             setIsAskingCoach(false);
         }
@@ -438,7 +568,8 @@ function InterviewPage() {
                                             {resumeUploaded ? (
                                                 <div className="flex items-center gap-6">
                                                     <div className="size-14 rounded-2xl bg-success/20 flex items-center justify-center shadow-xl border border-success/30">
-                                                        <ShieldCheckIcon className="size-8 text-success" />
+                                                        <ShieldCheck className="size-8 text-success" />
+
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-black italic">Identity Matrix Validated</p>
@@ -468,7 +599,7 @@ function InterviewPage() {
 
                                     <div className="space-y-8">
                                         <header className="flex items-center gap-4 opacity-40">
-                                            <Zap className="size-5" />
+                                            <Cpu className="size-3" />
                                             <span className="text-xs font-black uppercase tracking-widest">Chaos_Modulators</span>
                                         </header>
 
@@ -488,7 +619,6 @@ function InterviewPage() {
                                         {/* MODE SWITCHES */}
                                         <div className="space-y-3">
                                             {[
-                                                { label: "Stress_Protocol", icon: <AlertTriangle />, state: stressMode, setter: setStressMode, color: "text-error", bg: "bg-error/10" },
                                                 { label: "Emotion_Tracking", icon: <Camera />, state: emotionMode, setter: setEmotionMode, color: "text-info", bg: "bg-info/10" }
                                             ].map(mode => (
                                                 <div key={mode.label} onClick={() => mode.setter(!mode.state)} className={`flex items-center justify-between p-6 rounded-[24px] cursor-pointer transition-all border ${mode.state ? `${mode.color} ${mode.bg} border-current shadow-lg` : 'bg-white/5 border-white/5 opacity-40 hover:opacity-100'}`}>
@@ -500,14 +630,59 @@ function InterviewPage() {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        {/* ARCHEOTYPE SELECTION */}
+                                        <div className="space-y-4">
+                                             <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Interviewer_Archetype</p>
+                                             <div className="grid grid-cols-2 gap-3">
+                                                 {[
+                                                     { id: "Standard Panel", description: "FAANG Professionals", icon: UserCircle2 },
+                                                     { id: "The Stoic", description: "Blunt & Critical", icon: Swords },
+                                                     { id: "The Mentor", description: "Helpful & Kind", icon: Sparkles },
+                                                     { id: "The Chaos Monkey", description: "Changing Specs", icon: Zap },
+                                                 ].map(arch => (
+
+                                                     <button 
+                                                        key={arch.id} 
+                                                        onClick={() => setSelectedArchetype(arch.id)} 
+                                                        className={`p-4 rounded-2xl border text-left transition-all ${selectedArchetype === arch.id ? 'bg-primary/10 border-primary shadow-lg shadow-primary/10 scale-[1.02]' : 'bg-white/5 border-white/5 opacity-60'}`}
+                                                     >
+                                                         <div className="flex items-center gap-3 mb-2">
+                                                            <arch.icon className={`size-4 ${selectedArchetype === arch.id ? 'text-primary' : 'opacity-40'}`} />
+                                                            <span className="font-black text-[10px] uppercase">{arch.id}</span>
+                                                         </div>
+                                                         <p className={`text-[8px] font-bold opacity-30`}>{arch.description}</p>
+                                                     </button>
+                                                 ))}
+                                             </div>
+                                         </div>
                                     </div>
+
                                 </div>
 
-                                <button onClick={handleStartInterview} disabled={isLoading} className="btn bg-gradient-to-r from-primary via-secondary to-accent w-full h-24 rounded-[32px] border-none text-white shadow-2xl font-black tracking-widest text-xl group relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                                    <PlayCircle className="size-8" />
-                                    {isLoading ? "INITIALIZING_GAUNTLET..." : "INITIALIZE_INTERVIEW_ARENA"}
-                                </button>
+                                 {/* CREDIT STATUS IN SETUP */}
+                                <div className="flex items-center gap-4 mb-2 justify-center">
+                                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/5 border border-primary/20">
+                                        <Zap className="size-4 text-primary" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Balance: {isLoadingCredits ? "..." : `${balance?.toLocaleString()} SCARLET`}</span>
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-30">Cost: 500 / Session</span>
+                                </div>
+
+                                {balance < 500 ? (
+                                    <button onClick={() => navigate("/pricing")} className="btn btn-warning w-full h-24 rounded-[32px] border-none text-warning-content shadow-2xl font-black tracking-widest text-xl group relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                        <AlertTriangle className="size-8 mr-2" />
+                                        RECHARGE_REQUIRED (LOW_NODES)
+                                    </button>
+                                ) : (
+                                    <button onClick={handleStartInterview} disabled={isLoading} className="btn bg-gradient-to-r from-primary via-secondary to-accent w-full h-24 rounded-[32px] border-none text-white shadow-2xl font-black tracking-widest text-xl group relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                        <PlayCircle className="size-8" />
+                                        {isLoading ? "INITIALIZING_GAUNTLET..." : "INITIALIZE_INTERVIEW_ARENA"}
+                                    </button>
+                                )}
+
                             </div>
                         </motion.div>
 
@@ -516,28 +691,27 @@ function InterviewPage() {
 
                             <div className={`p-10 rounded-[48px] ${isDark ? 'bg-white/5 border border-white/10' : 'bg-base-100 border border-black/5'} backdrop-blur-3xl shadow-3xl`}>
                                 <header className="flex items-center gap-4 mb-8 opacity-40">
-                                    <HistoryIcon className="size-5" />
+                                    <History className="size-5" />
                                     <span className="text-xs font-black uppercase tracking-widest">Archive_Timeline</span>
                                 </header>
 
                                 {(() => {
-                                    const recordings = JSON.parse(localStorage.getItem("interviewRecordings") || "[]");
-                                    if (recordings.length === 0) return <div className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-widest">No_Archives_Found</div>;
+                                    if (cloudRecordings.length === 0) return <div className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-widest">No_Archives_Found</div>;
                                     return (
                                         <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-2">
-                                            {recordings.slice().reverse().map((rec, i) => (
+                                            {cloudRecordings.map((rec, i) => (
                                                 <div key={i} className="p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/40 transition-all cursor-pointer group shadow-xl">
                                                     <div className="flex items-center gap-4 justify-between mb-4">
                                                         <div className={`size-12 rounded-2xl flex items-center justify-center font-black italic text-xl ${rec.score >= 70 ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>
                                                             {rec.score}
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">{new Date(rec.date).toLocaleDateString()}</p>
+                                                            <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">{new Date(rec.createdAt).toLocaleDateString()}</p>
                                                             <p className="text-xs font-black italic text-primary">{rec.company}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center justify-between opacity-30 group-hover:opacity-100 transition-opacity">
-                                                        <span className="text-[8px] font-black uppercase tracking-widest">{rec.type}</span>
+                                                        <span className="text-[8px] font-black uppercase tracking-widest">{rec.interviewType}</span>
                                                         <ChevronRight className="size-3" />
                                                     </div>
                                                 </div>
@@ -545,11 +719,13 @@ function InterviewPage() {
                                         </div>
                                     );
                                 })()}
+
                             </div>
 
                             {/* RECRUITER TIP */}
                             <div className="p-10 rounded-[40px] bg-primary/5 border border-primary/10 shadow-3xl text-center space-y-4">
-                                <SparklesIcon className="size-8 text-primary mx-auto animate-pulse" />
+                                <Sparkles className="size-8 text-primary mx-auto animate-pulse" />
+
                                 <p className="text-xs font-bold leading-relaxed opacity-60 italic tracking-tight">"Our FAANG-calibrated AI detects micro-hesitation in your code-flow. Keep your logic as clean as your imports."</p>
                             </div>
 
@@ -562,7 +738,7 @@ function InterviewPage() {
 
     if (phase === "active") {
         return (
-            <div className={`h-screen flex flex-col pt-24 font-sans ${isDark ? 'bg-black text-white' : 'bg-base-300'}`}>
+            <div className={`h-screen flex flex-col pt-24 font-sans ${isDark ? 'bg-[#050505] text-white' : 'bg-base-200 text-base-content'}`}>
                 <Navbar />
 
                 {/* Floating AI Coach Toast */}
@@ -577,7 +753,7 @@ function InterviewPage() {
                     )}
                 </AnimatePresence>
 
-                <div className="bg-black/80 backdrop-blur-4xl px-8 h-16 flex justify-between items-center z-40 border-b border-white/10 shadow-2xl">
+                <div className={`${isDark ? 'bg-black/80 border-white/10' : 'bg-base-100/80 border-base-300'} backdrop-blur-3xl px-8 h-16 flex justify-between items-center z-40 border-b shadow-sm`}>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 px-3 py-1 bg-error/10 border border-error/20 rounded-full animate-pulse">
                             <span className="size-2 bg-error rounded-full block"></span>
@@ -591,7 +767,7 @@ function InterviewPage() {
                             <div className={`flex items-center gap-3 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${currentStressLevel.bg} ${currentStressLevel.color} border-current backdrop-blur-xl`}>
                                 <Activity className="size-3" /> {currentStressLevel.text}
                             </div>
-                            <div className="size-8 rounded-xl overflow-hidden bg-black border border-white/20 relative group">
+                            <div className={`size-8 rounded-xl overflow-hidden ${isDark ? 'bg-black border-white/20' : 'bg-base-300 border-base-300'} border relative group`}>
                                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
                             </div>
                         </div>
@@ -606,8 +782,8 @@ function InterviewPage() {
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
-                    <div className={`${interviewType === "Behavioral" ? "w-full max-w-4xl mx-auto rounded-t-xl" : "w-[30%] border-r border-white/10"} bg-black/20 flex flex-col backdrop-blur-3xl`}>
-                        <div className="px-6 h-16 bg-white/5 border-b border-white/10 font-black text-[10px] flex items-center justify-between uppercase tracking-[0.4em] opacity-40">
+                    <div className={`${interviewType === "Behavioral" ? "w-full max-w-4xl mx-auto rounded-t-xl" : `w-[30%] border-r ${isDark ? 'border-white/10' : 'border-base-300'}`} ${isDark ? 'bg-black/40' : 'bg-base-200/50'} flex flex-col backdrop-blur-3xl`}>
+                        <div className={`px-6 h-16 ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-base-300/50 border-base-300 text-base-content'} border-b font-black text-[10px] flex items-center justify-between uppercase tracking-[0.4em] opacity-60`}>
                             <span>Intelligence_Feed</span>
                             <div className="flex items-center gap-4">
                                 <button onClick={() => setAudioEnabled(!audioEnabled)} className={`flex items-center gap-2 ${!audioEnabled && 'opacity-30'}`}>{audioEnabled ? <Mic className="size-3" /> : <Mic className="size-3 line-through" />} VOX</button>
@@ -615,50 +791,83 @@ function InterviewPage() {
                             </div>
                         </div>
 
+                        {/* Holographic AI Avatar Section */}
+                        <div className={`h-64 border-b ${isDark ? 'border-white/10 bg-black/40 shadow-inner' : 'border-base-300 bg-base-300/40 shadow-sm'} relative overflow-hidden flex-shrink-0`}>
+                            <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-end p-4">
+                                <div className="flex items-center gap-2">
+                                    <div className={`size-2 rounded-full ${aiSentiment === 'stressed' ? 'bg-error' : aiSentiment === 'impressed' ? 'bg-warning' : 'bg-primary'} animate-pulse`} />
+                                    <span className={`text-[9px] font-black uppercase tracking-widest ${aiSentiment === 'stressed' ? 'text-error' : aiSentiment === 'impressed' ? 'text-warning' : 'text-primary'}`}>{isAISpeaking ? 'Transmitting...' : 'Idle'}</span>
+                                </div>
+                            </div>
+                            <Canvas shadows gl={{ antialias: true, alpha: true }}>
+                                <HolographicAvatar sentiment={aiSentiment} isSpeaking={isAISpeaking} />
+                            </Canvas>
+                        </div>
+
                         <div className="flex-1 p-8 overflow-y-auto space-y-8 pb-32 no-scrollbar">
                             {chatLog.map((chat, idx) => (
-                                <div key={idx} className={`chat ${chat.role === 'ai' ? 'chat-start' : 'chat-end'}`}>
+                                <div key={idx} className={`chat ${chat.role === 'assistant' ? 'chat-start' : 'chat-end'}`}>
                                     <div className="chat-image avatar hidden sm:block">
-                                        <div className={`size-10 rounded-2xl ${chat.role === 'ai' ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-white/10'} flex items-center justify-center text-white border border-white/10`}>
-                                            {chat.role === 'ai' ? <Bot className="size-5" /> : <Mic className="size-5" />}
+                                        <div className={`size-10 rounded-2xl ${chat.role === 'assistant' ? 'bg-primary shadow-lg shadow-primary/20 text-white' : isDark ? 'bg-white/10 text-white' : 'bg-base-300 text-base-content'} flex items-center justify-center border ${isDark ? 'border-white/10' : 'border-base-200'}`}>
+                                            {chat.role === 'assistant' ? <Bot className="size-5" /> : <User className="size-5" />}
                                         </div>
                                     </div>
-                                    <div className="chat-header text-[8px] font-black opacity-30 uppercase tracking-[0.3em] mb-2 px-1">
-                                        {chat.role === 'ai' ? (chat.text.match(/^\[(.*?)\]/)?.[1] || "AI System") : "Candidate"}
+                                    <div className="chat-header text-[8px] font-black opacity-40 uppercase tracking-[0.3em] mb-2 px-1">
+                                        {chat.role === 'assistant' ? (chat.content?.match(/^\[(.*?)\]/)?.[1] || "AI System") : "Candidate"}
                                     </div>
-                                    <div className={`chat-bubble max-w-[85%] rounded-[24px] px-6 py-4 text-xs font-medium leading-relaxed shadow-xl border ${chat.role === 'ai' ? 'bg-white/5 border-white/5 text-white/90' : 'bg-primary text-primary-content border-primary/20 font-black'}`}>
-                                        {chat.text.replace(/^\[.*?\]:\s*/, '')}
+                                    <div className={`chat-bubble max-w-[85%] rounded-[24px] px-6 py-4 text-xs font-medium leading-relaxed shadow-sm border ${chat.role === 'assistant' ? (isDark ? 'bg-white/5 border-white/5 text-white/90' : 'bg-base-100 border-base-200 text-base-content/90') : 'bg-primary text-primary-content border-primary/20 font-black'}`}>
+                                        {chat.content?.replace(/^\[.*?\]:\s*/, '') || (chat.text?.replace(/^\[.*?\]:\s*/, '')) || "Signal interrupted..."}
                                     </div>
+
                                 </div>
                             ))}
                         </div>
 
-                        <div className="p-6 bg-black/40 border-t border-white/10 relative">
-                            <div className="relative group">
-                                <input type="text" className="input input-lg w-full bg-white/5 border-white/10 rounded-2xl px-6 font-medium text-sm focus:border-primary/50 transition-all text-white placeholder:opacity-30" placeholder="Articulate your strategy or respond..." value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    <button onMouseDown={() => setIsRecordingVoice(true)} onMouseUp={() => setIsRecordingVoice(false)} className={`btn btn-circle btn-sm ${isRecordingVoice ? 'btn-error' : 'btn-ghost'}`}><Mic className="size-4" /></button>
-                                    <button onClick={handleSendMessage} className="btn btn-circle btn-sm btn-primary shadow-lg shadow-primary/20"><Send className="size-4" /></button>
-                                </div>
-                            </div>
+
+                        <div className={`p-6 ${isDark ? 'bg-black/40 border-white/10' : 'bg-base-200/80 border-base-300'} border-t relative`}>
+                                    <div className="flex gap-4">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="text"
+                                                value={message}
+                                                onChange={(e) => setMessage(e.target.value)}
+                                                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                                                placeholder={isVoiceModeActive ? "Listening for explanation..." : "Describe your logic..."}
+                                                className={`w-full bg-white/5 border ${isVoiceModeActive ? 'border-primary shadow-[0_0_20px_rgba(143,0,255,0.2)]' : 'border-white/10'} rounded-2xl h-16 px-6 font-medium focus:outline-none transition-all`}
+                                            />
+                                            {isVoiceModeActive && <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1 items-end h-4">
+                                                {[1,2,3,4].map(i => <motion.div key={i} animate={{ height: [4, 16, 4] }} transition={{ repeat: Infinity, delay: i*0.1 }} className="w-1 bg-primary rounded-full" />)}
+                                            </div>}
+                                        </div>
+                                        <button 
+                                            onClick={toggleVoiceMode}
+                                            className={`btn size-16 rounded-2xl border-white/10 transition-all ${isVoiceModeActive ? 'bg-primary text-white' : 'bg-white/5 opacity-40 hover:opacity-100'}`}
+                                        >
+                                            <Mic className={isVoiceModeActive ? 'animate-pulse' : ''} />
+                                        </button>
+                                        <button onClick={() => handleSendMessage()} className="btn btn-primary size-16 rounded-2xl shadow-xl shadow-primary/20">
+                                            <Send className="size-5" />
+                                        </button>
+                                    </div>
                         </div>
                     </div>
 
                     {interviewType !== "Behavioral" && (
-                        <div className="flex-1 flex flex-col bg-black border-l border-white/10">
-                            <div className="h-16 border-b border-white/10 px-8 flex items-center justify-between bg-white/5 shadow-inner">
+                        <div className={`flex-1 flex flex-col ${isDark ? 'bg-black border-white/10' : 'bg-base-100 border-base-300'} border-l`}>
+                            <div className={`h-16 border-b ${isDark ? 'border-white/10 bg-white/5' : 'border-base-300 bg-base-200/50'} px-8 flex items-center justify-between shadow-sm`}>
                                 <div className="flex items-center gap-6">
                                     <div className="flex items-center gap-2">
                                         <div className="size-1.5 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--color-primary),1)]" />
                                         <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">System_Terminal</span>
                                     </div>
-                                    <div className="flex items-center gap-4 border-l border-white/10 pl-6">
+                                    <div className={`flex items-center gap-4 border-l ${isDark ? 'border-white/10' : 'border-base-300'} pl-6`}>
                                         <div className="flex items-center gap-2 text-[10px] font-black opacity-60">
                                             <Timer className="size-3" />
                                             <span>Time: {liveComplexity.time}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-[10px] font-black opacity-60">
-                                            <CpuIcon className="size-3" />
+                                            <Cpu className="size-3" />
+
                                             <span>Space: {liveComplexity.space}</span>
                                         </div>
                                     </div>
@@ -666,14 +875,14 @@ function InterviewPage() {
                                 <div className="flex items-center gap-3">
                                     <button onClick={handleAIDebug} className="btn btn-ghost btn-xs text-[10px] font-black uppercase tracking-widest gap-2"><Bug className="size-3" /> Reveal_Bugs</button>
                                     <button onClick={handleAskCoach} className="btn btn-primary btn-xs h-8 px-6 rounded-lg font-black tracking-widest uppercase shadow-lg shadow-primary/20">Ask_Coach</button>
-                                    <button onClick={handleRunCode} className="btn bg-white/10 hover:bg-white/20 border-none text-white btn-xs h-8 px-6 rounded-lg font-black tracking-widest uppercase">Execute</button>
+                                    <button onClick={handleRunCode} className={`btn border-none btn-xs h-8 px-6 rounded-lg font-black tracking-widest uppercase ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-base-300 hover:bg-base-300/80 text-base-content'}`}>Execute</button>
                                 </div>
                             </div>
                             <div className="flex-1 relative overflow-hidden">
-                                <Editor height="100%" language={language} value={code} onChange={setCode} theme="vs-dark" options={{ minimap: { enabled: false }, fontSize: 16, cursorBlinking: "smooth", smoothScrolling: true, padding: { top: 32, left: 32 } }} />
+                                <Editor height="100%" language={language} value={code} onChange={setCode} theme={isDark ? "vs-dark" : "light"} options={{ minimap: { enabled: false }, fontSize: 16, cursorBlinking: "smooth", smoothScrolling: true, padding: { top: 32, left: 32 } }} />
 
                                 <div className="absolute bottom-8 right-8 space-y-3 pointer-events-none">
-                                    <div className="p-6 rounded-3xl bg-black/60 backdrop-blur-3xl border border-white/10 max-w-sm shadow-4xl text-left space-y-2">
+                                    <div className={`p-6 rounded-3xl ${isDark ? 'bg-black/60 border-white/10 text-white' : 'bg-base-100/90 border-base-300 text-base-content'} backdrop-blur-3xl border max-w-sm shadow-xl text-left space-y-2`}>
                                         <p className="text-[9px] font-black uppercase tracking-widest text-primary">Active_Prompt</p>
                                         <p className="text-xs font-bold leading-relaxed opacity-70 italic">{problemContext}</p>
                                     </div>

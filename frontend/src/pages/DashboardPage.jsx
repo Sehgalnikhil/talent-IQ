@@ -2,7 +2,11 @@ import { useNavigate, Link } from "react-router";
 import { useUser } from "@clerk/clerk-react";
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useActiveSessions, useCreateSession, useMyRecentSessions } from "../hooks/useSessions";
+import { useUserStats } from "../hooks/useUserStats";
+import { useCredits } from "../hooks/useCredits";
 import axiosInstance from "../lib/axios";
+
+
 import { 
   BrainCircuitIcon, 
   SparklesIcon, 
@@ -36,7 +40,8 @@ import { PROBLEMS } from "../data/problems";
 import { getEarnedBadges } from "../lib/badges.jsx";
 import TiltCard from '../components/TiltCard';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, HireabilityWidget } from "../components/DashboardWidgets";
+import { KarmaWidget, ReadinessWidget, PomodoroWidget, StudyPlanWidget, HireabilityWidget, InterviewSessionsWidget } from "../components/DashboardWidgets";
+
 import { 
   SpacedRepetitionWidget, 
   AdaptiveDifficultyWidget, 
@@ -112,10 +117,19 @@ function DashboardPage() {
   const { data: activeSessionsData, isLoading: loadingActiveSessions } = useActiveSessions();
   const { data: recentSessionsData, isLoading: loadingRecentSessions } = useMyRecentSessions();
 
-  const [solved, setSolved] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
-  const [speedrun, setSpeedrun] = useState({ elo: 1200, wins: 0, history: [] });
   const [pomodoroSessions, setPomodoroSessions] = useState(0);
+
+  const { data: stats, isLoading: isLoadingStats } = useUserStats();
+  const { balance, isLoading: isLoadingCredits } = useCredits();
+
+
+  const solved = stats?.problemsSolved || [];
+  const submissions = stats?.submissions || [];
+  const speedrun = stats?.speedrun || { elo: 1200, wins: 0, history: [] };
+  const points = stats?.points || 0;
+  const badge = stats?.badge || "Beginner";
+  const streak = stats?.streak || 0;
+
 
   useEffect(() => {
     // Listen for theme changes from Navbar
@@ -145,17 +159,11 @@ function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      axiosInstance.get("/users/stats")
-        .then(res => {
-          setSolved(res.data.problemsSolved || []);
-          setSubmissions(res.data.submissions || []);
-          setSpeedrun(res.data.speedrun || { elo: 1200, wins: 0, history: [] });
-          setPomodoroSessions(res.data.pomodoroSessions || 0);
-        })
-        .catch(err => console.warn("Sync error", err));
+    if (stats?.pomodoroSessions) {
+        setPomodoroSessions(stats.pomodoroSessions);
     }
-  }, [user]);
+  }, [stats]);
+
 
   const dailyChallenge = useMemo(() => {
     const allProblems = Object.values(PROBLEMS);
@@ -189,7 +197,8 @@ function DashboardPage() {
         else if (i > 0) break;
     }
     return streak;
-  }, [submissions]);
+  }, [stats]);
+
 
   const handleCreateRoom = () => {
     if (!roomConfig.problem || !roomConfig.difficulty) return;
@@ -229,16 +238,18 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-base-100 border-base-200'} backdrop-blur-2xl border p-5 rounded-2xl flex items-center gap-10 shadow-xl`}>
-               <div className="text-center">
-                  <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>STREAK</p>
-                  <p className="text-3xl font-black text-primary"><CountUp value={currentStreak} />D</p>
-               </div>
-               <div className={`w-px h-10 ${isDark ? 'bg-white/10' : 'bg-base-content/10'}`} />
-               <div className="text-center">
-                  <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>ELO</p>
-                  <p className="text-3xl font-black text-secondary">{speedrun.elo}</p>
-               </div>
+                <div className="text-center">
+                   <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-white/40' : 'text-base-content/40'}`}>STREAK</p>
+                   <p className="text-3xl font-black text-primary"><CountUp value={streak} />D</p>
+                </div>
+
+                <div className={`w-px h-10 ${isDark ? 'bg-white/10' : 'bg-base-content/10'}`} />
+                <div className="text-center group cursor-pointer" onClick={() => navigate("/pricing")}>
+                   <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-white/40' : 'text-base-content/40'} group-hover:text-primary transition-colors`}>SCARLET</p>
+                   <p className="text-3xl font-black text-primary group-hover:scale-110 transition-transform">{isLoadingCredits ? "..." : balance?.toLocaleString()}</p>
+                </div>
             </div>
+
             <button onClick={() => setShowCreateModal(true)} className="btn btn-primary h-24 px-12 rounded-2xl text-xl font-black shadow-[0_0_50px_rgba(143,0,255,0.4)] transition-all hover:scale-105 active:scale-95">
                INITIALIZE SESSION
             </button>
@@ -328,7 +339,12 @@ function DashboardPage() {
            <div className="dashboard-item"><ErrorBoundary><BurnoutWidget /></ErrorBoundary></div>
            <div className="dashboard-item"><ErrorBoundary><PatternStatsWidget /></ErrorBoundary></div>
            <div className="dashboard-item"><ErrorBoundary><HireabilityWidget /></ErrorBoundary></div>
+           <div className="dashboard-item lg:col-span-3">
+              <ErrorBoundary><InterviewSessionsWidget isDark={isDark} /></ErrorBoundary>
+           </div>
+
            {pomodoroSessions > 0 && <div className="dashboard-item"><ErrorBoundary><PomodoroWidget initialSessions={pomodoroSessions} /></ErrorBoundary></div>}
+
         </div>
 
         <div className="dashboard-item">

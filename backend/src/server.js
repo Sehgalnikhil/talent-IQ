@@ -16,6 +16,8 @@ import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
 import interviewRoutes from "./routes/interview.route.js";
 import userRoutes from "./routes/user.route.js";
+import creditRoutes from "./routes/credit.route.js";
+
 import { initSocket } from "./socket.js";
 
 const app = express();
@@ -34,6 +36,8 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/interview", interviewRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/credits", creditRoutes);
+
 
 app.get("/health", (req, res) => {
   res.status(200).json({ msg: "api is up and running" });

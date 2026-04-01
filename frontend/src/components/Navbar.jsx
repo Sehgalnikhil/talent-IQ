@@ -20,12 +20,17 @@ import { UserButton, useUser } from "@clerk/clerk-react";
 import NotificationCenter from "./NotificationCenter";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useCredits } from "../hooks/useCredits";
+import { Zap } from "lucide-react";
+
 
 const THEMES = ["dark", "light", "dracula", "nord", "synthwave", "night", "sunset", "luxury", "corporate"];
 
 function Navbar() {
    const { user } = useUser();
+   const { balance, isLoading } = useCredits();
    const [isExploreHovered, setIsExploreHovered] = useState(false);
+
    const location = useLocation();
    const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("talentiq-theme") || "dark");
    const [scrolled, setScrolled] = useState(false);
@@ -47,10 +52,13 @@ function Navbar() {
       <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 py-4 pointer-events-none ${scrolled ? 'mt-0' : 'mt-2'}`}>
          <div className={`max-w-[1400px] mx-auto rounded-[40px] transition-all duration-500 border relative overflow-visible shadow-2xl pointer-events-auto ${scrolled ? 'bg-base-100 backdrop-blur-3xl border-white/10' : 'bg-transparent border-transparent'}`}>
 
-            <div className="px-8 py-2.5 flex items-center justify-between relative z-10">
+            <div className="px-5 py-2.5 flex items-center justify-between relative z-10">
+
 
                {/* LOGO & PRIMARY CLUSTER */}
-               <div className="flex items-center gap-14">
+               <div className="flex items-center gap-4">
+
+
                   <Link to="/" className="group flex items-center gap-3 transition-transform duration-300 hover:scale-105 shrink-0">
                      <div className="size-11 rounded-full bg-gradient-to-r from-primary via-secondary to-accent flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary),0.5)] ">
                         <SparklesIcon className="size-6 text-white" />
@@ -72,7 +80,9 @@ function Navbar() {
                         <Link
                            key={node.path}
                            to={node.path}
-                           className={`flex items-center gap-2 px-5 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest border border-transparent ${isActive(node.path)
+                           className={`flex items-center gap-2 px-3 py-2 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest border border-transparent ${isActive(node.path)
+
+
                                  ? "bg-primary text-primary-content shadow-[0_0_25px_rgba(var(--color-primary),0.3)] scale-105"
                                  : `text-base-content/50 hover:bg-base-content/5 hover:text-base-content ${node.color || ""}`
                               }`}
@@ -84,12 +94,15 @@ function Navbar() {
 
                      {/* EXPLORE MEGA MENU NODE */}
                      <div 
-                        className="relative ml-6"
+                        className="relative ml-2"
+
                         onMouseEnter={() => setIsExploreHovered(true)}
                         onMouseLeave={() => setIsExploreHovered(false)}
                      >
                         <div
-                           className="flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent cursor-pointer"
+                           className="flex items-center gap-2 px-3 py-2 rounded-[18px] transition-all duration-500 font-black text-[10px] uppercase tracking-widest text-base-content/50 hover:bg-base-content/5 hover:text-base-content group border border-transparent cursor-pointer"
+
+
                         >
                            <SparklesIcon className="size-4 group-hover:animate-pulse" />
                            <span>Explore Space</span>
@@ -141,7 +154,18 @@ function Navbar() {
 
                {/* R: STATUS & COMMAND CLUSTER */}
                <div className="flex items-center gap-4">
+                  {/* CREDIT COUNTER */}
+                  <Link to="/pricing" className="hidden md:flex items-center gap-2 px-4 py-2 rounded-[22px] bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-all group group-hover:scale-105">
+
+                     <Zap className="size-4 text-primary animate-pulse" />
+                     <div className="flex flex-col items-start leading-none">
+                        <span className="text-[10px] font-black italic text-primary uppercase">{isLoading ? "SYNC..." : `${balance?.toLocaleString()} SCARLET`}</span>
+                        <span className="text-[7px] font-black opacity-30 uppercase tracking-[0.2em]">Neural_Nodes</span>
+                     </div>
+                  </Link>
+
                   <div className="flex items-center gap-2">
+
                      <button onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))} className="btn btn-ghost btn-circle btn-sm">
                         <SearchIcon className="size-4 opacity-30" />
                      </button>
@@ -168,7 +192,7 @@ function Navbar() {
 
                      <NotificationCenter />
 
-                     <div className="ml-4 pl-6 border-l border-white/10 scale-[1.1]">
+                     <div className="ml-2 pl-4 border-l border-white/10 scale-[1.1]">
                         <UserButton appearance={{ elements: { userButtonAvatarBox: "size-10 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-primary/20" } }} />
                      </div>
                   </div>

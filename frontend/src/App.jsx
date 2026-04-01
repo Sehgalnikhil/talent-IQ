@@ -24,7 +24,12 @@ import BehavioralInterviewPage from "./pages/BehavioralInterviewPage";
 import CompanyMockPage from "./pages/CompanyMockPage";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import FullMockInterviewPage from "./pages/FullMockInterviewPage";
+import InterviewReplayPage from "./pages/InterviewReplayPage";
+import DossierPage from "./pages/DossierPage";
+import PricingPage from "./pages/PricingPage";
 import CommandPalette from "./components/CommandPalette";
+
+
 import ClerkAxiosInterceptor from "./components/ClerkAxiosInterceptor";
 import PageTransition from "./components/PageTransition";
 import UserSync from "./components/UserSync";
@@ -65,11 +70,11 @@ function App() {
                   : <Navigate to={"/"} />
               }
             />
-    
+
             <Route path="/problems" element={isSignedIn ? <PageTransition><ProblemsPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/problem/:id" element={isSignedIn ? <PageTransition><ProblemPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/session/:id" element={isSignedIn ? <PageTransition><SessionPage /></PageTransition> : <Navigate to={"/"} />} />
-    
+
             <Route path="/leaderboard" element={isSignedIn ? <PageTransition><LeaderboardPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/speedrun" element={isSignedIn ? <PageTransition><SpeedrunPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/curated" element={isSignedIn ? <PageTransition><StudyTracksPage /></PageTransition> : <Navigate to={"/"} />} />
@@ -80,12 +85,17 @@ function App() {
             <Route path="/full-gauntlet" element={isSignedIn ? <PageTransition><FullMockInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/generate" element={isSignedIn ? <PageTransition><GeneratePage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/flashcards" element={isSignedIn ? <PageTransition><FlashcardPage /></PageTransition> : <Navigate to={"/"} />} />
-            
+
             {/* New Pro Features */}
             <Route path="/voice-interview" element={isSignedIn ? <PageTransition><VoiceInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/behavioral" element={isSignedIn ? <PageTransition><BehavioralInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/company-mock" element={isSignedIn ? <PageTransition><CompanyMockPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/replay/:sessionId" element={isSignedIn ? <PageTransition><InterviewReplayPage /></PageTransition> : <Navigate to={"/"} />} />
+            <Route path="/dossier/:sessionId" element={<DossierPage />} />
+            <Route path="/pricing" element={isSignedIn ? <PageTransition><PricingPage /></PageTransition> : <Navigate to={"/"} />} />
             <Route path="/u/:username" element={<PageTransition><PublicProfilePage /></PageTransition>} />
+
+
           </Routes>
         </AnimatePresence>
       </ClerkAxiosInterceptor>

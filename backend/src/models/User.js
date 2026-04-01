@@ -68,10 +68,24 @@ const userSchema = new mongoose.Schema(
       default: null
     },
     savedProblems: {
-      type: [Object],
-      default: []
+        type: [Object],
+        default: []
+    },
+    lastInterviewAt: {
+        type: Date,
+        default: null
+    },
+    credits: {
+        type: Number,
+        default: 5000
+    },
+    lastCreditRefresh: {
+        type: Date,
+        default: Date.now
     }
+
   },
+
   { timestamps: true } // createdAt, updatedAt
 );
 

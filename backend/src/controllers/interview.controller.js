@@ -9,7 +9,14 @@ import User from "../models/User.js";
 import { createClerkClient } from "@clerk/express";
 import { GauntletSession } from "../models/gauntlet.model.js";
 
+import InterviewSession from "../models/InterviewSession.js";
+import { updateUserAnalytics } from "../lib/analytics.js";
+import { consumeCredits } from "./credit.controller.js";
+
+
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+
 
 let genAI = null;
 let model = null;
@@ -117,7 +124,19 @@ export const analyzeResume = async (req, res) => {
 
 export const chatWithInterviewer = async (req, res) => {
     try {
-        const { chatLog, code, interviewType, hostility, prompt } = req.body;
+        const { chatLog, code, interviewType, hostility, archetype, prompt } = req.body;
+        const clerkId = req.auth.userId;
+
+        // Credit Check: Deduct 500 for NEW sessions
+        if (!chatLog || chatLog.length === 0) {
+            const hasStarted = await consumeCredits(clerkId, 500);
+            if (!hasStarted) {
+                return res.status(403).json({ 
+                    reply: "[SYSTEM_ERROR] Your SCARLET credits have been depleted. Please synchronize with the Neural Node to continue.", 
+                    requirePayment: true 
+                });
+            }
+        }
 
         if (prompt) {
             let text = await askAIWithFallback(prompt, false);
@@ -192,6 +211,25 @@ Be critical and realistic like a real hiring decision.`;
                 modeInstructions = `The candidate is solving a standard DSA coding problem. Analyze their code for correctness, time/space complexity, and code design strictly.`;
         }
 
+        let archetypeInstructions = "";
+        switch (archetype) {
+            case "The Stoic":
+                archetypeInstructions = "You are a senior technical lead. You are blunt, very recursive in questioning, and extremely critical of small mistakes. You value O-notation above all else. Do not use conversational filler like 'Great job'. Get straight to the point.";
+                break;
+            case "The Mentor":
+                archetypeInstructions = "You are a supportive technical coach. You guide the candidate with helpful hints when they are stuck. Your tone is encouraging and you prioritize learning and thought process over immediate correctness.";
+                break;
+            case "The Chaos Monkey":
+                archetypeInstructions = "You are an unpredictable interviewer. You frequently change the requirements mid-problem (e.g. 'Oh, we actually need this to run on a 5MB memory environment'). You test the candidate's adaptability to changing production constraints.";
+                break;
+            case "The Recruiter":
+                archetypeInstructions = "You focus on the candidate's communication and 'Culture Fit'. You care about how they explain their logic and how they would work in a team. You ask behavioral questions even during technical portions.";
+                break;
+            default:
+                archetypeInstructions = "You are a standard FAANG interviewer panel. Be professional, balanced, and firm.";
+        }
+
+
         let hostilityInstructions = "";
         const aggLevel = Number(hostility) || 5;
         if (aggLevel >= 8) {
@@ -200,24 +238,27 @@ Be critical and realistic like a real hiring decision.`;
             hostilityInstructions = `Aggression Level is ${aggLevel}/10. Act extremely supportive, friendly, and give lots of encouraging hints if they get stuck.`;
         }
 
-        const systemPrompt = `You are simulating a Multi-Agent Interview Panel consisting of 3 distinct personas:
-1. "DSA Engineer" - Focuses strictly on Data Structures, Time/Space Complexity, and algorithm optimization.
-2. "System Design Engineer" - Focuses on scaling, bottlenecks, and architecture choices.
-3. "Hiring Manager" - Focuses on behavioral questions, communication clarity, and trade-offs.
+        const finalPrompt = `
+You are an AI Interviewer Panel. Act according to these instructions:
+1. ARCHEOTYPE PERSONALITY: ${archetypeInstructions}
+2. INTERVIEW MODE: ${modeInstructions}
+3. HOSTILITY/CRITICALITY LEVEL: ${hostilityInstructions || "Standard FAANG Level (5/10)"}
+4. Current Problem Context: ${req.body.problemContext || "Standard Interview"}
 
-${modeInstructions}
-${hostilityInstructions}
+Analyze the candidate's latest response and code:
+Latest Code Segment: ${code || "No code provided yet"}
+Interview Type: ${interviewType}
 
-Here is their current code:\n${code}\n\n
-Here is the chat history: ${JSON.stringify(chatLog)}\n
+Chat History: ${JSON.stringify(chatLog)}
 
-Based on the conversation context, decide WHICH of the 3 interviewers should reply next. 
-Your response MUST start with their exact bracketed name, e.g. "[DSA Engineer]: " followed by their short 1-2 sentence response. Do not include multiple people in one message.`;
+Respond with the next AI message as a string. Identify clearly which persona is speaking using brackets (e.g., [Principal Engineer]: ...). Be concise and professional.
+`;
 
         let text = "";
         try {
-            text = await askAIWithFallback(systemPrompt, false);
+            text = await askAIWithFallback(finalPrompt, false);
         } catch (err) {
+
             console.error("AI Generation Error inside chatWithInterviewer:", err);
             return res.status(200).json({ reply: "I reviewed your answers. Could you tell me more about your scalable designs?", response: "I reviewed your answers." });
         }
@@ -1036,3 +1077,120 @@ export const getGauntletLeaderboard = async (req, res) => {
         res.status(500).json({ error: "Failed to load leaderboard." });
     }
 }
+
+export const saveInterviewSession = async (req, res) => {
+    try {
+        const { company, interviewType, duration, score, feedback, strengths, weaknesses, chatLog, codeSnapshots, problemContext, finalCode } = req.body;
+        const clerkId = req.auth?.userId;
+
+        if (!clerkId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const newSession = new InterviewSession({
+            clerkId,
+            company,
+            interviewType,
+            duration,
+            score,
+            feedback,
+            strengths,
+            weaknesses,
+            chatLog,
+            codeSnapshots,
+            problemContext,
+            finalCode
+        });
+
+        await newSession.save();
+        
+        // --- 🚀 NEW PRODUCTION ANALYTICS UPDATE ---
+        try {
+            await updateUserAnalytics(clerkId, {
+                company,
+                interviewType,
+                score,
+                duration
+            });
+        } catch (analyticsError) {
+            console.error("Non-blocking analytics failure:", analyticsError);
+        }
+        // -------------------------------------------
+
+        res.status(201).json({ message: "Interview session saved", sessionId: newSession._id });
+
+    } catch (error) {
+        console.error("Save Interview Session Error:", error);
+        res.status(500).json({ error: "Failed to save interview session" });
+    }
+};
+
+export const getInterviewSessions = async (req, res) => {
+    try {
+        const clerkId = req.auth?.userId;
+
+        if (!clerkId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const sessions = await InterviewSession.find({ clerkId }).sort({ createdAt: -1 });
+        res.status(200).json(sessions);
+    } catch (error) {
+        console.error("Get Interview Sessions Error:", error);
+        res.status(500).json({ error: "Failed to fetch interview sessions" });
+    }
+};
+export const getInterviewSessionById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const clerkId = req.auth?.userId;
+
+        if (!clerkId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const session = await InterviewSession.findOne({ _id: id, clerkId });
+        if (!session) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+
+        res.status(200).json(session);
+    } catch (error) {
+        console.error("Get Interview Session By Id Error:", error);
+        res.status(500).json({ error: "Failed to fetch interview session" });
+    }
+};
+
+export const togglePublicVisibility = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const clerkId = req.auth?.userId;
+
+        if (!clerkId) return res.status(401).json({ error: "Unauthorized" });
+
+        const session = await InterviewSession.findOne({ _id: id, clerkId });
+        if (!session) return res.status(404).json({ error: "Session NOT found." });
+
+        session.isPublic = !session.isPublic;
+        await session.save();
+
+        res.status(200).json({ isPublic: session.isPublic, message: "Visibility toggled." });
+    } catch (err) {
+        res.status(500).json({ error: "Visibility Sync Fail." });
+    }
+};
+
+export const getPublicSessionById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // PUBLIC ENDPOINT — DO NOT CHECK REQ.AUTH
+        const session = await InterviewSession.findOne({ _id: id, isPublic: true });
+        
+        if (!session) return res.status(403).json({ error: "Access Denied / Dossier is Private." });
+
+        res.status(200).json(session);
+    } catch (err) {
+        res.status(500).json({ error: "Archive Retrieval Internal Error." });
+    }
+};
+

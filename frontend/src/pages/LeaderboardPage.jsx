@@ -34,8 +34,8 @@ function LeaderboardPage() {
 
     useEffect(() => {
         const checkTheme = () => {
-           const theme = document.documentElement.getAttribute("data-theme");
-           setIsDark(!["light", "cupcake", "bumblebee", "emerald", "corporate", "retro", "cyberpunk", "valentine", "garden", "lofi", "pastel", "fantasy", "wireframe", "cmyk", "autumn", "business", "acid", "lemonade", "winter", "nord"].includes(theme));
+            const theme = document.documentElement.getAttribute("data-theme");
+            setIsDark(!["light", "cupcake", "bumblebee", "emerald", "corporate", "retro", "cyberpunk", "valentine", "garden", "lofi", "pastel", "fantasy", "wireframe", "cmyk", "autumn", "business", "acid", "lemonade", "winter", "nord"].includes(theme));
         };
         checkTheme();
         const observer = new MutationObserver(checkTheme);
@@ -45,7 +45,7 @@ function LeaderboardPage() {
 
     useEffect(() => {
         fetchLeaderboard();
-        
+
         if (socket) {
             socket.on("leaderboard_refresh", fetchLeaderboard);
             return () => socket.off("leaderboard_refresh", fetchLeaderboard);
@@ -55,23 +55,23 @@ function LeaderboardPage() {
     const topThree = leaderboard.slice(0, 3);
     const rest = leaderboard.slice(3);
 
-    const globalAverage = leaderboard.length > 0 
+    const globalAverage = leaderboard.length > 0
         ? (leaderboard.reduce((acc, curr) => acc + curr.score, 0) / leaderboard.length)
         : 78.4;
-    
+
     const eliteCount = leaderboard.filter(u => u.score >= 90).length;
 
     return (
         <div className={`min-h-screen transition-colors duration-700 font-sans relative overflow-x-hidden pt-24 pb-32 ${isDark ? 'bg-[#050505] text-white' : 'bg-base-300 text-base-content'}`}>
             <Navbar />
-            
+
             {/* AMBIENT ENGINE */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden h-full">
                 <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[140px] animate-pulse" />
                 <div className="absolute bottom-1/4 left-1/4 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[140px] animate-pulse" />
             </div>
 
-            <motion.div 
+            <motion.div
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
@@ -96,7 +96,7 @@ function LeaderboardPage() {
                 {/* TOP PODIUM */}
                 {!isLoading && topThree.length > 0 && (
                     <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                        
+
                         {/* Rank 2 */}
                         {topThree[1] && (
                             <div className="md:col-span-3 order-2 md:order-1">
@@ -127,7 +127,7 @@ function LeaderboardPage() {
                             <div className="md:col-span-6 order-1 md:order-2">
                                 <motion.div whileHover={{ scale: 1.02 }} className={`p-1 rounded-[64px] bg-gradient-to-br from-warning/20 to-amber-600/10 border border-warning/30 backdrop-blur-4xl shadow-4xl text-center relative overflow-hidden`}>
                                     <div className="absolute top-0 right-0 p-8">
-                                       <CrownIcon className="size-12 text-warning opacity-20" />
+                                        <CrownIcon className="size-12 text-warning opacity-20" />
                                     </div>
                                     <div className="p-16 space-y-8 relative z-10">
                                         <div className="size-24 mx-auto rounded-[32px] bg-warning/20 flex items-center justify-center text-warning font-black italic text-3xl border border-warning/40 shadow-2xl">#1</div>
@@ -198,19 +198,19 @@ function LeaderboardPage() {
                                 ) : leaderboard.length === 0 ? (
                                     <tr><td colSpan="5" className="text-center py-32 opacity-20 text-[10px] font-black uppercase tracking-widest">No_Engineering_Archives_Found</td></tr>
                                 ) : leaderboard.map((user, idx) => (
-                                    <motion.tr 
-                                        key={idx} 
-                                        initial={{ opacity: 0, x: -20 }} 
-                                        animate={{ opacity: 1, x: 0 }} 
+                                    <motion.tr
+                                        key={idx}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: idx * 0.05 }}
                                         className="group"
                                     >
                                         <td className="pl-12 py-6">
                                             <div className="flex items-center gap-4">
-                                                {idx === 0 ? <CrownIcon className="size-5 text-warning group-hover:scale-125 transition-transform" /> : 
-                                                 idx === 1 ? <MedalIcon className="size-5 text-slate-400 group-hover:scale-125 transition-transform" /> :
-                                                 idx === 2 ? <MedalIcon className="size-5 text-amber-700 group-hover:scale-125 transition-transform" /> :
-                                                 <span className="text-sm font-black italic opacity-20">#{(idx + 1).toString().padStart(2, '0')}</span>}
+                                                {idx === 0 ? <CrownIcon className="size-5 text-warning group-hover:scale-125 transition-transform" /> :
+                                                    idx === 1 ? <MedalIcon className="size-5 text-slate-400 group-hover:scale-125 transition-transform" /> :
+                                                        idx === 2 ? <MedalIcon className="size-5 text-amber-700 group-hover:scale-125 transition-transform" /> :
+                                                            <span className="text-sm font-black italic opacity-20">#{(idx + 1).toString().padStart(2, '0')}</span>}
                                             </div>
                                         </td>
                                         <td>
@@ -248,13 +248,13 @@ function LeaderboardPage() {
                         </table>
                     </div>
                 </motion.div>
-                
+
                 {/* FOOTER STATS */}
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
-                        { label: "Active_Coders", value: leaderboard.length, icon: <UsersIcon/> },
-                        { label: "Global_Average", value: globalAverage.toFixed(1) + "%", icon: <ActivityIcon/> },
-                        { label: "Elite_Engineers", value: eliteCount, icon: <BotIcon/> }
+                        { label: "Active_Coders", value: leaderboard.length, icon: <UsersIcon /> },
+                        { label: "Global_Average", value: globalAverage.toFixed(1) + "%", icon: <ActivityIcon /> },
+                        { label: "Elite_Engineers", value: eliteCount, icon: <BotIcon /> }
                     ].map(stat => (
                         <div key={stat.label} className="p-8 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-between group overflow-hidden relative">
                             <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
