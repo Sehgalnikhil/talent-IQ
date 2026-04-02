@@ -71,10 +71,10 @@ export const createOrder = async (req, res) => {
         const order = await rzp.orders.create(options);
         res.status(200).json(order);
     } catch (error) {
-        console.error("Razorpay Order Error:", error);
+        console.error("💥 [RAZORPAY_ORDER_FAILURE]:", error);
         
-        // Return descriptive error if possible
-        const errorMessage = error.error?.description || error.message || "Order creation failed";
+        // Return descriptive error from Razorpay SDK if available
+        const errorMessage = error.error?.description || error.description || error.message || "Order creation failed";
         res.status(500).json({ error: errorMessage });
     }
 

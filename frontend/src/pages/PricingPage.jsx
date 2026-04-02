@@ -75,10 +75,17 @@ function PricingPage() {
 
         try {
             const amount = parseInt(tier.price);
+            const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+
+            if (!rzpKey || rzpKey === "rzp_test_placeholder") {
+                toast.error("Billing nodes offline: Missing VITE_RAZORPAY_KEY_ID.");
+                return;
+            }
+
             const order = await createOrder(amount);
             
             const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+                key: rzpKey,
                 amount: order.amount,
                 currency: order.currency,
                 name: "TalentIQ",
@@ -95,7 +102,6 @@ function PricingPage() {
                         setPurchasedTier(tier);
                         setShowSuccessModal(true);
                     } catch (err) {
-
                         toast.error("Payment Verification Failed.");
                     }
                 },
