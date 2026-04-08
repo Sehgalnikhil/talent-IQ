@@ -120,10 +120,23 @@ export const SpacedRepetition = {
 // ═══════════════════════════════════════════════════════════════
 // FEATURE 2: Code Complexity Analyzer (AST Heuristics)
 // ═══════════════════════════════════════════════════════════════
+// ──────────────────────────────────
+// CACHE: Simple in-memory cache
+// ──────────────────────────────────
+const _analysisCache = new Map();
+
+// ═══════════════════════════════════════════════════════════════
+// FEATURE 2: Code Complexity Analyzer (AST Heuristics)
+// ═══════════════════════════════════════════════════════════════
 export const ComplexityAnalyzer = {
   /** Analyze code complexity using pattern-based heuristics */
   analyze(code, language = "javascript") {
     if (!code || code.trim().length === 0) return null;
+
+    // 1. Check cache first to save main-thread time
+    const cacheKey = `${language}:${code.slice(0, 100)}:${code.length}`;
+    if (_analysisCache.has(cacheKey)) return _analysisCache.get(cacheKey);
+
 
     const lines = code.split("\n");
     const cleanCode = code.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/#.*$/gm, "");
@@ -189,7 +202,7 @@ export const ComplexityAnalyzer = {
     if (nestedLoops >= 2) qualityScore -= 15;
     qualityScore = Math.max(0, Math.min(100, qualityScore));
 
-    return {
+    const result = {
       timeComplexity,
       spaceComplexity,
       cyclomaticComplexity,
@@ -204,7 +217,14 @@ export const ComplexityAnalyzer = {
       commentRatio: Math.round(commentRatio * 100),
       suggestions: this._getSuggestions({ timeComplexity, nestedLoops, maxDepth, cyclomaticComplexity, commentRatio, linesOfCode }),
     };
+
+    // Store in cache (limited size to avoid memory leaks)
+    if (_analysisCache.size > 50) _analysisCache.clear();
+    _analysisCache.set(cacheKey, result);
+
+    return result;
   },
+
 
   _countNestedLoops(code) {
     let maxNested = 0, current = 0;

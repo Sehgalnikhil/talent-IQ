@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { PROBLEMS } from "../data/problems";
