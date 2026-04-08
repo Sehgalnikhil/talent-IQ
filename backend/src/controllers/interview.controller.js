@@ -410,58 +410,88 @@ export const runCodeAI = async (req, res) => {
         const fs = require('fs');
         const { exec } = require('child_process');
         const path = require('path');
+        const crypto = require('crypto');
 
         if (!code) return res.status(400).json({ success: false, error: "Code cannot be empty" });
 
         const supported = ["javascript", "python", "python3", "cpp", "java", "c"];
         if (!supported.includes(language?.toLowerCase())) {
-            return res.status(400).json({ success: false, error: `${language} not supported yet in this local view flawlessly.` });
+            return res.status(400).json({ success: false, error: `${language} not supported yet.` });
         }
 
         const extMap = { javascript: "js", python: "py", python3: "py", cpp: "cpp", java: "java", c: "c" };
         const ext = extMap[language.toLowerCase()] || "js";
-        const tempFile = path.join("/tmp", `solution_${Date.now()}.${ext}`);
+        
+        // 🔒 SECURE SANDBOX: Create a unique execution directory in /tmp
+        const executionId = crypto.randomBytes(8).toString('hex');
+        const sandboxDir = path.join("/tmp", `talent_iq_run_${executionId}`);
+        fs.mkdirSync(sandboxDir, { recursive: true });
 
+        const tempFile = path.join(sandboxDir, `solution.${ext}`);
         fs.writeFileSync(tempFile, code);
 
-        let cmd = `node ${tempFile}`;
-        if (language.includes("python")) cmd = `python3 ${tempFile}`;
+        let cmd = `node solution.${ext}`;
+        if (language.includes("python")) cmd = `python3 solution.${ext}`;
         else if (language.toLowerCase() === "cpp" || language.toLowerCase() === "c") {
-            cmd = `g++ ${tempFile} -o ${tempFile}.out && ${tempFile}.out`;
+            cmd = `g++ solution.${ext} -o solution.out && ./solution.out`;
         } else if (language.toLowerCase() === "java") {
-            // Java needs class Main mapping Node flawless Node.
-            const javaFile = path.join("/tmp", "Main.java");
+            const javaFile = path.join(sandboxDir, "Main.java");
             fs.writeFileSync(javaFile, code);
-            cmd = `javac ${javaFile} && java -cp /tmp Main`;
+            cmd = `javac Main.java && java Main`;
         }
 
-        exec(cmd, { timeout: 5000 }, (error, stdout, stderr) => {
-            // Cleanup
-            try { fs.unlinkSync(tempFile); } catch (e) { }
-            if (language.toLowerCase() === "java") {
-                try { fs.unlinkSync("/tmp/Main.java"); fs.unlinkSync("/tmp/Main.class"); } catch (e) { }
-            } else if (language.toLowerCase() === "cpp") {
-                try { fs.unlinkSync(`${tempFile}.out`); } catch (e) { }
-            }
+        const startTime = Date.now();
+        exec(cmd, { 
+            timeout: 5000, 
+            cwd: sandboxDir,
+            env: { NODE_OPTIONS: "--max-old-space-size=256" }
+        }, (error, stdout, stderr) => {
+            const timeTaken = Date.now() - startTime;
 
-            const output = stdout || "";
-            const errorLogs = stderr || "";
+            // Cleanup
+            try { fs.rmSync(sandboxDir, { recursive: true, force: true }); } catch (e) { }
+
+            // 🕵️ REDACTION: Hide trace of sandbox files from output
+            const redact = (text) => {
+                if (!text) return "";
+                return text
+                    .split(`solution.${ext}`).join("")
+                    .split("solution.out").join("")
+                    .split("Main.java").join("")
+                    .split("Main.class").join("")
+                    .split("Main").join("") // Careful with 'Main', but in context of Java error logs it's often filename
+                    .trim();
+            };
+
+            const output = redact(stdout);
+            const errorLogs = redact(stderr);
 
             if (error && error.killed) {
-                return res.status(200).json({ success: false, output, errorType: "Runtime Error", error: "Execution Timed Out (5s limit exceeded)" });
+                return res.status(200).json({ 
+                    success: false, 
+                    output, 
+                    errorType: "Runtime Error", 
+                    error: "Execution Timed Out (5s limit exceeded)",
+                    timeTaken
+                });
             }
 
             res.status(200).json({
                 success: error ? false : true,
                 output: output,
                 errorType: error ? "Runtime/Compile Error" : "",
-                error: errorLogs.trim() || (error ? error.message : "")
+                error: errorLogs.trim() || (error ? error.message : ""),
+                timeTaken
             });
         });
 
     } catch (e) {
         console.error("Local Sandbox execution error:", e);
-        res.status(500).json({ success: false, error: `Failed to execute code: ${e.message}`, errorType: "Execution Server Error" });
+        res.status(500).json({ 
+            success: false, 
+            error: `Failed to execute code: ${e.message}`, 
+            errorType: "Execution Server Error" 
+        });
     }
 };
 

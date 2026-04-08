@@ -1,8 +1,8 @@
 import { Link } from "react-router";
 import Navbar from "../components/Navbar";
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { PROBLEMS } from "../data/problems";
-import { ChevronRightIcon, Code2Icon, CheckCircle2Icon, SearchIcon, FlameIcon, ClockIcon, TrophyIcon, TagIcon, SparklesIcon, BotIcon, XIcon, LightbulbIcon, ArrowRightIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, Code2Icon, CheckCircle2Icon, SearchIcon, FlameIcon, ClockIcon, TrophyIcon, TagIcon, SparklesIcon, BotIcon, XIcon, LightbulbIcon, ArrowRightIcon } from "lucide-react";
 import { getDifficultyBadgeClass } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../lib/axios";
@@ -83,6 +83,67 @@ function ProgressRing({ solved, total, color, label, size = 85 }) {
         </div>
       </div>
       <div className="text-[10px] font-bold text-base-content/40 mt-1">/{total}</div>
+    </div>
+  );
+}
+
+// Feature #11: Premium Glass Select Component
+function GlassSelect({ label, value, options, onChange, icon }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full h-12 px-5 bg-base-200/60 backdrop-blur-[40px] border border-white/5 rounded-xl hover:border-primary/40 hover:shadow-[0_0_25px_rgba(var(--color-primary),0.15)] transition-all duration-500 text-sm font-bold group tracking-tight"
+      >
+        <div className="flex items-center gap-2 truncate">
+          {icon && <span className="opacity-50">{icon}</span>}
+          <span className={value === "All" ? "text-base-content/30" : "text-base-content"}>
+            {value === "All" ? label : value}
+          </span>
+        </div>
+        <ChevronDownIcon className={`size-4 opacity-20 transition-transform duration-500 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute top-full left-0 mt-2 w-full z-[100] bg-base-100/90 backdrop-blur-[60px] border border-white/10 rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.5),0_0_50px_rgba(var(--color-primary),0.05)] py-2 overflow-hidden"
+          >
+            <div className="max-h-60 overflow-y-auto no-scrollbar">
+              <button
+                onClick={() => { onChange("All"); setIsOpen(false); }}
+                className={`w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary/10 transition-colors ${value === "All" ? "text-primary bg-primary/5" : "text-base-content/40"}`}
+              >
+                All {label}s
+              </button>
+              {options.map((opt) => (
+                <button
+                  key={typeof opt === 'string' ? opt : opt.value}
+                  onClick={() => { onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }}
+                  className={`w-full text-left px-5 py-3 text-sm font-bold tracking-tight hover:bg-primary/10 transition-colors ${value === (typeof opt === 'string' ? opt : opt.value) ? "text-primary bg-primary/5" : "text-base-content/90"}`}
+                >
+                  {typeof opt === 'string' ? opt : opt.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -232,8 +293,8 @@ function ProblemsPage() {
           transition={{ delay: 0.1 }}
           className="bg-base-100/20 backdrop-blur-md rounded-2xl p-4 border border-white/5 mb-6 space-y-4 shadow-lg relative z-20"
         >
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="relative md:col-span-2 lg:col-span-2">
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 size-5 pointer-events-none" />
               <input
                 type="text"
@@ -243,26 +304,31 @@ function ProblemsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex gap-3 flex-wrap">
-              <select className="select select-bordered bg-base-200/50 h-12 text-sm font-semibold" value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)}>
-                <option value="All">Difficulty</option>
-                <option value="Easy">🟢 Easy</option>
-                <option value="Medium">🟡 Medium</option>
-                <option value="Hard">🔴 Hard</option>
-              </select>
-              <select className="select select-bordered bg-base-200/50 h-12 text-sm font-semibold" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                <option value="All">Category</option>
-                {categories.filter(c => c !== "All").map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <select className="select select-bordered bg-base-200/50 h-12 text-sm font-semibold" value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)}>
-                <option value="All">Company</option>
-                {allCompanies.filter(c => c !== "All").map((c) => (
-                  <option key={c} value={c}>🏢 {c}</option>
-                ))}
-              </select>
-            </div>
+
+            <GlassSelect 
+              label="Difficulty" 
+              value={difficultyFilter} 
+              onChange={setDifficultyFilter}
+              options={[
+                { label: "🟢 Easy", value: "Easy" },
+                { label: "🟡 Medium", value: "Medium" },
+                { label: "🔴 Hard", value: "Hard" }
+              ]} 
+            />
+
+            <GlassSelect 
+              label="Category" 
+              value={categoryFilter} 
+              onChange={setCategoryFilter}
+              options={categories.filter(c => c !== "All")} 
+            />
+
+            <GlassSelect 
+              label="Company" 
+              value={companyFilter} 
+              onChange={setCompanyFilter}
+              options={allCompanies.filter(c => c !== "All").map(c => ({ label: `🏢 ${c}`, value: c }))} 
+            />
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">

@@ -1,32 +1,33 @@
+import React, { Suspense, useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { Toaster } from "react-hot-toast";
-import { useState, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
-import HomePage from "./pages/HomePage";
-import DashboardPage from "./pages/DashboardPage";
-import ProblemPage from "./pages/ProblemPage";
-import ProblemsPage from "./pages/ProblemsPage";
-import SessionPage from "./pages/SessionPage";
-import LeaderboardPage from "./pages/LeaderboardPage";
-import SpeedrunPage from "./pages/SpeedrunPage";
-import StudyTracksPage from "./pages/StudyTracksPage";
-import WhiteboardPage from "./pages/WhiteboardPage";
-import PlaygroundPage from "./pages/PlaygroundPage";
-import InterviewPage from "./pages/InterviewPage";
-import TrackPage from "./pages/TrackPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import GeneratePage from "./pages/GeneratePage";
-import FlashcardPage from "./pages/FlashcardPage";
-import VoiceInterviewPage from "./pages/VoiceInterviewPage";
-import BehavioralInterviewPage from "./pages/BehavioralInterviewPage";
-import CompanyMockPage from "./pages/CompanyMockPage";
-import PublicProfilePage from "./pages/PublicProfilePage";
-import FullMockInterviewPage from "./pages/FullMockInterviewPage";
-import InterviewReplayPage from "./pages/InterviewReplayPage";
-import DossierPage from "./pages/DossierPage";
-import PricingPage from "./pages/PricingPage";
+// Lazy-loaded pages
+const HomePage = React.lazy(() => import("./pages/HomePage"));
+const DashboardPage = React.lazy(() => import("./pages/DashboardPage"));
+const ProblemPage = React.lazy(() => import("./pages/ProblemPage"));
+const ProblemsPage = React.lazy(() => import("./pages/ProblemsPage"));
+const SessionPage = React.lazy(() => import("./pages/SessionPage"));
+const LeaderboardPage = React.lazy(() => import("./pages/LeaderboardPage"));
+const SpeedrunPage = React.lazy(() => import("./pages/SpeedrunPage"));
+const StudyTracksPage = React.lazy(() => import("./pages/StudyTracksPage"));
+const WhiteboardPage = React.lazy(() => import("./pages/WhiteboardPage"));
+const PlaygroundPage = React.lazy(() => import("./pages/PlaygroundPage"));
+const InterviewPage = React.lazy(() => import("./pages/InterviewPage"));
+const TrackPage = React.lazy(() => import("./pages/TrackPage"));
+const OnboardingPage = React.lazy(() => import("./pages/OnboardingPage"));
+const GeneratePage = React.lazy(() => import("./pages/GeneratePage"));
+const FlashcardPage = React.lazy(() => import("./pages/FlashcardPage"));
+const VoiceInterviewPage = React.lazy(() => import("./pages/VoiceInterviewPage"));
+const BehavioralInterviewPage = React.lazy(() => import("./pages/BehavioralInterviewPage"));
+const CompanyMockPage = React.lazy(() => import("./pages/CompanyMockPage"));
+const PublicProfilePage = React.lazy(() => import("./pages/PublicProfilePage"));
+const FullMockInterviewPage = React.lazy(() => import("./pages/FullMockInterviewPage"));
+const InterviewReplayPage = React.lazy(() => import("./pages/InterviewReplayPage"));
+const DossierPage = React.lazy(() => import("./pages/DossierPage"));
+const PricingPage = React.lazy(() => import("./pages/PricingPage"));
 import CommandPalette from "./components/CommandPalette";
 
 
@@ -57,46 +58,59 @@ function App() {
       <ClerkAxiosInterceptor>
         <UserSync />
         <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={!isSignedIn ? <PageTransition><HomePage /></PageTransition> : <Navigate to={"/dashboard"} />} />
-            <Route path="/onboarding" element={isSignedIn ? <PageTransition><OnboardingPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route
-              path="/dashboard"
-              element={
-                isSignedIn
-                  ? onboardingDone
-                    ? <PageTransition><DashboardPage /></PageTransition>
-                    : <Navigate to="/onboarding" />
-                  : <Navigate to={"/"} />
-              }
-            />
+          <Suspense fallback={
+            <div className="fixed inset-0 z-[200] bg-base-100 flex flex-col items-center justify-center gap-4">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="size-16 rounded-3xl bg-primary/10 flex items-center justify-center"
+              >
+                <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              </motion.div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 animate-pulse">Initializing Neural Interface...</p>
+            </div>
+          }>
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={!isSignedIn ? <PageTransition><HomePage /></PageTransition> : <Navigate to={"/dashboard"} />} />
+              <Route path="/onboarding" element={isSignedIn ? <PageTransition><OnboardingPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route
+                path="/dashboard"
+                element={
+                  isSignedIn
+                    ? onboardingDone
+                      ? <PageTransition><DashboardPage /></PageTransition>
+                      : <Navigate to="/onboarding" />
+                    : <Navigate to={"/"} />
+                }
+              />
 
-            <Route path="/problems" element={isSignedIn ? <PageTransition><ProblemsPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/problem/:id" element={isSignedIn ? <PageTransition><ProblemPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/session/:id" element={isSignedIn ? <PageTransition><SessionPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/problems" element={isSignedIn ? <PageTransition><ProblemsPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/problem/:id" element={isSignedIn ? <PageTransition><ProblemPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/session/:id" element={isSignedIn ? <PageTransition><SessionPage /></PageTransition> : <Navigate to={"/"} />} />
 
-            <Route path="/leaderboard" element={isSignedIn ? <PageTransition><LeaderboardPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/speedrun" element={isSignedIn ? <PageTransition><SpeedrunPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/curated" element={isSignedIn ? <PageTransition><StudyTracksPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/curated/:trackId" element={isSignedIn ? <PageTransition><TrackPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/whiteboard" element={isSignedIn ? <PageTransition><WhiteboardPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/playground" element={isSignedIn ? <PageTransition><PlaygroundPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/interview" element={isSignedIn ? <PageTransition><InterviewPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/full-gauntlet" element={isSignedIn ? <PageTransition><FullMockInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/generate" element={isSignedIn ? <PageTransition><GeneratePage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/flashcards" element={isSignedIn ? <PageTransition><FlashcardPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/leaderboard" element={isSignedIn ? <PageTransition><LeaderboardPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/speedrun" element={isSignedIn ? <PageTransition><SpeedrunPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/curated" element={isSignedIn ? <PageTransition><StudyTracksPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/curated/:trackId" element={isSignedIn ? <PageTransition><TrackPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/whiteboard" element={isSignedIn ? <PageTransition><WhiteboardPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/playground" element={isSignedIn ? <PageTransition><PlaygroundPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/interview" element={isSignedIn ? <PageTransition><InterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/full-gauntlet" element={isSignedIn ? <PageTransition><FullMockInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/generate" element={isSignedIn ? <PageTransition><GeneratePage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/flashcards" element={isSignedIn ? <PageTransition><FlashcardPage /></PageTransition> : <Navigate to={"/"} />} />
 
-            {/* New Pro Features */}
-            <Route path="/voice-interview" element={isSignedIn ? <PageTransition><VoiceInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/behavioral" element={isSignedIn ? <PageTransition><BehavioralInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/company-mock" element={isSignedIn ? <PageTransition><CompanyMockPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/replay/:sessionId" element={isSignedIn ? <PageTransition><InterviewReplayPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/dossier/:sessionId" element={<DossierPage />} />
-            <Route path="/pricing" element={isSignedIn ? <PageTransition><PricingPage /></PageTransition> : <Navigate to={"/"} />} />
-            <Route path="/u/:username" element={<PageTransition><PublicProfilePage /></PageTransition>} />
+              {/* New Pro Features */}
+              <Route path="/voice-interview" element={isSignedIn ? <PageTransition><VoiceInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/behavioral" element={isSignedIn ? <PageTransition><BehavioralInterviewPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/company-mock" element={isSignedIn ? <PageTransition><CompanyMockPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/replay/:sessionId" element={isSignedIn ? <PageTransition><InterviewReplayPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/dossier/:sessionId" element={<DossierPage />} />
+              <Route path="/pricing" element={isSignedIn ? <PageTransition><PricingPage /></PageTransition> : <Navigate to={"/"} />} />
+              <Route path="/u/:username" element={<PageTransition><PublicProfilePage /></PageTransition>} />
 
 
-          </Routes>
+            </Routes>
+          </Suspense>
         </AnimatePresence>
       </ClerkAxiosInterceptor>
 
