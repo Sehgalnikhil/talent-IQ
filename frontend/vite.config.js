@@ -10,17 +10,28 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('lucide-react')) return 'vendor-lucide';
-            if (id.includes('framer-motion')) return 'vendor-motion';
-            if (id.includes('axios')) return 'vendor-axios';
+            if (id.includes('three') || id.includes('@react-three')) return 'vendor-3d';
+            if (id.includes('monaco-editor')) return 'vendor-monaco';
             if (id.includes('@clerk')) return 'vendor-clerk';
-            return 'vendor-core';
+            if (id.includes('framer-motion') || id.includes('gsap')) return 'vendor-animation';
+            if (id.includes('stream-chat') || id.includes('@stream-io')) return 'vendor-stream';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('axios') || id.includes('@tanstack')) return 'vendor-query';
+            return 'vendor-utils';
           }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 800,
+    reportCompressedSize: false, // Speed up builds
     cssCodeSplit: true,
     minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
 });
+

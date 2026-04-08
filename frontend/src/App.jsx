@@ -28,7 +28,9 @@ const FullMockInterviewPage = React.lazy(() => import("./pages/FullMockInterview
 const InterviewReplayPage = React.lazy(() => import("./pages/InterviewReplayPage"));
 const DossierPage = React.lazy(() => import("./pages/DossierPage"));
 const PricingPage = React.lazy(() => import("./pages/PricingPage"));
-import CommandPalette from "./components/CommandPalette";
+// Lazy-load global but non-critical components
+const CommandPalette = React.lazy(() => import("./components/CommandPalette"));
+
 
 
 import ClerkAxiosInterceptor from "./components/ClerkAxiosInterceptor";
@@ -110,15 +112,16 @@ function App() {
 
 
             </Routes>
+            <CommandPalette />
           </Suspense>
         </AnimatePresence>
       </ClerkAxiosInterceptor>
 
       <Toaster toastOptions={{ duration: 3000 }} />
-      <CommandPalette />
     </>
   );
 }
+
 
 export default App;
 

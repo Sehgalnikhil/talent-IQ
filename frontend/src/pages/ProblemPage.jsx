@@ -7,11 +7,15 @@ import Navbar from "../components/Navbar";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import ProblemDescription from "../components/ProblemDescription";
 import OutputPanel from "../components/OutputPanel";
-import CodeEditorPanel from "../components/CodeEditorPanel";
+// Lazy-loaded heavy components for performance (Monaco, Three.js wrappers, etc.)
+const CodeEditorPanel = React.lazy(() => import("../components/CodeEditorPanel"));
+const ProblemMLInsights = React.lazy(() => import("../components/MLWidgets").then(m => ({ default: m.ProblemMLInsights })));
+
 import { executeCode } from "../lib/piston";
 import axiosInstance from "../lib/axios";
 import { AdaptiveDifficulty, StuckDetector } from "../lib/ml-engine";
-import { ProblemMLInsights } from "../components/MLWidgets";
+
+
 
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
@@ -574,36 +578,44 @@ function ProblemPage() {
               <PanelGroup direction="vertical">
                 <Panel defaultSize={65} minSize={30}>
                   <div className="h-full bg-base-100 border-b border-white/5">
-                    <CodeEditorPanel
-                      selectedLanguage={selectedLanguage}
-                      code={code}
-                      isRunning={isRunning}
-                      isAskingAI={isAskingAI}
-                      isRefactoring={isRefactoring}
-                      isEvaluating={isEvaluating}
-                      onLanguageChange={handleLanguageChange}
-                      onCodeChange={(newCode) => {
-                        setCode(newCode);
-                        if (newCode.length < code.length) StuckDetector.recordKeystroke("delete");
-                        else StuckDetector.recordKeystroke("type");
-                        
-                        const analysis = StuckDetector.analyze();
-                        if (analysis.isStuck && !showChat) {
-                          toast("You seem stuck. Opening AI Assistant to help! 🤖", { icon: "🧠" });
-                          setShowChat(true);
-                          setChatMessages([{ role: "ai", text: `I noticed you might be stuck (${analysis.reason}). Need a hint? Let me know where you're confused!` }]);
-                          StuckDetector.reset(); 
-                        }
-                        setCode(newCode);
-                      }}
-                      onRunCode={handleRunCode}
-                      onGetAIHint={handleGetAIHint}
-                      onRefactorCode={handleRefactorCode}
-                      onEvaluateCode={handleEvaluateCode}
-                      fontSize={fontSize}
-                      onFontSizeChange={setFontSize}
-                      isMock={isMock}
-                    />
+                    <Suspense fallback={
+                      <div className="h-full bg-base-100 flex flex-col items-center justify-center gap-4">
+                        <Loader2Icon className="size-8 animate-spin text-primary/40" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Hydrating Monaco...</p>
+                      </div>
+                    }>
+                      <CodeEditorPanel
+                        selectedLanguage={selectedLanguage}
+                        code={code}
+                        isRunning={isRunning}
+                        isAskingAI={isAskingAI}
+                        isRefactoring={isRefactoring}
+                        isEvaluating={isEvaluating}
+                        onLanguageChange={handleLanguageChange}
+                        onCodeChange={(newCode) => {
+                          setCode(newCode);
+                          if (newCode.length < code.length) StuckDetector.recordKeystroke("delete");
+                          else StuckDetector.recordKeystroke("type");
+                          
+                          const analysis = StuckDetector.analyze();
+                          if (analysis.isStuck && !showChat) {
+                            toast("You seem stuck. Opening AI Assistant to help! 🤖", { icon: "🧠" });
+                            setShowChat(true);
+                            setChatMessages([{ role: "ai", text: `I noticed you might be stuck (${analysis.reason}). Need a hint? Let me know where you're confused!` }]);
+                            StuckDetector.reset(); 
+                          }
+                        }}
+
+                        onRunCode={handleRunCode}
+                        onGetAIHint={handleGetAIHint}
+                        onRefactorCode={handleRefactorCode}
+                        onEvaluateCode={handleEvaluateCode}
+                        fontSize={fontSize}
+                        onFontSizeChange={setFontSize}
+                        isMock={isMock}
+                      />
+                    </Suspense>
+
                   </div>
                 </Panel>
 
@@ -632,11 +644,14 @@ function ProblemPage() {
                     Execution Intelligence
                   </div>
                   <div className="p-2">
-                    <ProblemMLInsights
-                      problemId={currentProblemId}
-                      code={code}
-                      language={selectedLanguage}
-                    />
+                    <Suspense fallback={<div className="p-4 space-y-4 animate-pulse"><div className="h-24 bg-primary/5 rounded-2xl"/><div className="h-48 bg-primary/5 rounded-2xl"/></div>}>
+                      <ProblemMLInsights
+                        problemId={currentProblemId}
+                        code={code}
+                        language={selectedLanguage}
+                      />
+                    </Suspense>
+
                   </div>
                 </div>
               </Panel>

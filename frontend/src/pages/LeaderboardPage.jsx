@@ -106,7 +106,7 @@ function LeaderboardPage() {
                                         <div className="avatar">
                                             <div className="size-20 rounded-2xl bg-slate-800 font-black text-slate-100 shadow-xl border border-white/5">
                                                 {topThree[1].profileImage ? (
-                                                    <img src={topThree[1].profileImage} alt={topThree[1].name} />
+                                                    <img src={topThree[1].profileImage} alt={topThree[1].name} loading="lazy" decoding="async" />
                                                 ) : (
                                                     <span className="text-xl">{topThree[1].name.substring(0, 2).toUpperCase()}</span>
                                                 )}
@@ -135,7 +135,7 @@ function LeaderboardPage() {
                                             <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute inset-[-10px] rounded-full border border-dashed border-warning/40" />
                                             <div className="size-36 rounded-3xl bg-gradient-to-br from-warning to-amber-500 font-black text-warning-content shadow-3xl ring-4 ring-warning/30">
                                                 {topThree[0].profileImage ? (
-                                                    <img src={topThree[0].profileImage} alt={topThree[0].name} className="object-cover" />
+                                                    <img src={topThree[0].profileImage} alt={topThree[0].name} className="object-cover" loading="lazy" decoding="async" />
                                                 ) : (
                                                     <span className="text-4xl">{topThree[0].name.substring(0, 2).toUpperCase()}</span>
                                                 )}
@@ -161,7 +161,7 @@ function LeaderboardPage() {
                                         <div className="avatar">
                                             <div className="size-20 rounded-2xl bg-amber-900 font-black text-amber-100 shadow-xl border border-white/5">
                                                 {topThree[2].profileImage ? (
-                                                    <img src={topThree[2].profileImage} alt={topThree[2].name} />
+                                                    <img src={topThree[2].profileImage} alt={topThree[2].name} loading="lazy" decoding="async" />
                                                 ) : (
                                                     <span className="text-xl">{topThree[2].name.substring(0, 2).toUpperCase()}</span>
                                                 )}
@@ -201,8 +201,9 @@ function LeaderboardPage() {
                                     <motion.tr
                                         key={idx}
                                         initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: idx * 0.05 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true, margin: "-50px" }}
+                                        transition={{ delay: Math.min(idx * 0.05, 1) }}
                                         className="group"
                                     >
                                         <td className="pl-12 py-6">
@@ -218,7 +219,7 @@ function LeaderboardPage() {
                                                 <div className="avatar">
                                                     <div className={`size-12 rounded-2xl shadow-xl transition-all group-hover:scale-110 ${idx < 3 ? 'bg-gradient-to-r from-warning to-amber-500 text-white' : 'bg-white/5 text-white/80'}`}>
                                                         {user.profileImage ? (
-                                                            <img src={user.profileImage} alt={user.name} />
+                                                            <img src={user.profileImage} alt={user.name} loading="lazy" decoding="async" />
                                                         ) : (
                                                             <span className="text-xs font-black">{user.name.substring(0, 2).toUpperCase()}</span>
                                                         )}
